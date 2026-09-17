@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Crear Sala</title>
+
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/crear-sala.css">
+</head>
+<body>
+<script src="/js/music.js"></script>
+
+    <main class="admin-page">
+
+        <header class="admin-header">
+
+            <div class="logo-placeholder">             
+            </div>
+          
+        </header>
+        
+        <div class="header-info">
+
+            <h1>CREAR SALA</h1>
+
+            <p>
+                Configurá la partida antes de comenzar
+            </p>
+
+        </div>
+            
+        <section class="admin-content">
+
+            <article class="panel-card">
+
+                <h2>Equipo</h2>
+
+                <div class="team-selector">
+
+                    <button
+                        class="team-option selected"
+                        data-team="red">
+
+                        🔴 Rojo
+
+                    </button>
+
+                    <button
+                        class="team-option"
+                        data-team="blue">
+
+                        🔵 Azul
+
+                    </button>
+
+                </div>
+
+            </article>
+
+            <article class="panel-card">
+
+                <h2>Configuración del Partido</h2>
+
+                <div class="form-group">
+
+                    <label for="matchTime">
+
+                        Duración
+
+                    </label>
+
+                    <select id="matchTime">
+
+                        <option value="3">
+                            3 minutos
+                        </option>
+
+                        <option value="5" selected>
+                            5 minutos
+                        </option>
+
+                        <option value="10">
+                            10 minutos
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="goalLimit">
+
+                        Objetivo de goles
+
+                    </label>
+
+                    <select id="goalLimit">
+
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+
+                    </select>
+
+                </div>
+
+            </article>
+
+            <article class="panel-card">
+
+                <h2>Cancha</h2>
+
+                <div class="map-carousel">
+
+                    <button
+                        id="prevMap"
+                        class="map-arrow">
+
+                        ◀
+
+                    </button>
+
+                    <div class="map-preview">
+
+                        <div class="map-preview-container" style="width: 100%; max-width: 400px; height: 220px; margin: 0 auto; overflow: hidden; border: 2px solid #555;">
+   <img id="mapPreviewImg" src="img/fondo.jpg" alt="Previsualización del mapa" style="width: 100%; height: 100%; object-fit: cover;">
+</div>
+
+                        <h3 id="mapName">
+
+                            Classic Arena
+
+                        </h3>
+
+                    </div>
+
+                    <button
+                        id="nextMap"
+                        class="map-arrow">
+
+                        ▶
+
+                    </button>
+
+                </div>
+
+            </article>
+
+        </section>
+
+        <footer class="admin-footer">
+
+            <button
+                id="backButton"
+                class="btn-secondary">
+
+                Volver
+
+            </button>
+
+            <button
+                id="createRoomButton"
+                class="btn-primary">
+
+                Crear
+
+            </button>
+
+        </footer>
+
+    </main>
+
+    <script src="../js/theme-loader.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../js/crear-sala.js"></script>
+
+</body>
+</html>

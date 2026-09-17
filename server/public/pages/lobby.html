@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Lobby</title>
+
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/lobby.css">
+</head>
+<body>
+<script src="/js/music.js"></script>
+
+    <main class="lobby">
+
+        <!-- HEADER Logo-->
+
+        <header class="lobby-header">
+
+            <div class="logo-placeholder"></div>
+
+ </header>
+            <div class="room-info">
+
+                <h1>SALA PRINCIPAL</h1>
+
+                <p>ID: #001</p>
+
+            </div>
+
+
+        <!-- CONTENIDO -->
+
+        <section class="lobby-content">
+
+            <!-- CHAT -->
+
+            <aside class="chat-panel">
+
+                <div class="panel-title">
+
+                    CHAT
+
+                </div>
+
+                <div
+                    id="chatMessages"
+                    class="chat-messages">
+
+                </div>
+
+                <div class="chat-input">
+
+                    <input
+                        type="text"
+                        id="messageInput"
+                        placeholder="Escribí un mensaje..."
+                    >
+
+                    <button id="sendButton">
+
+                        ➤
+
+                    </button>
+
+                </div>
+
+            </aside>
+
+            <!-- EQUIPOS -->
+
+            <section class="teams-panel">
+
+                <div class="team-card team-red">
+
+                    <div class="team-header">
+
+                        🔴 EQUIPO ROJO
+
+                    </div>
+
+                    <div
+                        id="redTeam"
+                        class="players-list">
+
+                    </div>
+
+                </div>
+
+                <div class="team-card team-blue">
+
+                    <div class="team-header">
+
+                        🔵 EQUIPO AZUL
+
+                    </div>
+
+                    <div
+                        id="blueTeam"
+                        class="players-list">
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </section>
+
+        <!-- CONFIG -->
+
+        <section class="match-info">
+
+            <div class="info-card">
+
+                <span>Duración</span>
+                <strong id="matchDurationValue">5 Min</strong>
+
+            </div>
+
+            <div class="info-card">
+
+                <span>Objetivo</span>
+                <strong id="goalLimitValue">5 Goles</strong>
+
+            </div>
+
+            <div class="info-card">
+
+                <span>Mapa</span>
+                <strong id="mapNameValue">Classic Arena</strong>
+
+            </div>
+
+        </section>
+
+        <!-- BOTONES -->
+
+        <footer class="lobby-footer">
+
+            <button
+                id="backButton"
+                class="action-button secondary">
+
+                Volver
+
+            </button>
+
+            <button
+                id="changeTeamButton"
+                class="action-button">
+
+                Cambiar Equipo
+
+            </button>
+
+
+            <button
+                id="startGameButton"
+                class="action-button start">
+
+                Iniciar Partido
+
+            </button>
+
+        </footer>
+
+    </main>
+
+    <script src="../js/theme-loader.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../js/lobby.js"></script>
+</body>
+</html>

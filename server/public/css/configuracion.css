@@ -1,0 +1,211 @@
+/* ========================= */
+/* RESET */
+/* ========================= */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+/* ========================= */
+/* BASE PAGE */
+/* ========================= */
+
+body{
+
+    width:100vw;
+    height:100vh;
+
+    overflow:hidden;
+
+    background:var(--background-color);
+    color:var(--text-color);
+
+}
+
+/* ========================= */
+/* PAGE LAYOUT */
+/* ========================= */
+
+.settings-page{
+
+    width:100%;
+    height:100%;
+
+    padding:25px;
+
+    display:flex;
+    flex-direction:column;
+
+}
+
+/* ========================= */
+/* HEADER */
+/* ========================= */
+
+.settings-header{
+
+    height:120px;
+
+    display:flex;
+    align-items:center;
+    gap:25px;
+
+    margin-bottom:20px;
+
+}
+
+.logo-placeholder{
+
+    position:absolute;
+
+    top:20px;
+    left:30px;
+
+    width:320px;
+    height:110px;
+
+    border-radius:18px;
+
+    background-image:url("../img/logo.png");
+    background-size:cover;
+    background-position:center;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    z-index:20;
+}
+
+/* ========================= */
+/* TEXT */
+/* ========================= */
+
+.header-info h1{
+    font-size:3rem;
+    font-weight:900;
+    color:var(--text-color);
+}
+
+/* ========================= */
+/* CONTENT */
+/* ========================= */
+
+.settings-content{
+
+    flex:1;
+
+    display:grid;
+    grid-template-columns:1fr 1fr;
+
+    gap:25px;
+
+}
+
+/* ========================= */
+/* CARD */
+/* ========================= */
+
+.settings-card{
+
+    background:var(--surface-color);
+    border-radius:24px;
+    padding:30px;
+
+    border:2px solid var(--border-color);
+
+    color:var(--text-color);
+}
+
+.settings-card h2{
+    margin-bottom:25px;
+    color:var(--text-color);
+}
+
+/* ========================= */
+/* INPUTS */
+/* ========================= */
+
+.setting-group{
+
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-bottom:25px;
+
+}
+
+.setting-group input[type="range"]{
+    width:100%;
+}
+
+.setting-group select{
+
+    border:none;
+    border-radius:14px;
+    padding:14px;
+
+    background:var(--surface-color);
+    color:var(--text-color);
+
+    border:1px solid var(--border-color);
+}
+
+/* checkbox */
+.checkbox-group{
+    flex-direction:row;
+    align-items:center;
+}
+
+/* ========================= */
+/* FOOTER */
+/* ========================= */
+
+.settings-footer{
+
+    height:90px;
+
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    gap:15px;
+
+}
+
+/* ========================= */
+/* BUTTONS */
+/* ========================= */
+
+.btn-primary,
+.btn-secondary{
+
+    border:none;
+    border-radius:16px;
+    padding:16px 28px;
+
+    font-weight:bold;
+    cursor:pointer;
+
+    transition:.2s ease;
+
+}
+
+.btn-primary{
+
+    background:var(--primary-color);
+    color:white;
+}
+
+.btn-primary:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
+.btn-secondary{
+
+    background:var(--border-color);
+    color:var(--text-color);
+}

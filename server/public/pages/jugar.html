@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Jugar</title>
+    
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/jugar.css">
+</head>
+<body>
+<script src="../js/music.js"></script>
+
+    <!-- ========================= -->
+    <!-- VISTA DE JUEGO -->
+    <!-- ========================= -->
+
+    <main id="jugar-menu" class="view active">
+
+        <div class="menu-grid">
+
+           <button id="btnCreateRoom" class="menu-card menu-card--play">
+                <div class="menu-card__image"></div>
+
+                <div class="menu-card__content">
+                    <span class="menu-card__subtitle">
+                        ANFITRIÓN
+                    </span>
+
+                    <h2>CREAR SALA</h2>
+                </div>
+
+            </button>
+
+           <button id="btnJoinRoom" class="menu-card menu-card--play">
+                <div class="menu-card__image"></div>
+
+                <div class="menu-card__content">
+                    <span class="menu-card__subtitle">
+                        BUSCAR
+                    </span>
+
+                    <h2>SALAS DISPONIBLES</h2>
+                </div>
+
+            </button>
+
+        </div>
+
+        <div class="logo-container">
+
+        </div>
+
+        <!-- Botón para volver al menú -->
+        <button id="btnBack" class="btn-back">← Volver</button>
+
+    </main>
+
+    <script src="../js/theme-loader.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../js/jugar.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Haxball - Smash Bros Style Timer</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/juego.css">
+</head>
+<body>
+    <script src="/js/music.js"></script>
+
+<div id="scoreboard-container">
+    <div class="team-score blue-side">
+        🔵 <span id="blueScore">0</span>
+    </div>
+
+    <div id="timer-container">
+        <span id="timer-main">00:00</span><span id="timer-ms">.00</span>
+    </div>
+
+    <div class="team-score red-side">
+        <span id="redScore">0</span> 🔴
+    </div>
+</div>
+
+<!-- Botón táctil de pausa -->
+<button id="openPauseButton" class="pause-toggle" aria-label="Pausa">⏸</button>
+
+<canvas id="gameCanvas" width="1000" height="500"></canvas><div id="gameChat">
+
+    <div id="chatHeader">
+        💬 Chat
+    </div>
+
+    <div id="chatMessages">
+
+    </div>
+
+    <div id="chatControls">
+
+        <input
+            id="chatInput"
+            type="text"
+            placeholder="Escribí un mensaje..."
+        >
+
+        <button id="sendChat">
+            Enviar
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- chat en vivo eliminado -->
+
+<script src="../js/theme-loader.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="../js/juego.js"></script>
+
+<!-- Pausa: overlay con menú -->
+<div id="pauseOverlay" class="pause-overlay hidden">
+    <div class="pause-menu">
+        <h2>Pausa</h2>
+        <div class="pause-buttons">
+            <button id="resumeButton">Continuar</button>
+            <button id="restartButton">Reiniciar</button>
+            <button id="exitButton">Salir al menú</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

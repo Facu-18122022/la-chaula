@@ -1,0 +1,17 @@
+{
+  "name": "la-chaula",
+  "version": "1.0.0",
+  "description": "Clon local inspirado en HaxBall",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

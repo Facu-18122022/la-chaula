@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula</title>
+    
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/menu.css">
+</head>
+<body>
+<script src="../js/music.js"></script>
+
+    <!-- ========================= -->
+    <!-- MENU PRINCIPAL -->
+    <!-- ========================= -->
+
+    <main id="main-menu" class="view active">
+
+        <div class="menu-grid">
+
+           <button id="btnCreateRoom" class="menu-card menu-card--play">
+                <div class="menu-card__image"></div>
+
+                <div class="menu-card__content">
+                    <span class="menu-card__subtitle">
+                        MULTIJUGADOR
+                    </span>
+
+                    <h2>JUGAR</h2>
+                </div>
+
+            </button>
+
+           <button  id="btnSettings"  class="menu-card menu-card--settings">
+
+                <div class="menu-card__image"></div>
+
+                <div class="menu-card__content">
+                    <span class="menu-card__subtitle">
+                        AJUSTES
+                    </span>
+
+                    <h2>CONFIGURACIÓN</h2>
+                </div>
+
+            </button>
+
+            <button id="btnRanking"  class="menu-card menu-card--ranking">
+                <div class="menu-card__image"></div>
+
+                <div class="menu-card__content">
+                    <span class="menu-card__subtitle">
+                        ESTADÍSTICAS
+                    </span>
+
+                    <h2>RANKING</h2>
+                </div>
+
+            </button>
+
+            <button id="btnExit"  class="menu-card menu-card--exit">
+
+                <div class="menu-card__image"></div>
+
+                <div class="menu-card__content">
+                    <span class="menu-card__subtitle">
+                        SISTEMA
+                    </span>
+
+                    <h2>SALIR</h2>
+                    
+                </div>
+
+            </button>
+
+        </div>
+
+        <div class="logo-container">
+
+        </div>
+
+    </main>
+
+    <script src="../js/theme-loader.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../js/menu.js"></script>
+
+</body>
+</html>

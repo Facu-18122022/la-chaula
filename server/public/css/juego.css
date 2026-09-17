@@ -1,0 +1,377 @@
+body {
+    margin: 0;
+    background: #121212;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Arial Black', Arial, sans-serif;
+    user-select: none;
+}
+
+#scoreboard-container {
+    background: linear-gradient(180deg, rgba(40, 40, 40, 0.9) 0%, rgba(15, 15, 15, 0.95) 100%);
+    border-bottom: 4px solid #f53b57;
+    padding: 8px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 60px;
+    margin-bottom: 20px;
+    box-shadow: 0px 8px 25px rgba(0,0,0,0.8);
+    transform: skewX(-8deg);
+    border-radius: 4px;
+}
+
+.team-score {
+    font-size: 38px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 3px 3px 0px #000;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transform: skewX(8deg);
+}
+
+.blue-side { text-shadow: 3px 3px 0px #1a46a0, 4px 4px 0px #000; }
+.red-side { text-shadow: 3px 3px 0px #d63031, 4px 4px 0px #000; }
+
+#timer-container {
+    display: flex;
+    align-items: baseline;
+    font-size: 42px;
+    font-weight: 900;
+    font-style: italic;
+    color: #f1f2f6;
+    text-shadow:
+        -2px -2px 0 #000,
+         2px -2px 0 #000,
+        -2px  2px 0 #000,
+         2px  2px 0 #000,
+         4px  4px 0px rgba(0,0,0,0.5);
+    transform: skewX(8deg);
+    min-width: 210px;
+    justify-content: center;
+}
+
+#timer-ms {
+    font-size: 26px;
+    margin-left: 2px;
+}
+
+canvas {
+    border: 5px solid #2d3436;
+    background: #1a1a1a;
+    box-shadow: 0px 15px 35px rgba(0,0,0,0.9);
+}
+
+/* Pause overlay */
+.pause-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.55);
+    z-index: 100;
+}
+.pause-overlay.hidden { display: none; }
+
+.pause-menu {
+    background: linear-gradient(180deg, #1f2326, #121416);
+    border: 2px solid rgba(255,255,255,0.06);
+    padding: 22px 28px;
+    border-radius: 10px;
+    text-align: center;
+    min-width: 260px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+.pause-menu h2 { color: #fff; margin: 0 0 12px 0; font-size: 22px; }
+.pause-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.pause-buttons button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #1a46a0;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+.pause-buttons button.secondary { background: #2d3436; }
+
+/* Botón táctil de pausa */
+.pause-toggle {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 120;
+    background: rgba(30,41,59,0.95);
+    border: 2px solid #f53b57;
+    color: #fff;
+    font-size: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+}
+
+.pause-toggle:active { transform: scale(0.97); }
+
+
+/* Contenedor centrado para la cancha - referencia para posicionar el chat */
+.game-container{
+    width: var(--canvas-width);
+    margin: 0 auto;
+    position: relative;
+}
+
+/* CHAT EN VIVO */
+.game-chat-panel {
+    position: absolute; /* relativo a .game-container */
+    top: var(--chat-top-offset);
+    /* pegado al borde derecho de la cancha con separación (--chat-gap) */
+    right: calc(-1 * (var(--chat-width) + var(--chat-gap)));
+    width: var(--chat-width);
+    height: 140px;
+    background: rgba(17, 24, 39, 0.95);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid rgba(245,59,87,0.95);
+    box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.75);
+    z-index: 100;
+    backdrop-filter: blur(4px);
+    pointer-events: auto;
+}
+
+.game-chat-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #fff;
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f53b57;
+}
+
+.game-chat-messages {
+    flex: 1;
+    overflow: hidden; /* mostramos pocos mensajes, no scroll visible */
+    background: rgba(30, 41, 59, 0.95);
+    border-radius: 10px;
+    padding: 8px;
+    font-size: 0.85rem;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.game-chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.game-chat-messages::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+.game-chat-messages::-webkit-scrollbar-thumb {
+    background: #f53b57;
+    border-radius: 10px;
+}
+
+.chat-message {
+    margin: 0;
+    padding: 6px 8px;
+    background: rgba(45, 52, 54, 0.55);
+    border-radius: 6px;
+    word-wrap: break-word;
+    pointer-events: auto;
+}
+
+.chat-message.player-message {
+    background: rgba(26, 70, 160, 0.4);
+    border-left: 3px solid #1a46a0;
+}
+
+.chat-message.enemy-message {
+    background: rgba(214, 48, 49, 0.4);
+    border-left: 3px solid #d63031;
+}
+
+.chat-message-author {
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.game-chat-input {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.game-chat-input input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid #f53b57;
+    border-radius: 8px;
+    background: rgba(30, 41, 59, 0.9);
+    color: #fff;
+    font-size: 0.85rem;
+}
+
+.game-chat-input input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.game-chat-input input:focus {
+    outline: none;
+    border-color: #ff9ff3;
+    background: rgba(30, 41, 59, 1);
+}
+
+.game-chat-input button {
+    width: 40px;
+    padding: 8px;
+    border: 2px solid #f53b57;
+    border-radius: 8px;
+    background: #f53b57;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.game-chat-input button:hover {
+    background: #ff9ff3;
+    border-color: #ff9ff3;
+    transform: scale(1.05);
+}
+
+.game-chat-input button:active {
+    transform: scale(0.95);
+}
+
+/* BARRA DE CHAT DEBAJO DEL CANVAS */
+.game-chat-bottom {
+    width: 1000px; /* coincide con el canvas */
+    display: flex;
+    gap: 8px;
+    margin: 12px auto 24px auto;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+}
+
+.game-chat-bottom input {
+    flex: 1;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 2px solid #f53b57;
+    background: rgba(30,41,59,0.95);
+    color: #fff;
+    font-size: 1rem;
+}
+
+.game-chat-bottom button {
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: #f53b57;
+    color: #fff;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+    .game-chat-bottom { width: 90%; }
+}
+
+/* Si la ventana es más estrecha que el canvas + chat, posicionar el panel en el viewport */
+@media (max-width: 1240px) {
+    .game-chat-panel {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        left: auto;
+    }
+    .game-chat-bottom { width: calc(100% - 32px); }
+}
+#gameChat{
+
+    position:absolute;
+
+    right:20px;
+
+    top:50%;
+
+    transform:translateY(-50%);
+
+    width:260px;
+
+    height:420px;
+
+    background:#1f1f1f;
+
+    border:2px solid #444;
+
+    border-radius:12px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    overflow:hidden;
+
+}
+
+#chatMessages{
+
+    flex:1;
+
+    padding:10px;
+
+    overflow-y:auto;
+
+    word-break:break-word;
+
+}
+
+#chatInputContainer{
+
+    display:flex;
+
+    padding:10px;
+
+    gap:8px;
+
+}
+
+#chatInput{
+
+    flex:1;
+
+    padding:8px;
+
+}
+
+#sendChat{
+
+    padding:8px 12px;
+
+}
+
+.chatMessage{
+
+    margin-bottom:8px;
+
+}

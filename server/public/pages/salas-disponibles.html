@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Salas Disponibles</title>
+
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/salas-disponibles.css">
+</head>
+<body>
+<script src="../js/music.js"></script>
+
+    <main class="admin-page">
+
+        <header class="admin-header">
+
+            <div class="logo-placeholder">             
+            </div>
+          
+        </header>
+        
+        <div class="header-info">
+
+            <h1>SALAS DISPONIBLES</h1>
+
+            <p>
+                Selecciona una sala y únete a la partida
+            </p>
+
+        </div>
+            
+        <section class="rooms-container">
+
+            <!-- Las salas se cargarán dinámicamente aquí -->
+            <div id="roomsList" class="rooms-list">
+                <div class="loading">
+                    <p>Cargando salas disponibles...</p>
+                </div>
+            </div>
+
+        </section>
+
+        <footer class="admin-footer">
+
+            <button
+                id="backButton"
+                class="btn-secondary">
+
+                Volver
+
+            </button>
+
+            <button
+                id="joinRoomButton"
+                class="btn-primary"
+                disabled>
+
+                Unirse
+
+            </button>
+
+        </footer>
+
+    </main>
+
+    <script src="../js/theme-loader.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../js/salas-disponibles.js"></script>
+
+</body>
+</html>

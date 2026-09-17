@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Ranking</title>
+
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/ranking.css">
+</head>
+<body>
+<script src="/js/music.js"></script>
+
+    <main class="ranking-page">
+
+        <header class="ranking-header">
+
+            <div class="logo-placeholder"> </div>
+       
+        </header>
+
+            <div class="ranking-title">
+
+                <h1>RANKING GLOBAL</h1>
+
+                <p>
+                    Los mejores jugadores de La Chaula
+                </p>
+
+            </div>
+
+        <section class="podium">
+
+            <div class="podium-card second">
+
+                <span class="position">🥈</span>
+
+                <h2>—</h2>
+
+                <p></p>
+
+            </div>
+
+            <div class="podium-card first">
+
+                <span class="position">🥇</span>
+
+                <h2>—</h2>
+
+                <p></p>
+
+            </div>
+
+            <div class="podium-card third">
+
+                <span class="position">🥉</span>
+
+                <h2>—</h2>
+
+                <p></p>
+
+            </div>
+
+        </section>
+
+        <section class="ranking-table-container">
+
+            <table class="ranking-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+                        <th>Jugador</th>
+                        <th>Goles</th>
+                        <th>Partidos</th>
+                        <th>Victorias</th>
+                        <th>Puntos</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="rankingBody">
+
+                </tbody>
+
+            </table>
+
+        </section>
+
+        <footer class="ranking-footer">
+
+            <button
+                id="backButton"
+                class="back-button">
+
+                Volver
+
+            </button>
+
+        </footer>
+
+    </main>
+
+    <script src="../js/theme-loader.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../js/ranking.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Configuración</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/configuracion.css">
+</head>
+<body>
+<script src="/js/music.js"></script>
+
+    <main class="settings-page">
+
+        <header class="settings-header">
+
+            <div class="logo-placeholder"> </div>
+
+ </header>
+            <div class="header-info">
+
+                <h1>CONFIGURACIÓN</h1>
+
+                <p>
+                    Personalizá tu experiencia de juego
+                </p>
+
+            </div>
+
+        <section class="settings-content">
+
+            <!-- AUDIO -->
+
+            <article class="settings-card">
+
+                <h2>🔊 Audio</h2>
+
+                <div class="setting-group">
+
+                    <label>
+                        Música
+                    </label>
+
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="70"
+                        id="musicVolume"
+                        class="setting-input"
+                    >
+
+                </div>
+
+                <div class="setting-group">
+
+                    <label>
+                        Efectos
+                    </label>
+
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="80"
+                        id="effectsVolume"
+                        class="setting-input"
+                    >
+
+                </div>
+
+                <div class="setting-group checkbox-group">
+
+                    <input
+                        type="checkbox"
+                        id="muteAll"
+                        class="setting-input"
+                    >
+
+                    <label for="muteAll">
+                        Silenciar todo
+                    </label>
+
+                </div>
+
+            </article>
+
+            <!-- VISUAL -->
+
+            <article class="settings-card">
+
+                <h2>🎨 Apariencia</h2>
+
+                <div class="setting-group">
+
+                    <label>
+                        Tema
+                    </label>
+
+                    <select
+                        id="themeSelect"
+                        class="setting-input">
+
+                        <option value="dark">
+                            Oscuro
+                        </option>
+
+                        <option value="light">
+                            Claro
+                        </option>
+
+                        <option value="neon">
+                            Neón
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="setting-group">
+
+                    <label>
+                        Animaciones
+                    </label>
+
+                    <select
+                        id="animations"
+                        class="setting-input">
+
+                        <option value="on">
+                            Activadas
+                        </option>
+
+                        <option value="off">
+                            Desactivadas
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </article>
+
+        </section>
+
+        <footer class="settings-footer">
+
+            <button
+                id="backButton"
+                class="btn-secondary">
+
+                Volver
+
+            </button>
+
+            <button
+                id="saveButton"
+                class="btn-primary"
+                disabled>
+
+                Guardar cambios
+
+            </button>
+
+        </footer>
+
+    </main>
+
+    <script src="../js/theme-loader.js"></script>
+*     <script src="/socket.io/socket.io.js"></script>
+    <script src="../js/configuracion.js"></script>
+</body>
+</html>
+
