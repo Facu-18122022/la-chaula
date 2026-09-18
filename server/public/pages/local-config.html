@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Partida local</title>
+
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/crear-sala.css">
+</head>
+<body>
+    <main class="admin-page">
+        <header class="admin-header">
+            <div class="logo-placeholder"></div>
+        </header>
+
+        <div class="header-info">
+            <h1>PARTIDA LOCAL</h1>
+            <p>Configurá la partida antes de comenzar</p>
+        </div>
+
+        <section class="admin-content">
+            <article class="panel-card">
+                <h2>Configuración del partido</h2>
+
+                <div class="form-group">
+                    <label for="localMatchTime">Tiempo del partido</label>
+                    <select id="localMatchTime">
+                        <option value="3">3 minutos</option>
+                        <option value="5" selected>5 minutos</option>
+                        <option value="7">7 minutos</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="localGoalLimit">Límite de goles</label>
+                    <select id="localGoalLimit">
+                        <option value="3">3 goles</option>
+                        <option value="5" selected>5 goles</option>
+                        <option value="10">10 goles</option>
+                        <option value="null">Sin límite</option>
+                    </select>
+                </div>
+
+                <p id="localConfigMessage" role="alert" aria-live="polite"></p>
+            </article>
+
+            <article class="panel-card">
+                <h2>Cancha</h2>
+
+                <div class="map-carousel">
+                    <button id="prevMap" class="map-arrow" type="button" aria-label="Mapa anterior">◀</button>
+
+                    <div class="map-preview">
+                        <div class="map-image" id="mapInfo" aria-live="polite"></div>
+                        <h3 id="mapName">Classic Arena (1v1)</h3>
+                    </div>
+
+                    <button id="nextMap" class="map-arrow" type="button" aria-label="Mapa siguiente">▶</button>
+                </div>
+            </article>
+        </section>
+
+        <footer class="admin-footer">
+            <button id="backButton" class="btn-secondary" type="button">Volver</button>
+            <button id="startLocalMatch" class="btn-primary" type="button">Iniciar partido</button>
+        </footer>
+    </main>
+
+    <script src="../js/theme-loader.js"></script>
+    <script src="../js/local/mapas.js"></script>
+    <script src="../js/local-config.js"></script>
+</body>
+</html>

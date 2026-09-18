@@ -1,6 +1,9 @@
 const btnCreateRoom =
 document.getElementById("btnCreateRoom");
 
+const btnPlayLocal =
+document.getElementById("btnPlayLocal");
+
 const btnSettings =
 document.getElementById("btnSettings");
 
@@ -15,6 +18,13 @@ btnCreateRoom.addEventListener("click", () => {
 
     window.location.href =
     "../pages/jugar.html";
+
+});
+
+btnPlayLocal.addEventListener("click", () => {
+
+    window.location.href =
+    "../pages/local-config.html";
 
 });
 

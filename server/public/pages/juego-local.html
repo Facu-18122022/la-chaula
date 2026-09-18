@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Partida local</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/juego.css">
+    <style>
+        :root {
+            --local-red: #ef4444;
+            --local-blue: #38bdf8;
+            --local-panel: rgba(15, 23, 42, 0.92);
+        }
+
+        body.local-game {
+            min-height: 100vh;
+            height: auto;
+            overflow: auto;
+            padding: 18px 14px 28px;
+            background: radial-gradient(circle at 50% 8%, #1e3a8a 0%, #0f172a 46%, #020617 100%);
+            color: #fff;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+        }
+
+        .local-shell {
+            width: min(1200px, 100%);
+            margin: 0 auto;
+        }
+
+        .local-hud {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr auto;
+            align-items: center;
+            gap: 14px;
+            margin: 0 auto 16px;
+        }
+
+        .local-team,
+        .local-clock-panel,
+        .local-phase-panel {
+            background: var(--local-panel);
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 12px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, .3);
+        }
+
+        .local-team {
+            padding: 12px 16px;
+            font-weight: 800;
+            letter-spacing: .04em;
+        }
+
+        .local-team--red { color: #fecaca; border-left: 4px solid var(--local-red); }
+        .local-team--blue { color: #bae6fd; border-left: 4px solid var(--local-blue); text-align: right; }
+
+        .local-team strong { display: block; font-size: clamp(1.4rem, 3vw, 2rem); color: #fff; }
+
+        .local-clock-panel {
+            min-width: 128px;
+            padding: 8px 16px;
+            text-align: center;
+        }
+
+        #localClock { display: block; font-size: clamp(1.6rem, 4vw, 2.6rem); font-weight: 900; font-variant-numeric: tabular-nums; }
+        #extraTimeBanner { color: #facc15; font-size: .72rem; font-weight: 900; letter-spacing: .12em; }
+        #extraTimeBanner[hidden] { display: none; }
+
+        .local-phase-panel { padding: 10px 12px; color: #cbd5e1; font-size: .85rem; text-align: center; }
+
+        .local-board {
+            width: 100%;
+            padding: 10px;
+            background: rgba(2, 6, 23, .68);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 16px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, .4);
+        }
+
+        #localCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 72vh;
+            object-fit: contain;
+            border: 0;
+            border-radius: 10px;
+            background: #111827;
+            box-shadow: none;
+        }
+
+        .local-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+
+        .local-button {
+            border: 1px solid rgba(255, 255, 255, .2);
+            border-radius: 9px;
+            padding: 10px 16px;
+            background: #1e293b;
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .local-button:hover { background: #334155; }
+
+        .local-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgba(2, 6, 23, .72);
+        }
+
+        .local-overlay[hidden] { display: none; }
+
+        .local-dialog {
+            width: min(420px, 100%);
+            padding: 28px;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, .18);
+            border-radius: 16px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, .55);
+            text-align: center;
+        }
+
+        .local-dialog h2 { margin: 0 0 10px; font-size: 2rem; }
+        .local-dialog p { margin: 0 0 22px; color: #cbd5e1; }
+        .local-dialog__actions { display: grid; gap: 10px; }
+        .local-dialog__actions .local-button--primary { background: #2563eb; }
+        .local-dialog__actions .local-button--danger { background: #991b1b; }
+
+        @media (max-width: 700px) {
+            body.local-game { padding: 10px 8px 18px; }
+            .local-hud { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .local-clock-panel { grid-column: 1 / -1; grid-row: 1; }
+            .local-team { grid-row: 2; padding: 9px 10px; }
+            .local-phase-panel { grid-column: 1 / -1; grid-row: 3; }
+            .local-team--blue { text-align: right; }
+            .local-board { padding: 5px; }
+        }
+    </style>
+</head>
+<body class="local-game">
+    <main class="local-shell">
+        <section class="local-hud" aria-label="Marcador del partido">
+            <div class="local-team local-team--red">
+                <span>ROJO · J1</span>
+                <strong id="redScore">0</strong>
+            </div>
+            <div class="local-clock-panel">
+                <span id="localClock">00:00</span>
+                <span id="extraTimeBanner" hidden>TIEMPO EXTRA</span>
+            </div>
+            <div class="local-team local-team--blue">
+                <span>J2 · AZUL</span>
+                <strong id="blueScore">0</strong>
+            </div>
+            <div class="local-phase-panel" id="matchPhase">SAQUE</div>
+        </section>
+
+        <section class="local-board" aria-label="Cancha local">
+            <canvas id="localCanvas"></canvas>
+        </section>
+
+        <div class="local-actions">
+            <button id="pauseButton" class="local-button" type="button">Pausar</button>
+        </div>
+    </main>
+
+    <div id="pauseOverlay" class="local-overlay" hidden>
+        <section class="local-dialog" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+            <h2 id="pauseTitle">PAUSA</h2>
+            <p>El partido está detenido.</p>
+            <div class="local-dialog__actions">
+                <button id="resumeButton" class="local-button local-button--primary" type="button">Reanudar</button>
+                <button id="restartButton" class="local-button" type="button">Reiniciar</button>
+                <button id="pauseExitButton" class="local-button local-button--danger" type="button">Salir al menú</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="finishOverlay" class="local-overlay" hidden>
+        <section class="local-dialog" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
+            <h2 id="finishTitle">FIN DEL PARTIDO</h2>
+            <p id="finishResult"></p>
+            <div class="local-dialog__actions">
+                <button id="finishExitButton" class="local-button local-button--primary" type="button">Volver al menú</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="../js/theme-loader.js"></script>
+    <script src="../js/local/mapas.js"></script>
+    <script src="../js/local/fisica-local.js"></script>
+    <script src="../js/local/match-manager.js"></script>
+    <script src="../js/local/input-local.js"></script>
+    <script src="../js/juego-local.js"></script>
+</body>
+</html>
