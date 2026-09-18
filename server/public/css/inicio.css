@@ -51,56 +51,6 @@ body{
     transform:scale(1.05);
 }
 
-#nombreJugador{
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    background-image:url("../img/fondo.jpg");
-    background-size:cover;
-    background-position:center;
-    position:relative;
-}
-
-.logo{
-    width:500px;
-    height:200px;
-    margin-bottom:1px;
-    object-fit:contain;
-}
-
-.contenedor{
-    display:flex;
-    flex-direction:column;
-    gap:15px;
-    text-align:center;
-}
-
-.contenedor h2{
-    font-size:2rem;
-}
-
-.contenedor input{
-    width:300px;
-    padding:15px;
-    font-size:1rem;
-    border:2px solid #ccc;
-    border-radius:10px;
-}
-
-#btnContinuar{
-    padding:15px;
-    border:none;
-    border-radius:10px;
-    font-size:1rem;
-    cursor:pointer;
-}
-
-#btnContinuar:disabled{
-    opacity:.5;
-    cursor:not-allowed;
-}
-
 .oculto{
     display:none !important;
 }

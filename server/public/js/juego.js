@@ -145,63 +145,6 @@ function resetGameStateFromServer() {
     updateTimerDisplay();
 }
 
-function actualizarRanking(nombre, accion) {
-
-    let ranking = JSON.parse(
-        localStorage.getItem("rankingData")
-    ) || {};
-
-    if (!ranking[nombre]) {
-
-        ranking[nombre] = {
-
-            nickname: nombre,
-
-            stats: {
-
-                goals: 0,
-
-                assists: 0,
-
-                saves: 0,
-
-                matches: 0,
-
-                wins: 0,
-
-                points: 0
-
-            }
-
-        };
-
-    }
-
-    if (accion === "gol") {
-
-        ranking[nombre].stats.goals += 1;
-
-        ranking[nombre].stats.points += 100;
-
-    }
-
-    if (accion === "victoria") {
-
-        ranking[nombre].stats.matches += 1;
-
-        ranking[nombre].stats.wins += 1;
-
-        ranking[nombre].stats.points += 30;
-
-    }
-
-    localStorage.setItem(
-        "rankingData",
-        JSON.stringify(ranking)
-    );
-
-}
-
 const ball = {
     x: 0, y: 0, r: 10,
     vx: 0, vy: 0,
@@ -347,10 +290,6 @@ if (typeof io !== 'undefined') {
         goalScorerColor = '#ffffff';
         goalScorerName = '¡PARTIDO FINALIZADO!';
         
-        if (data.winnerName) {
-            actualizarRanking(data.winnerName, 'victoria');
-        }
-        
         setTimeout(() => {
             window.location.href = '../pages/lobby.html';
         }, 2500);
@@ -366,7 +305,6 @@ if (typeof io !== 'undefined') {
         goalScorerColor = scorerTeam === 'blue' ? '#1a46a0' : '#d63031';
         goalScorerName = `¡${scorer.toUpperCase()} GOL!`;
         
-        actualizarRanking(scorer, 'gol');
     });
     socket.on('room:error', (message) => {
         console.error('Room error:', message);
@@ -560,11 +498,6 @@ function triggerGoal(team) {
     redScore++;
 
     redText.textContent = redScore;
-    actualizarRanking(
-    player2.name,
-    "gol"
-);
-
     goalScorerColor = "#d63031";
 
     goalScorerName = `¡GOL DE ${player2.name.toUpperCase()}!`;
@@ -586,11 +519,6 @@ function triggerGoal(team) {
     blueScore++;
 
     blueText.textContent = blueScore;
-    actualizarRanking(
-    player1.name,
-    "gol"
-);
-
     goalScorerColor = "#1a46a0";
 
     goalScorerName = `¡GOL DE ${player1.name.toUpperCase()}!`;
@@ -627,17 +555,12 @@ function triggerGoal(team) {
                 if (socket) {
                     if (winnerName) {
 
-    actualizarRanking(
-        winnerName,
-        "victoria"
-    );
-
-}
                     socket.emit('match:ended', {
                         winnerTeam,
                         winnerName,
                         finalScore: { red: redScore, blue: blueScore }
                     });
+                }
                 }
 
                 setTimeout(() => {

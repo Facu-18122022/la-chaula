@@ -1,14 +1,17 @@
 // Music controller con playlist + integración settings (La Chaula)
 
 (function () {
+    const isGamePage = window.location.pathname.endsWith('/juego.html');
+    const trackName = isGamePage
+        ? 'NUEVA CHICAGO - ME GUSTA LA PASTA (CON LETRA).mp3'
+        : 'El Negro Tecla - Ahí Ahí (Lyric Video).mp3';
     const TRACKS = [
-        '/musica/cancion1.mp3',
-        '/musica/cancion2.mp3',
-        '/musica/cancion3.mp3'
+        '/musica/' + encodeURIComponent(trackName)
     ];
 
-    const KEY_INDEX = 'laChaula_music_index';
-    const KEY_TIME = 'laChaula_music_time';
+    const KEY_TIME = isGamePage
+        ? 'laChaula_music_time_game'
+        : 'laChaula_music_time_main';
     const KEY_PLAY = 'laChaula_music_playing';
 
     let audio = document.createElement('audio');
@@ -16,7 +19,7 @@
     audio.style.display = 'none';
     document.body.appendChild(audio);
 
-    let index = parseInt(localStorage.getItem(KEY_INDEX) || '0');
+    let index = 0;
 
     /* ========================= */
     /* SETTINGS */
@@ -69,9 +72,11 @@
         const savedTime = parseFloat(localStorage.getItem(KEY_TIME) || '0');
         audio.currentTime = savedTime;
 
-        audio.play().catch(() => {});
-
-        localStorage.setItem(KEY_PLAY, '1');
+        return audio.play()
+            .then(() => {
+                localStorage.setItem(KEY_PLAY, '1');
+            })
+            .catch(() => false);
     }
 
     function pause() {
@@ -89,7 +94,6 @@
 
     audio.addEventListener('ended', () => {
         index = (index + 1) % TRACKS.length;
-        localStorage.setItem(KEY_INDEX, index);
         loadTrack(index);
         audio.play();
     });
@@ -104,7 +108,8 @@
         toggle: () => audio.paused ? play() : pause(),
         setVolume: (v) => {
             audio.volume = v;
-        }
+        },
+        applySettings: applyVolume
     };
 
     /* ========================= */
@@ -114,9 +119,26 @@
     loadTrack(index);
     applyVolume();
 
-    if (localStorage.getItem(KEY_PLAY) === '1') {
-        play();
-    }
+    audio.autoplay = true;
+    play();
+
+    const unlockMusic = () => {
+        if (!audio.paused) {
+            document.removeEventListener('pointerdown', unlockMusic);
+            document.removeEventListener('keydown', unlockMusic);
+            return;
+        }
+
+        play().then(started => {
+            if (started === false) return;
+
+            document.removeEventListener('pointerdown', unlockMusic);
+            document.removeEventListener('keydown', unlockMusic);
+        });
+    };
+
+    document.addEventListener('pointerdown', unlockMusic, { passive: true });
+    document.addEventListener('keydown', unlockMusic);
 
     window.addEventListener("storage", (e) => {
         if (e.key === "lachaula_settings") {

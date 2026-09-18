@@ -75,10 +75,19 @@
                         type="checkbox"
                         id="muteAll"
                         class="setting-input"
+                        role="switch"
+                        aria-describedby="muteStatus"
                     >
 
-                    <label for="muteAll">
-                        Silenciar todo
+                    <label for="muteAll" class="mute-toggle">
+                        <span class="mute-toggle__icon" aria-hidden="true">🔇</span>
+                        <span class="mute-toggle__copy">
+                            <strong>Silenciar todo</strong>
+                            <small id="muteStatus" aria-live="polite">Desactivado</small>
+                        </span>
+                        <span class="mute-toggle__track" aria-hidden="true">
+                            <span class="mute-toggle__thumb"></span>
+                        </span>
                     </label>
 
                 </div>

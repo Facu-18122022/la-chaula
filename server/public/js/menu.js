@@ -7,9 +7,6 @@ document.getElementById("btnPlayLocal");
 const btnSettings =
 document.getElementById("btnSettings");
 
-const btnRanking =
-document.getElementById("btnRanking");
-
 const btnExit =
 document.getElementById("btnExit");
 
@@ -39,17 +36,6 @@ btnSettings.addEventListener("click", () => {
 
     window.location.href =
     "../pages/configuracion.html";
-
-});
-
-/* ========================= */
-/* RANKING */
-/* ========================= */
-
-btnRanking.addEventListener("click", () => {
-
-    window.location.href =
-    "../pages/ranking.html";
 
 });
 
