@@ -24,8 +24,7 @@ const PORT = 3000;
 
 const globalState = {
     players: [],
-    rooms: [],
-    rankings: []
+    rooms: []
 };
 
 // Mapa de salas por ID
@@ -578,16 +577,17 @@ io.on("connection", (socket) => {
 
     socket.on('room:create', (roomData, callback) => {
         const roomId = generateRoomId();
+        const creatorNickname = 'Player 1';
         
         const normalizedCreatorTeam = roomData.creatorTeam && String(roomData.creatorTeam).trim().toLowerCase() === 'blue' ? 'blue' : 'red';
         const room = {
             id: roomId,
-            roomName: roomData.roomName,
+            roomName: roomData.roomName || `Sala de ${creatorNickname}`,
             matchTime: roomData.matchTime,
             goalLimit: roomData.goalLimit,
             selectedMapIndex: roomData.selectedMapIndex,
             creatorTeam: normalizedCreatorTeam,
-            creatorNickname: roomData.creatorNickname,
+            creatorNickname,
             players: [],
             matchActive: false,
             emptySince: null,
@@ -606,7 +606,7 @@ io.on("connection", (socket) => {
         // Unir el creador a la sala
         const creatorPlayer = {
             id: socket.id,
-            nickname: roomData.creatorNickname,
+            nickname: creatorNickname,
             team: normalizedCreatorTeam,
             isAdmin: true,
             stats: {
@@ -623,7 +623,7 @@ io.on("connection", (socket) => {
         room.players.push(creatorPlayer);
         socket.join(roomId);
         
-        console.log(`Sala creada: ${roomId} por ${roomData.creatorNickname}`);
+        console.log(`Sala creada: ${roomId} por ${creatorNickname}`);
         
         // Callback para enviar el ID de la sala al cliente
         if (callback) callback(roomId);
@@ -660,9 +660,10 @@ io.on("connection", (socket) => {
         }
 
         // Crear jugador
+        const nickname = `Player ${room.players.length + 1}`;
         const player = {
             id: socket.id,
-            nickname: data.nickname,
+            nickname,
             team: null,
             isAdmin: false,
             stats: {
@@ -683,12 +684,12 @@ io.on("connection", (socket) => {
         assignTeamToNewPlayer(room, player);
         normalizeRoomTeams(room);
         
-        console.log(`${data.nickname} se unió a la sala ${data.roomId}`);
+        console.log(`${nickname} se unió a la sala ${data.roomId}`);
         
         // Emitir eventos
         io.to(data.roomId).emit('lobby:update', getRoomPublicState(room));
         io.to(data.roomId).emit('room:playerJoined', {
-            nickname: data.nickname,
+            nickname,
             playerCount: room.players.length
         });
         io.emit('rooms:updated', getAvailableRooms());

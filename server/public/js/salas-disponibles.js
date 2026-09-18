@@ -62,6 +62,10 @@ socket.on('rooms:list', (rooms) => {
 socket.on('room:joined', (data) => {
     console.log('Sala unida correctamente:', data);
     if (data && data.roomId === selectedRoomId) {
+        const joinedPlayer = data.room?.players?.find(player => player.id === socket.id);
+        if (joinedPlayer?.nickname) {
+            localStorage.setItem('jugador', joinedPlayer.nickname);
+        }
         window.location.href = '../pages/lobby.html';
     }
 });
