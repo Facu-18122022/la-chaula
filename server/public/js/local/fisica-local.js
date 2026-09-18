@@ -6,6 +6,8 @@
     const RESTITUTION = -0.55;
     const FIELD_MARGIN_X = 80;
     const FIELD_MARGIN_Y = 40;
+    const GOAL_WIDTH = 45;
+    const BALL_CONTACT_TOLERANCE = 2;
 
     function normalizeMap(map) {
         const width = Number(map && map.width) || 800;
@@ -30,6 +32,7 @@
             const team = player.equipo === 'blue' ? 'blue' : 'red';
             const isLeft = team === ladoIzquierdo;
             const sameTeam = jugadores.slice(0, index).filter(item => (item.equipo === 'blue' ? 'blue' : 'red') === team).length;
+            const rBase = Number.isFinite(player.rBase) ? player.rBase : (Number.isFinite(player.r) ? player.r : 20);
             return {
                 id,
                 equipo: team,
@@ -37,7 +40,8 @@
                 y: map.height / 2 + ((sameTeam % 3) - 1) * 45,
                 vx: 0,
                 vy: 0,
-                r: 20,
+                r: rBase,
+                rBase,
                 massa: 2,
                 activePower: null,
                 powerTimer: 0
@@ -55,6 +59,7 @@
             activePowerUps: [],
             powerUpSpawnTimer: 0,
             waitingForKickOff: true,
+            kickoffPlayerId: 'j1',
             timerStarted: false,
             lastTouch: null,
             secondLastTouch: null,
@@ -71,12 +76,14 @@
         let moveX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
         let moveY = (input.down ? 1 : 0) - (input.up ? 1 : 0);
         if (moveX && moveY) { moveX *= 0.7071; moveY *= 0.7071; }
-        player.vx += moveX * ACCEL * step;
-        player.vy += moveY * ACCEL * step;
+        const speedMultiplier = player.activePower === 'SPEED' ? 1.55 : 1;
+        player.vx += moveX * ACCEL * speedMultiplier * step;
+        player.vy += moveY * ACCEL * speedMultiplier * step;
         const speed = Math.hypot(player.vx, player.vy);
-        if (speed > MAX_VEL) {
-            player.vx = player.vx / speed * MAX_VEL;
-            player.vy = player.vy / speed * MAX_VEL;
+        const maxSpeed = MAX_VEL * speedMultiplier;
+        if (speed > maxSpeed) {
+            player.vx = player.vx / speed * maxSpeed;
+            player.vy = player.vy / speed * maxSpeed;
         }
         player.vx *= FRICTION;
         player.vy *= FRICTION;
@@ -85,8 +92,16 @@
 
         const centerX = state.mapa.width / 2;
         if (state.waitingForKickOff) {
-            if (player.equipo === state.ladoIzquierdo) player.x = Math.min(player.x, centerX - player.r);
-            else player.x = Math.max(player.x, centerX + player.r);
+            const isKickoffPlayer = player.id === state.kickoffPlayerId;
+            const centerCircleRadius = state.mapa.width * 0.085;
+            if (isKickoffPlayer) {
+                if (player.equipo === state.ladoIzquierdo) player.x = Math.min(player.x, centerX - player.r);
+                else player.x = Math.max(player.x, centerX + player.r);
+            } else if (player.equipo === state.ladoIzquierdo) {
+                player.x = Math.min(player.x, centerX - centerCircleRadius - player.r);
+            } else {
+                player.x = Math.max(player.x, centerX + centerCircleRadius + player.r);
+            }
         }
         player.x = Math.max(player.r, Math.min(state.mapa.width - player.r, player.x));
         player.y = Math.max(player.r, Math.min(state.mapa.height - player.r, player.y));
@@ -105,11 +120,14 @@
                 const nx = dx / distance;
                 const ny = dy / distance;
                 const overlap = minDistance - distance;
-                first.x -= nx * overlap / 2;
-                first.y -= ny * overlap / 2;
-                second.x += nx * overlap / 2;
-                second.y += ny * overlap / 2;
-                const impulse = 2 * (nx * (first.vx - second.vx) + ny * (first.vy - second.vy)) / (first.massa + second.massa);
+                const correction = overlap * 0.8;
+                first.x -= nx * correction / 2;
+                first.y -= ny * correction / 2;
+                second.x += nx * correction / 2;
+                second.y += ny * correction / 2;
+                const relativeVelocity = nx * (first.vx - second.vx) + ny * (first.vy - second.vy);
+                if (relativeVelocity <= 0) continue;
+                const impulse = 2 * relativeVelocity / (first.massa + second.massa);
                 first.vx -= impulse * second.massa * nx;
                 first.vy -= impulse * second.massa * ny;
                 second.vx += impulse * first.massa * nx;
@@ -122,13 +140,17 @@
         const ball = state.ball;
         const dx = ball.x - player.x;
         const dy = ball.y - player.y;
-        const distance = Math.hypot(dx, dy) || 1;
+        const distance = Math.hypot(dx, dy);
         const minDistance = player.r + ball.r;
-        if (distance >= minDistance) return;
-        const angle = Math.atan2(dy, dx);
-        const overlap = minDistance - distance;
-        ball.x += Math.cos(angle) * overlap;
-        ball.y += Math.sin(angle) * overlap;
+        if (distance > minDistance + BALL_CONTACT_TOLERANCE) return;
+        const playerSpeed = Math.hypot(player.vx, player.vy);
+        const angle = distance > 0
+            ? Math.atan2(dy, dx)
+            : playerSpeed > 0 ? Math.atan2(player.vy, player.vx) : 0;
+        if (distance < minDistance) {
+            ball.x = player.x + Math.cos(angle) * minDistance;
+            ball.y = player.y + Math.sin(angle) * minDistance;
+        }
         state.secondLastTouch = state.lastTouch;
         state.lastTouch = player.id;
         if (!state.timerStarted) {
@@ -141,9 +163,17 @@
             const force = player.activePower === 'SUPER_KICK' ? Math.max(10, speed * 2) : Math.max(6, speed * 1.6);
             ball.vx = Math.cos(angle) * force + player.vx * 0.5;
             ball.vy = Math.sin(angle) * force + player.vy * 0.5;
-        } else {
-            ball.vx += player.vx * 0.22;
-            ball.vy += player.vy * 0.22;
+        } else if (playerSpeed > 0) {
+            const normalX = Math.cos(angle);
+            const normalY = Math.sin(angle);
+            const approachSpeed = player.vx * normalX + player.vy * normalY;
+            if (approachSpeed > 0) {
+                const ballNormalSpeed = ball.vx * normalX + ball.vy * normalY;
+                const targetNormalSpeed = approachSpeed * 1.1;
+                const normalSpeedDelta = Math.max(0, targetNormalSpeed - ballNormalSpeed);
+                ball.vx += normalX * normalSpeedDelta;
+                ball.vy += normalY * normalSpeedDelta;
+            }
         }
     }
 
@@ -164,8 +194,10 @@
             const picked = state.players.some(player => Math.hypot(powerUp.x - player.x, powerUp.y - player.y) < powerUp.r + player.r);
             if (picked) {
                 const player = state.players.find(item => Math.hypot(powerUp.x - item.x, powerUp.y - item.y) < powerUp.r + item.r);
+                if (player.activePower === 'BIG') player.r = player.rBase;
                 player.activePower = powerUp.type;
                 player.powerTimer = 360;
+                if (powerUp.type === 'BIG') player.r = player.rBase * 1.55;
                 state.activePowerUps.splice(i, 1);
                 events.push('powerUp');
             }
@@ -201,8 +233,9 @@
         const field = state.field;
         if (ball.y - ball.r < field.top) { ball.y = field.top + ball.r; ball.vy *= RESTITUTION; }
         if (ball.y + ball.r > field.bottom) { ball.y = field.bottom - ball.r; ball.vy *= RESTITUTION; }
-        const leftGoal = ball.x - ball.r < field.left && ball.y - ball.r >= state.goalTop && ball.y + ball.r <= state.goalBottom;
-        const rightGoal = ball.x + ball.r > field.right && ball.y - ball.r >= state.goalTop && ball.y + ball.r <= state.goalBottom;
+        const inGoalMouth = ball.y >= state.goalTop && ball.y <= state.goalBottom;
+        const leftGoal = ball.x - ball.r <= field.left && inGoalMouth;
+        const rightGoal = ball.x + ball.r >= field.right && inGoalMouth;
         if (leftGoal || rightGoal) {
             state.goalDetected = true;
             state.lastGoalTeam = rightGoal ? 'red' : 'blue';
@@ -215,11 +248,16 @@
             state.waitingForKickOff = true;
             state.timerStarted = false;
         } else {
-            if (ball.x - ball.r < field.left) { ball.x = field.left + ball.r; ball.vx *= RESTITUTION; }
-            if (ball.x + ball.r > field.right) { ball.x = field.right - ball.r; ball.vx *= RESTITUTION; }
+            if (!inGoalMouth && ball.x - ball.r < field.left) { ball.x = field.left + ball.r; ball.vx *= RESTITUTION; }
+            if (!inGoalMouth && ball.x + ball.r > field.right) { ball.x = field.right - ball.r; ball.vx *= RESTITUTION; }
         }
         advancePowerUps(state, events, step);
-        state.players.forEach(player => { if (player.powerTimer > 0 && (player.powerTimer -= step) <= 0) player.activePower = null; });
+        state.players.forEach(player => {
+            if (player.powerTimer > 0 && (player.powerTimer -= step) <= 0) {
+                if (player.activePower === 'BIG') player.r = player.rBase;
+                player.activePower = null;
+            }
+        });
         return { pasos: step, eventos: events };
     }
 

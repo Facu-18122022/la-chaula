@@ -114,13 +114,45 @@
         context.stroke();
     }
 
+    function obtenerColorPower(power) {
+        if (power === 'BIG') return '#ff9f43';
+        if (power === 'SUPER_KICK') return '#ff0055';
+        return '#ffd700';
+    }
+
+    function obtenerIconoPower(power) {
+        if (power === 'SPEED') return '⚡';
+        if (power === 'BIG') return '🛡️';
+        if (power === 'SUPER_KICK') return '🥊';
+        return '';
+    }
+
+    function dibujarPowerUps(estado) {
+        estado.activePowerUps.forEach(powerUp => {
+            context.beginPath();
+            context.arc(powerUp.x, powerUp.y, powerUp.r, 0, Math.PI * 2);
+            context.fillStyle = obtenerColorPower(powerUp.type);
+            context.globalAlpha = 0.9;
+            context.fill();
+            context.globalAlpha = 1;
+            context.strokeStyle = '#fff';
+            context.lineWidth = 2;
+            context.stroke();
+            context.fillStyle = '#fff';
+            context.font = '700 16px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(obtenerIconoPower(powerUp.type), powerUp.x, powerUp.y);
+        });
+    }
+
     function dibujarJugador(player) {
         context.beginPath();
         context.arc(player.x, player.y, player.r, 0, Math.PI * 2);
         context.fillStyle = player.equipo === 'red' ? '#dc2626' : '#2563eb';
         context.fill();
         if (player.activePower) {
-            context.strokeStyle = '#facc15';
+            context.strokeStyle = obtenerColorPower(player.activePower);
             context.lineWidth = 4;
             context.stroke();
         }
@@ -185,8 +217,9 @@
     function renderizar(snapshot) {
         const estado = snapshot.estadoFisica;
         dibujarCancha(estado);
-        estado.players.forEach(dibujarJugador);
         dibujarPelota(estado.ball);
+        dibujarPowerUps(estado);
+        estado.players.forEach(dibujarJugador);
         dibujarCelebracionGol();
         actualizarHud(snapshot);
     }

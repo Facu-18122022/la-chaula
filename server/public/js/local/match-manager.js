@@ -15,14 +15,10 @@
             maxSubsteps: 8,
             faseDespuesGol: null
         };
+        estadoFisica.kickoffPlayerId = match.sacadorId;
 
         function inputsParaPaso(inputs) {
-            if (match.fase !== 'SAQUE') return inputs;
-            const sacador = match.sacadorId;
-            return {
-                j1: sacador === 'j1' ? (inputs.j1 || {}) : {},
-                j2: sacador === 'j2' ? (inputs.j2 || {}) : {}
-            };
+            return inputs;
         }
 
         function tieneAccion(input) {
@@ -34,6 +30,7 @@
             if (goalTeam === 'red') match.sacadorId = 'j2';
             else if (goalTeam === 'blue') match.sacadorId = 'j1';
             else if (match.sacadorId !== 'j1' && match.sacadorId !== 'j2') match.sacadorId = 'j1';
+            match.estadoFisica.kickoffPlayerId = match.sacadorId;
         }
 
         function procesarGol() {
