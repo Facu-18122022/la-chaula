@@ -43,12 +43,12 @@ function renderTeamLists(room) {
     const bluePlayers = room.players.filter(player => player.team && player.team.toLowerCase() === 'blue');
 
     redTeam.innerHTML = redPlayers.length
-        ? redPlayers.map(player => `<div class="player">${player.nickname}</div>`).join('')
-        : '<div class="player empty">Sin jugadores</div>';
+        ? redPlayers.map(player => `<div class="player ssf-list-item">${player.nickname}</div>`).join('')
+        : '<div class="player empty ssf-list-item">Sin jugadores</div>';
 
     blueTeam.innerHTML = bluePlayers.length
-        ? bluePlayers.map(player => `<div class="player">${player.nickname}</div>`).join('')
-        : '<div class="player empty">Sin jugadores</div>';
+        ? bluePlayers.map(player => `<div class="player ssf-list-item">${player.nickname}</div>`).join('')
+        : '<div class="player empty ssf-list-item">Sin jugadores</div>';
 }
 
 function renderRoom(room) {

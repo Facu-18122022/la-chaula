@@ -6,6 +6,7 @@
     <title>La Chaula | Partida local</title>
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/juego.css">
+    <link rel="stylesheet" href="../css/ssf-theme.css">
     <style>
         :root {
             --local-red: #ef4444;
@@ -166,28 +167,28 @@
         </section>
 
         <div class="local-actions">
-            <button id="pauseButton" class="local-button" type="button">Pausar</button>
+            <button id="pauseButton" class="local-button ssf-button" type="button">Pausar</button>
         </div>
     </main>
 
     <div id="pauseOverlay" class="local-overlay" hidden>
-        <section class="local-dialog" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
-            <h2 id="pauseTitle">PAUSA</h2>
-            <p>El partido está detenido.</p>
+        <section class="local-dialog ssf-card" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+            <h2 id="pauseTitle" class="ssf-title">PAUSA</h2>
+            <p class="ssf-text">El partido está detenido.</p>
             <div class="local-dialog__actions">
-                <button id="resumeButton" class="local-button local-button--primary" type="button">Reanudar</button>
-                <button id="restartButton" class="local-button" type="button">Reiniciar</button>
-                <button id="pauseExitButton" class="local-button local-button--danger" type="button">Salir al menú</button>
+                <button id="resumeButton" class="local-button local-button--primary ssf-button" type="button">Reanudar</button>
+                <button id="restartButton" class="local-button ssf-button" type="button">Reiniciar</button>
+                <button id="pauseExitButton" class="local-button local-button--danger ssf-button ssf-button-danger" type="button">Salir al menú</button>
             </div>
         </section>
     </div>
 
     <div id="finishOverlay" class="local-overlay" hidden>
-        <section class="local-dialog" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
-            <h2 id="finishTitle">FIN DEL PARTIDO</h2>
-            <p id="finishResult"></p>
+        <section class="local-dialog ssf-card-primary" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
+            <h2 id="finishTitle" class="ssf-title">FIN DEL PARTIDO</h2>
+            <p id="finishResult" class="ssf-text"></p>
             <div class="local-dialog__actions">
-                <button id="finishExitButton" class="local-button local-button--primary" type="button">Volver al menú</button>
+                <button id="finishExitButton" class="local-button local-button--primary ssf-button" type="button">Volver al menú</button>
             </div>
         </section>
     </div>

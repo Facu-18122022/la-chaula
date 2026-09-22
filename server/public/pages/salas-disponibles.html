@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/salas-disponibles.css">
+    <link rel="stylesheet" href="../css/ssf-theme.css">
 </head>
 <body>
 <script src="../js/music.js"></script>
@@ -22,18 +23,18 @@
         
         <div class="header-info">
 
-            <h1>SALAS DISPONIBLES</h1>
+            <h1 class="ssf-title">SALAS DISPONIBLES</h1>
 
-            <p>
+            <p class="ssf-subtitle">
                 Selecciona una sala y únete a la partida
             </p>
 
         </div>
             
-        <section class="rooms-container">
+        <section class="rooms-container ssf-card">
 
             <!-- Las salas se cargarán dinámicamente aquí -->
-            <div id="roomsList" class="rooms-list">
+            <div id="roomsList" class="rooms-list ssf-list-container">
                 <div class="loading">
                     <p>Cargando salas disponibles...</p>
                 </div>
@@ -45,7 +46,7 @@
 
             <button
                 id="backButton"
-                class="btn-secondary">
+                class="btn-secondary ssf-button ssf-button-danger">
 
                 Volver
 
@@ -53,7 +54,7 @@
 
             <button
                 id="joinRoomButton"
-                class="btn-primary"
+                class="btn-primary ssf-button"
                 disabled>
 
                 Unirse

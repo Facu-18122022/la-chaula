@@ -112,7 +112,7 @@ function renderRooms(rooms) {
         }
 
         const roomCard = document.createElement('div');
-        roomCard.className = 'room-card';
+        roomCard.className = 'room-card ssf-list-item';
         roomCard.dataset.roomId = room.id;
 
         const mapNames = [

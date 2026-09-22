@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/lobby.css">
+    <link rel="stylesheet" href="../css/ssf-theme.css">
 </head>
 <body>
 <script src="/js/music.js"></script>
@@ -22,9 +23,9 @@
  </header>
             <div class="room-info">
 
-                <h1>SALA PRINCIPAL</h1>
+                <h1 class="ssf-title">SALA PRINCIPAL</h1>
 
-                <p>ID: #001</p>
+                <p class="ssf-subtitle">ID: #001</p>
 
             </div>
 
@@ -35,7 +36,7 @@
 
             <!-- CHAT -->
 
-            <aside class="chat-panel">
+            <aside class="chat-panel ssf-card">
 
                 <div class="panel-title">
 
@@ -45,7 +46,7 @@
 
                 <div
                     id="chatMessages"
-                    class="chat-messages">
+                        class="chat-messages ssf-list-container">
 
                 </div>
 
@@ -57,7 +58,7 @@
                         placeholder="Escribí un mensaje..."
                     >
 
-                    <button id="sendButton">
+                    <button id="sendButton" class="ssf-button">
 
                         ➤
 
@@ -71,7 +72,7 @@
 
             <section class="teams-panel">
 
-                <div class="team-card team-red">
+                <div class="team-card team-red ssf-card">
 
                     <div class="team-header">
 
@@ -81,13 +82,13 @@
 
                     <div
                         id="redTeam"
-                        class="players-list">
+                        class="players-list ssf-list-container">
 
                     </div>
 
                 </div>
 
-                <div class="team-card team-blue">
+                <div class="team-card team-blue ssf-card-primary">
 
                     <div class="team-header">
 
@@ -97,7 +98,7 @@
 
                     <div
                         id="blueTeam"
-                        class="players-list">
+                        class="players-list ssf-list-container">
 
                     </div>
 
@@ -111,21 +112,21 @@
 
         <section class="match-info">
 
-            <div class="info-card">
+            <div class="info-card ssf-card">
 
                 <span>Duración</span>
                 <strong id="matchDurationValue">5 Min</strong>
 
             </div>
 
-            <div class="info-card">
+            <div class="info-card ssf-card">
 
                 <span>Objetivo</span>
                 <strong id="goalLimitValue">5 Goles</strong>
 
             </div>
 
-            <div class="info-card">
+            <div class="info-card ssf-card">
 
                 <span>Mapa</span>
                 <strong id="mapNameValue">Classic Arena</strong>
@@ -140,7 +141,7 @@
 
             <button
                 id="backButton"
-                class="action-button secondary">
+                class="action-button secondary ssf-button ssf-button-danger">
 
                 Volver
 
@@ -148,7 +149,7 @@
 
             <button
                 id="changeTeamButton"
-                class="action-button">
+                class="action-button ssf-button">
 
                 Cambiar Equipo
 
@@ -157,7 +158,7 @@
 
             <button
                 id="startGameButton"
-                class="action-button start">
+                class="action-button start ssf-button">
 
                 Iniciar Partido
 

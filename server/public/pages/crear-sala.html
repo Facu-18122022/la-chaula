@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/crear-sala.css">
+    <link rel="stylesheet" href="../css/ssf-theme.css">
 </head>
 <body>
 <script src="/js/music.js"></script>
@@ -22,9 +23,9 @@
         
         <div class="header-info">
 
-            <h1>CREAR SALA</h1>
+            <h1 class="ssf-title">CREAR SALA</h1>
 
-            <p>
+            <p class="ssf-subtitle">
                 Configurá la partida antes de comenzar
             </p>
 
@@ -32,14 +33,14 @@
             
         <section class="admin-content">
 
-            <article class="panel-card">
+            <article class="panel-card ssf-card">
 
-                <h2>Equipo</h2>
+                <h2 class="ssf-subtitle">Equipo</h2>
 
                 <div class="team-selector">
 
                     <button
-                        class="team-option selected"
+                        class="team-option selected ssf-button"
                         data-team="red">
 
                         🔴 Rojo
@@ -47,7 +48,7 @@
                     </button>
 
                     <button
-                        class="team-option"
+                        class="team-option ssf-button"
                         data-team="blue">
 
                         🔵 Azul
@@ -58,9 +59,9 @@
 
             </article>
 
-            <article class="panel-card">
+            <article class="panel-card ssf-card-primary">
 
-                <h2>Configuración del Partido</h2>
+                <h2 class="ssf-subtitle">Configuración del Partido</h2>
 
                 <div class="form-group">
 
@@ -113,15 +114,15 @@
 
             </article>
 
-            <article class="panel-card">
+            <article class="panel-card ssf-card">
 
-                <h2>Cancha</h2>
+                <h2 class="ssf-subtitle">Cancha</h2>
 
                 <div class="map-carousel">
 
                     <button
                         id="prevMap"
-                        class="map-arrow">
+                        class="map-arrow ssf-button"
 
                         ◀
 
@@ -143,7 +144,7 @@
 
                     <button
                         id="nextMap"
-                        class="map-arrow">
+                        class="map-arrow ssf-button"
 
                         ▶
 
@@ -159,7 +160,7 @@
 
             <button
                 id="backButton"
-                class="btn-secondary">
+                class="btn-secondary ssf-button ssf-button-danger">
 
                 Volver
 
@@ -167,7 +168,7 @@
 
             <button
                 id="createRoomButton"
-                class="btn-primary">
+                class="btn-primary ssf-button">
 
                 Crear
 

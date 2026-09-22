@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/crear-sala.css">
+    <link rel="stylesheet" href="../css/ssf-theme.css">
 </head>
 <body>
     <main class="admin-page">
@@ -15,13 +16,13 @@
         </header>
 
         <div class="header-info">
-            <h1>PARTIDA LOCAL</h1>
-            <p>Configurá la partida antes de comenzar</p>
+            <h1 class="ssf-title">PARTIDA LOCAL</h1>
+            <p class="ssf-subtitle">Configurá la partida antes de comenzar</p>
         </div>
 
         <section class="admin-content">
-            <article class="panel-card">
-                <h2>Configuración del partido</h2>
+            <article class="panel-card ssf-card-primary">
+                <h2 class="ssf-subtitle">Configuración del partido</h2>
 
                 <div class="form-group">
                     <label for="localMatchTime">Tiempo del partido</label>
@@ -45,11 +46,11 @@
                 <p id="localConfigMessage" role="alert" aria-live="polite"></p>
             </article>
 
-            <article class="panel-card">
-                <h2>Cancha</h2>
+            <article class="panel-card ssf-card">
+                <h2 class="ssf-subtitle">Cancha</h2>
 
                 <div class="map-carousel">
-                    <button id="prevMap" class="map-arrow" type="button" aria-label="Mapa anterior">◀</button>
+                    <button id="prevMap" class="map-arrow ssf-button" type="button" aria-label="Mapa anterior">◀</button>
 
                     <div class="map-preview">
                         <div class="map-image" id="mapInfo" aria-live="polite">
@@ -58,14 +59,14 @@
                         <h3 id="mapName">Classic Arena (1v1)</h3>
                     </div>
 
-                    <button id="nextMap" class="map-arrow" type="button" aria-label="Mapa siguiente">▶</button>
+                    <button id="nextMap" class="map-arrow ssf-button" type="button" aria-label="Mapa siguiente">▶</button>
                 </div>
             </article>
         </section>
 
         <footer class="admin-footer">
-            <button id="backButton" class="btn-secondary" type="button">Volver</button>
-            <button id="startLocalMatch" class="btn-primary" type="button">Iniciar partido</button>
+            <button id="backButton" class="btn-secondary ssf-button ssf-button-danger" type="button">Volver</button>
+            <button id="startLocalMatch" class="btn-primary ssf-button" type="button">Iniciar partido</button>
         </footer>
     </main>
 

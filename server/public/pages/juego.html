@@ -6,6 +6,7 @@
     <title>Mini Haxball - Smash Bros Style Timer</title>
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/juego.css">
+    <link rel="stylesheet" href="../css/ssf-theme.css">
 </head>
 <body>
     <script src="/js/music.js"></script>
@@ -45,7 +46,7 @@
             placeholder="Escribí un mensaje..."
         >
 
-        <button id="sendChat">
+        <button id="sendChat" class="ssf-button">
             Enviar
         </button>
 
@@ -62,12 +63,12 @@
 
 <!-- Pausa: overlay con menú -->
 <div id="pauseOverlay" class="pause-overlay hidden">
-    <div class="pause-menu">
-        <h2>Pausa</h2>
+    <div class="pause-menu ssf-card">
+        <h2 class="ssf-title">Pausa</h2>
         <div class="pause-buttons">
-            <button id="resumeButton">Continuar</button>
-            <button id="restartButton">Reiniciar</button>
-            <button id="exitButton">Salir al menú</button>
+            <button id="resumeButton" class="ssf-button">Continuar</button>
+            <button id="restartButton" class="ssf-button">Reiniciar</button>
+            <button id="exitButton" class="ssf-button ssf-button-danger">Salir al menú</button>
         </div>
     </div>
 </div>
