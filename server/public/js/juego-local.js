@@ -222,10 +222,31 @@
         context.restore();
     }
 
+    function obtenerPelotaDuranteGol(snapshot) {
+        if (!celebracionGol || snapshot.fase !== 'GOL') return snapshot.estadoFisica.ball;
+        const estado = snapshot.estadoFisica;
+        const ball = celebracionGol.snapshot.estadoFisica.ball;
+        const frames = celebracionGol.transcurridoMs / 16.666;
+        const friction = 0.985;
+        const displacementFactor = friction === 1
+            ? frames
+            : (1 - Math.pow(friction, frames)) / (1 - friction);
+        let x = ball.x + ball.vx * displacementFactor;
+        let y = ball.y + ball.vy * displacementFactor;
+        const goalBackLeft = estado.field.left - 45 + ball.r;
+        const goalBackRight = estado.field.right + 45 - ball.r;
+        const goalTop = estado.goalTop + ball.r;
+        const goalBottom = estado.goalBottom - ball.r;
+        y = Math.max(goalTop, Math.min(goalBottom, y));
+        if (ball.vx < 0) x = Math.max(goalBackLeft, Math.min(estado.field.left - ball.r, x));
+        else x = Math.min(goalBackRight, Math.max(estado.field.right + ball.r, x));
+        return { ...ball, x, y };
+    }
+
     function renderizar(snapshot) {
         const estado = snapshot.estadoFisica;
         dibujarCancha(estado);
-        dibujarPelota(estado.ball);
+        dibujarPelota(obtenerPelotaDuranteGol(snapshot));
         dibujarPowerUps(estado);
         estado.players.forEach(dibujarJugador);
         dibujarCelebracionGol();

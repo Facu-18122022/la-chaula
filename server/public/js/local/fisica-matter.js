@@ -185,7 +185,7 @@
                 id,
                 equipo: team,
                 x: isLeft ? centerX - 150 - sameTeam * 50 : centerX + 150 + sameTeam * 50,
-                y: map.height / 2 + ((sameTeam % 3) - 1) * 45,
+                y: map.height / 2,
                 vx: 0,
                 vy: 0,
                 r: rBase,
@@ -346,14 +346,6 @@
             const minimum = player.r + state.ball.r;
             const distance = Math.hypot(ballBody.position.x - closest.x, ballBody.position.y - closest.y);
             if (distance > minimum + 2) return;
-            if (closest.t < 1 && distance > 0) {
-                const normalX = (ballBody.position.x - closest.x) / distance;
-                const normalY = (ballBody.position.y - closest.y) / distance;
-                MatterApi.Body.setPosition(playerBody, {
-                    x: ballBody.position.x - normalX * minimum,
-                    y: ballBody.position.y - normalY * minimum
-                });
-            }
             runtime.sweptContacts.add(index);
             collideBall(player, playerBody, inputFor(runtime.inputs, player), state, runtime);
         });
@@ -408,12 +400,14 @@
             }
         }
         const finalVelocity = ballBody.velocity;
-        if (finalVelocity.x * normalX + finalVelocity.y * normalY < 0) {
-            const tangentX = finalVelocity.x - normalX * (finalVelocity.x * normalX + finalVelocity.y * normalY);
-            const tangentY = finalVelocity.y - normalY * (finalVelocity.x * normalX + finalVelocity.y * normalY);
+        const finalNormalSpeed = finalVelocity.x * normalX + finalVelocity.y * normalY;
+        if (finalNormalSpeed < 0) {
+            const tangentX = finalVelocity.x - normalX * finalNormalSpeed;
+            const tangentY = finalVelocity.y - normalY * finalNormalSpeed;
+            const reboundNormalSpeed = -finalNormalSpeed * BALL_RESTITUTION;
             MatterApi.Body.setVelocity(ballBody, {
-                x: tangentX,
-                y: tangentY
+                x: tangentX + normalX * reboundNormalSpeed,
+                y: tangentY + normalY * reboundNormalSpeed
             });
         }
         state.secondLastTouch = state.lastTouch;
@@ -540,6 +534,14 @@
         return false;
     }
 
+    function crossedGoalLine(previous, current, state) {
+        const inMouth = y => y >= state.goalTop - state.ball.r && y <= state.goalBottom + state.ball.r;
+        if (!inMouth(current.y) && !inMouth(previous.y)) return null;
+        if (previous.x > state.field.left - GOAL_WIDTH && current.x <= state.field.left - GOAL_WIDTH) return 'blue';
+        if (previous.x < state.field.right + GOAL_WIDTH && current.x >= state.field.right + GOAL_WIDTH) return 'red';
+        return null;
+    }
+
     function advancePowerUps(state, runtime, events, step) {
         state.powerUpSpawnTimer += step;
         if (state.powerUpSpawnTimer >= 480 && state.activePowerUps.length < 2) {
@@ -606,6 +608,10 @@
         runtime.inputs = inputs;
         runtime.sweptContacts.clear();
         runtime.clockMs += elapsed;
+        const previousBallPosition = {
+            x: runtime.ballBody.position.x,
+            y: runtime.ballBody.position.y
+        };
         state.players.forEach((player, index) => {
             runtime.previousPlayerPositions[index] = {
                 x: runtime.playerBodies[index].position.x,
@@ -619,7 +625,9 @@
         state.players.forEach((player, index) => {
             applyInputVelocity(runtime.playerBodies[index], inputFor(inputs, player), player, state, step);
         });
+        enforceKickoff(state, runtime);
         collidePlayers(state, runtime);
+        enforceKickoff(state, runtime);
         resolveSweptPlayerBall(state, runtime);
         const ballBody = runtime.ballBody;
         MatterApi.Body.setPosition(ballBody, {
@@ -655,6 +663,15 @@
                 runtime.goalHandled = true;
                 state.goalDetected = true;
                 state.lastGoalTeam = goalBody.goalTeam;
+                runtime.events.push('gol');
+            }
+        }
+        if (!runtime.goalHandled) {
+            const crossedTeam = crossedGoalLine(previousBallPosition, ballBody.position, state);
+            if (crossedTeam) {
+                runtime.goalHandled = true;
+                state.goalDetected = true;
+                state.lastGoalTeam = crossedTeam;
                 runtime.events.push('gol');
             }
         }
