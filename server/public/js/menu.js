@@ -1,6 +1,9 @@
-const btnCreateRoom =
-document.getElementById("btnCreateRoom");
-
+/**
+ * menu.js
+ * 
+ * Archivo de scripts auxiliares para los botones del menú principal.
+ * Contiene referencias y manejadores de eventos (Ej: jugar local, opciones).
+ */
 const btnPlayLocal =
 document.getElementById("btnPlayLocal");
 
@@ -11,15 +14,8 @@ const btnExit =
 document.getElementById("btnExit");
 
 /* ========================= */
-/* JUGAR (antes CREAR SALA) */
+/* JUGAR LOCAL */
 /* ========================= */
-
-btnCreateRoom.addEventListener("click", () => {
-
-    window.location.href =
-    "../pages/jugar.html";
-
-});
 
 btnPlayLocal.addEventListener("click", () => {
 

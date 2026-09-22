@@ -1,3 +1,11 @@
+/**
+ * socket.js
+ * 
+ * Módulo de red principal del cliente.
+ * Establece la conexión con el servidor Socket.IO, detectando dinámicamente
+ * la IP para soportar juego en red local (LAN). Escucha y despacha los eventos
+ * globales de red (conexión, desconexión, errores).
+ */
 // ========================= //
 // SOCKET IO - CONFIGURACIÓN //
 // ========================= //

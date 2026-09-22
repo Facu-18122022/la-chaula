@@ -1,3 +1,11 @@
+/**
+ * juego.js
+ * 
+ * Lógica principal del lado del cliente para el modo multijugador online.
+ * Se encarga de renderizar la partida, procesar los inputs del jugador,
+ * sincronizar el estado del juego (posición de jugadores y pelota)
+ * recibido desde el servidor mediante Socket.IO y mostrar efectos visuales (Ej: explosiones de goles).
+ */
 // Cargar la imagen de Momo para el centro de la cancha
 const streetLogo = new Image();
 streetLogo.src = "../img/MomoCancha.jpg"

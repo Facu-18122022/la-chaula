@@ -1,3 +1,11 @@
+/**
+ * juego-local.js
+ * 
+ * Controlador principal de la partida en modo local (offline).
+ * Inicializa el canvas, maneja la puntuación, el tiempo de juego, y 
+ * se comunica con el motor físico y de renderizado de manera local, 
+ * sin necesidad de conectarse al servidor (Socket.IO).
+ */
 (function (global) {
     const canvas = document.getElementById('localCanvas');
     const context = canvas.getContext('2d');

@@ -1,3 +1,10 @@
+/**
+ * Renderer.js
+ * 
+ * Clase encargada de dibujar los elementos visuales en el canvas HTML5.
+ * Proporciona métodos para renderizar la cancha, jugadores, pelota, 
+ * arcos y otras animaciones o textos necesarios en el cliente.
+ */
 export default class Renderer{
 
     constructor(canvas){

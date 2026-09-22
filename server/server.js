@@ -1,3 +1,11 @@
+/**
+ * server.js
+ * 
+ * Punto de entrada principal para el backend del juego.
+ * Configura el servidor Express para servir archivos estáticos (frontend),
+ * e inicializa Socket.IO para manejar la comunicación en tiempo real
+ * (creación de salas, sincronización de la física, jugadores y chat).
+ */
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");

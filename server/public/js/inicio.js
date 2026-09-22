@@ -1,3 +1,10 @@
+/**
+ * inicio.js
+ * 
+ * Script de comportamiento básico para la pantalla de inicio principal.
+ * Maneja la interacción inicial del usuario con los menús de navegación, 
+ * botones de jugar, opciones, etc.
+ */
 document.addEventListener("DOMContentLoaded", () => {
 
     // Pantallas

@@ -1,3 +1,10 @@
+/**
+ * LobbyUI.js
+ * 
+ * Controlador visual secundario del lobby.
+ * Inicializa y maneja pequeños detalles de la interfaz, como cargar
+ * el apodo del jugador desde el localStorage y unirse a un equipo.
+ */
 const LobbyUI = {
 
     init(socket){
