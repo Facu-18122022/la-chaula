@@ -1,7 +1,8 @@
 // Music controller con playlist + integración settings (La Chaula)
 
 (function () {
-    const isGamePage = window.location.pathname.endsWith('/juego.html');
+    const path = window.location.pathname;
+    const isGamePage = /\/(juego|jugar|juego-local|local-config)\.html$/.test(path);
     const trackName = isGamePage
         ? 'NUEVA CHICAGO - ME GUSTA LA PASTA (CON LETRA).mp3'
         : 'El Negro Tecla - Ahí Ahí (Lyric Video).mp3';
@@ -17,6 +18,8 @@
     let audio = document.createElement('audio');
     audio.id = 'la-chaula-music';
     audio.style.display = 'none';
+    audio.preload = 'auto';
+    audio.muted = false;
     document.body.appendChild(audio);
 
     let index = 0;
@@ -32,13 +35,12 @@
     function applyVolume() {
         const settings = getSettings();
 
-        let volume = 0.5;
+        let volume = 0.45;
 
         if (settings.music !== undefined && settings.music !== null) {
             volume = parseFloat(settings.music);
         }
 
-        // Detecta automáticamente si es 0–100 o 0–1
         if (volume > 1) {
             volume = volume / 100;
         }
@@ -47,8 +49,7 @@
             volume = 0;
         }
 
-        // seguridad final
-        if (isNaN(volume)) volume = 0.5;
+        if (isNaN(volume)) volume = 0.45;
         if (volume < 0) volume = 0;
         if (volume > 1) volume = 1;
 
@@ -66,7 +67,7 @@
 
     function play() {
         applyVolume();
-
+        audio.muted = false;
         loadTrack(index);
 
         const savedTime = parseFloat(localStorage.getItem(KEY_TIME) || '0');
@@ -76,7 +77,10 @@
             .then(() => {
                 localStorage.setItem(KEY_PLAY, '1');
             })
-            .catch(() => false);
+            .catch(() => {
+                localStorage.setItem(KEY_PLAY, '0');
+                return false;
+            });
     }
 
     function pause() {
