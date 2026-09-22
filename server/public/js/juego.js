@@ -67,6 +67,8 @@ let lastTick = 0;
 const matchTimeMinutes = parseInt(localStorage.getItem('matchTime'), 10) || 5; 
 let totalMatchMs = matchTimeMinutes * 60 * 1000;
 let remainingMs = totalMatchMs;
+let overtime = false;
+let overtimeMs = 0;
 
 // SISTEMA DE CELEBRACIÓN Y SAQUES
 let isCelebration = false;
@@ -75,7 +77,6 @@ let goalScorerColor = "";
 let goalScorerName = "";
 let kickOffTeam = "red"; 
 let waitingForKickOff = true; 
-let restrictMidForRed = true;
 const selectedTeam = localStorage.getItem('equipoSeleccionado') || 'red';
 const roomId = localStorage.getItem('roomId');
 const nickname = localStorage.getItem('jugador') || 'Jugador';
@@ -196,6 +197,8 @@ if (typeof io !== 'undefined') {
         visiblePlayers = [];
         remainingMs = (data.matchTime || 5) * 60 * 1000;
         totalMatchMs = remainingMs;
+        overtime = false;
+        overtimeMs = 0;
         resetGameStateFromServer();
         if (data.players && Array.isArray(data.players)) {
             const local = data.players.find(p => p.nickname.trim().toLowerCase() === localPlayerNickname.trim().toLowerCase());
@@ -256,8 +259,25 @@ if (typeof io !== 'undefined') {
             startTimer();
         }
 
-        if (typeof data.restrictMidForRed === 'boolean') {
-            restrictMidForRed = data.restrictMidForRed;
+        if (typeof data.servingTeam === 'string') {
+            kickOffTeam = data.servingTeam;
+        }
+
+        if (typeof data.paused === 'boolean') {
+            setPausedFromServer(data.paused);
+        }
+
+        if (typeof data.overtime === 'boolean') {
+            overtime = data.overtime;
+            if (!overtime) overtimeMs = 0;
+            if (data.overtime) {
+                goalScorerName = 'TIEMPO EXTRA';
+                goalScorerColor = '#facc15';
+            }
+        }
+
+        if (typeof data.overtimeMs === 'number') {
+            overtimeMs = data.overtimeMs;
         }
 
         if (typeof data.waitingForKickOff === 'boolean') {
@@ -410,7 +430,7 @@ function stopTimer() {
 }
 
 function updateTimerDisplay() {
-    const ms = Math.max(0, remainingMs);
+    const ms = Math.max(0, overtime ? overtimeMs : remainingMs);
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -870,12 +890,6 @@ function updatePositionsAndLimits() {
     const midY = canvas.height / 2;
 
     visiblePlayers.forEach(p => {
-        // Restricción de zona media para el equipo rojo
-        if (gameStarted && restrictMidForRed && p.team === "red" && p.x < midX) {
-            p.x = midX;
-            if (p.vx < 0) p.vx = 0;
-        }
-
         if (waitingForKickOff) {
             if (p.team === "blue" && p.x + p.r > midX) {
                 p.x = midX - p.r;
@@ -1095,7 +1109,7 @@ function drawCelebrationOverlay() {
 let isPaused = false;
 let timerWasRunningBeforePause = false;
 
-function setPaused(p) {
+function renderPauseState(p) {
     const overlay = document.getElementById('pauseOverlay');
     isPaused = !!p;
     if (overlay) {
@@ -1111,8 +1125,21 @@ function setPaused(p) {
     }
 }
 
+function setPausedFromServer(p) {
+    renderPauseState(p);
+}
+
+function requestPause(p) {
+    if (!socket || !socket.connected || !gameStarted || !gameRoomId) return;
+    socket.emit('game:pause', { roomId: gameRoomId, paused: !!p });
+}
+
+function setPaused(p) {
+    requestPause(!!p);
+}
+
 function togglePause() {
-    setPaused(!isPaused);
+    requestPause(!isPaused);
 }
 
 function resetMatch() {
@@ -1131,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resumeBtn = document.getElementById('resumeButton');
     const restartBtn = document.getElementById('restartButton');
     const exitBtn = document.getElementById('exitButton');
-    if (resumeBtn) resumeBtn.addEventListener('click', () => setPaused(false));
+    if (resumeBtn) resumeBtn.addEventListener('click', () => requestPause(false));
     if (restartBtn) restartBtn.addEventListener('click', () => { setPaused(false); resetMatch(); });
     if (exitBtn) exitBtn.addEventListener('click', () => { window.location.href = 'menu.html'; });
 });

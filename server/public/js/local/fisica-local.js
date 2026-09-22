@@ -24,11 +24,11 @@
         };
     }
 
-    function crearEstado({ mapa, ladoIzquierdo = 'red', jugadores = [] } = {}) {
+    function crearEstado({ mapa, ladoIzquierdo = 'red', kickoffTeam = null, jugadores = [] } = {}) {
         const map = normalizeMap(mapa);
         const centerX = map.width / 2;
         const players = jugadores.map((player, index) => {
-            const id = player.id === 'j2' ? 'j2' : 'j1';
+            const id = player.id == null ? `j${index + 1}` : String(player.id);
             const team = player.equipo === 'blue' ? 'blue' : 'red';
             const isLeft = team === ladoIzquierdo;
             const sameTeam = jugadores.slice(0, index).filter(item => (item.equipo === 'blue' ? 'blue' : 'red') === team).length;
@@ -60,6 +60,7 @@
             powerUpSpawnTimer: 0,
             waitingForKickOff: true,
             kickoffPlayerId: 'j1',
+            kickoffTeam: kickoffTeam === 'blue' ? 'blue' : kickoffTeam === 'red' ? 'red' : null,
             timerStarted: false,
             lastTouch: null,
             secondLastTouch: null,
@@ -70,6 +71,13 @@
 
     function inputFor(inputs, player) {
         return inputs && inputs[player.id] ? inputs[player.id] : {};
+    }
+
+    function isServingTeam(player, state) {
+        if (state.kickoffTeam === 'red' || state.kickoffTeam === 'blue') {
+            return player.equipo === state.kickoffTeam;
+        }
+        return player.id === state.kickoffPlayerId;
     }
 
     function movePlayer(player, input, state, step) {
@@ -92,15 +100,17 @@
 
         const centerX = state.mapa.width / 2;
         if (state.waitingForKickOff) {
-            const isKickoffPlayer = player.id === state.kickoffPlayerId;
             const centerCircleRadius = state.mapa.width * 0.085;
-            if (isKickoffPlayer) {
-                if (player.equipo === state.ladoIzquierdo) player.x = Math.min(player.x, centerX - player.r);
-                else player.x = Math.max(player.x, centerX + player.r);
-            } else if (player.equipo === state.ladoIzquierdo) {
-                player.x = Math.min(player.x, centerX - centerCircleRadius - player.r);
+            const servingTeam = isServingTeam(player, state);
+            const isLeftTeam = player.equipo === state.ladoIzquierdo;
+            const halfLimit = isLeftTeam ? centerX - player.r : centerX + player.r;
+            const restrictedLimit = isLeftTeam
+                ? centerX - centerCircleRadius - player.r
+                : centerX + centerCircleRadius + player.r;
+            if (isLeftTeam) {
+                player.x = Math.min(player.x, servingTeam ? halfLimit : restrictedLimit);
             } else {
-                player.x = Math.max(player.x, centerX + centerCircleRadius + player.r);
+                player.x = Math.max(player.x, servingTeam ? halfLimit : restrictedLimit);
             }
         }
         player.x = Math.max(player.r, Math.min(state.mapa.width - player.r, player.x));
@@ -138,6 +148,7 @@
 
     function collideBall(player, input, state, events) {
         const ball = state.ball;
+        if (state.waitingForKickOff && state.kickoffTeam && player.equipo !== state.kickoffTeam) return;
         const dx = ball.x - player.x;
         const dy = ball.y - player.y;
         const distance = Math.hypot(dx, dy);
@@ -238,7 +249,8 @@
         const rightGoal = ball.x + ball.r >= field.right && inGoalMouth;
         if (leftGoal || rightGoal) {
             state.goalDetected = true;
-            state.lastGoalTeam = rightGoal ? 'red' : 'blue';
+            const oppositeTeam = state.ladoIzquierdo === 'red' ? 'blue' : 'red';
+            state.lastGoalTeam = rightGoal ? state.ladoIzquierdo : oppositeTeam;
             events.push('gol');
             ball.x = state.mapa.width / 2;
             ball.y = state.mapa.height / 2;
