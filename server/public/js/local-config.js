@@ -1,3 +1,11 @@
+/**
+ * local-config.js
+ * 
+ * Interfaz de configuración para el modo local.
+ * Permite a los jugadores configurar las opciones de una partida offline,
+ * como la duración del partido, límite de goles y elegir el mapa,
+ * mostrando un render de previsualización del diseño seleccionado.
+ */
 (function () {
     const mapas = Array.isArray(window.MAPAS) ? window.MAPAS : [];
     const matchTimeSelect = document.getElementById('localMatchTime');

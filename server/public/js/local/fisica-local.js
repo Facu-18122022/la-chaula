@@ -1,3 +1,11 @@
+/**
+ * fisica-local.js
+ * 
+ * Motor de físicas de simulación de juego.
+ * Calcula colisiones, aceleración, fricción y rebotes de la pelota 
+ * y jugadores usando física 2D de círculo a círculo y límites rectangulares.
+ * Diseñado de forma agnóstica para correr tanto en frontend como en Node.js.
+ */
 (function (global) {
     const ACCEL = 0.25;
     const MAX_VEL = 3.4;

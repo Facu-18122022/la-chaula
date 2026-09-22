@@ -1,3 +1,10 @@
+/**
+ * GameLoops.js
+ * 
+ * Clase de utilidad para crear y gestionar el bucle principal del juego.
+ * Utiliza requestAnimationFrame para ejecutar métodos de actualización y
+ * renderizado de forma continua, calculando el deltaTime en cada iteración.
+ */
 export default class GameLoop{
 
     constructor(update, render){

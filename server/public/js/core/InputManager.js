@@ -1,3 +1,11 @@
+/**
+ * InputManager.js
+ * 
+ * Gestor de entradas del teclado.
+ * Captura los eventos 'keydown' y 'keyup' y mantiene un estado
+ * actualizado de qué teclas están siendo presionadas para que
+ * puedan ser leídas en cualquier momento por la lógica de juego.
+ */
 export default class InputManager{
 
     constructor(){
