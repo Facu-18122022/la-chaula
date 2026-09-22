@@ -1,5 +1,11 @@
-// Music controller con playlist + integración settings (La Chaula)
-
+/**
+ * music.js
+ * 
+ * Controlador global de música y efectos de audio.
+ * Maneja la reproducción continua de la banda sonora, cambiando las canciones
+ * dinámicamente según si se está en un menú o dentro de una partida.
+ * Se integra con los ajustes de volumen del localStorage del usuario.
+ */
 (function () {
     const path = window.location.pathname;
     const isGamePage = /\/(juego|jugar|juego-local|local-config)\.html$/.test(path);

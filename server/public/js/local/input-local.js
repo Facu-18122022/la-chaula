@@ -1,3 +1,11 @@
+/**
+ * input-local.js
+ * 
+ * Módulo para gestionar la entrada del usuario en el navegador local.
+ * Escucha los eventos del teclado, almacena las teclas presionadas
+ * y expone una estructura de inputs estandarizada (direcciones, tiros, pases)
+ * para ser utilizada por el Game Loop.
+ */
 (function (global) {
     const teclas = new Set();
     const teclasDeFlecha = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);

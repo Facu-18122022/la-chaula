@@ -1,3 +1,10 @@
+/**
+ * ChatUI.js
+ * 
+ * Controlador de la interfaz de usuario para el chat de texto.
+ * Gestiona el envío de mensajes desde el input del HTML y la recepción
+ * de mensajes para inyectarlos en el panel de chat.
+ */
 const ChatUI = {
 
     init(socket){

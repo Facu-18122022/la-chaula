@@ -1,3 +1,12 @@
+/**
+ * salas-disponibles.js
+ * 
+ * Lógica de la pantalla de "Salas Disponibles".
+ * Solicita al servidor mediante Socket.IO la lista de salas activas,
+ * las renderiza en la interfaz y permite al usuario seleccionar
+ * una sala específica para unirse a ella.
+ */
+
 /* ========================= */
 /* VARIABLES GLOBALES */
 /* ========================= */

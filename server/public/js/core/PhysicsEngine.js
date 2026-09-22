@@ -1,3 +1,10 @@
+/**
+ * PhysicsEngine.js
+ * 
+ * Utilidades matemáticas y físicas básicas para el juego.
+ * Incluye métodos para detectar colisiones entre círculos y otras
+ * operaciones necesarias para calcular el rebote y movimiento.
+ */
 export default class PhysicsEngine{
 
     static circleCollision(a, b){

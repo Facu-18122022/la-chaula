@@ -1,3 +1,11 @@
+/**
+ * crear-sala.js
+ * 
+ * Controla la interfaz y la lógica para crear una nueva sala multijugador.
+ * Permite definir nombre, tiempo, límite de goles y mapa, y comunica 
+ * estos parámetros al servidor a través de Socket.IO para abrir la sala.
+ */
+
 /* ========================= */
 /* SOCKET IO */
 /* ========================= */
