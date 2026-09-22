@@ -12,6 +12,7 @@
     const FIELD_MARGIN_Y = 40;
     const GOAL_WIDTH = 45;
     const KICK_BUFFER_MS = 100;
+    const BALL_CONTROL_RESPONSE = 0.25;
     const MIN_DELTA_MS = 0;
     const runtimeByState = new WeakMap();
 
@@ -365,29 +366,31 @@
         const dx = ballBody.position.x - playerBody.position.x;
         const dy = ballBody.position.y - playerBody.position.y;
         const distance = Math.hypot(dx, dy);
-        const minDistance = player.r + ball.r;
-        if (distance > minDistance + 2) return;
+        const normalRadius = player.r + ball.r;
         const playerSpeed = Math.hypot(playerBody.velocity.x, playerBody.velocity.y);
+        const inputKick = !!input.kick || (
+            runtime.clockMs - (runtime.lastKickPressAt[player.id] || -Infinity) <= KICK_BUFFER_MS
+        );
+        const kickingRadius = normalRadius + 4;
+        const contactRadius = inputKick ? kickingRadius : normalRadius;
+        if (distance > contactRadius) return;
         const normalX = distance > 0
             ? dx / distance
             : playerSpeed > 0 ? playerBody.velocity.x / playerSpeed : 1;
         const normalY = distance > 0
             ? dy / distance
             : playerSpeed > 0 ? playerBody.velocity.y / playerSpeed : 0;
-        const correctedDistance = minDistance + 0.01;
+        const correctedDistance = normalRadius + 0.01;
         if (distance < correctedDistance) {
             MatterApi.Body.setPosition(ballBody, {
                 x: playerBody.position.x + normalX * correctedDistance,
                 y: playerBody.position.y + normalY * correctedDistance
             });
         }
-        const inputKick = !!input.kick || (
-            runtime.clockMs - (runtime.lastKickPressAt[player.id] || -Infinity) <= KICK_BUFFER_MS
-        );
         if (inputKick) {
             const force = player.activePower === 'SUPER_KICK'
-                ? Math.max(10, playerSpeed * 2)
-                : Math.max(6, playerSpeed * 1.6);
+                ? Math.max(10, 9 + playerSpeed * 0.5)
+                : Math.max(6, 5 + playerSpeed * 0.5);
             MatterApi.Body.setVelocity(ballBody, {
                 x: normalX * force + playerBody.velocity.x * 0.5,
                 y: normalY * force + playerBody.velocity.y * 0.5
@@ -395,9 +398,9 @@
         } else {
             const ballNormalSpeed = ballBody.velocity.x * normalX + ballBody.velocity.y * normalY;
             const playerNormalSpeed = playerBody.velocity.x * normalX + playerBody.velocity.y * normalY;
-            const requiredOutwardSpeed = Math.max(0, playerNormalSpeed * 1.1);
-            const normalSpeedDelta = Math.max(0, requiredOutwardSpeed - ballNormalSpeed);
-            if (normalSpeedDelta > 0) {
+            const controlTarget = Math.max(0, playerNormalSpeed);
+            const normalSpeedDelta = (controlTarget - ballNormalSpeed) * BALL_CONTROL_RESPONSE;
+            if (Math.abs(normalSpeedDelta) > 0.001) {
                 MatterApi.Body.setVelocity(ballBody, {
                     x: ballBody.velocity.x + normalX * normalSpeedDelta,
                     y: ballBody.velocity.y + normalY * normalSpeedDelta
@@ -430,7 +433,9 @@
         const playerSpeed = velocityMagnitude(playerBody);
         const normalX = distance > 0 ? dx / distance : playerSpeed > 0 ? playerBody.velocity.x / playerSpeed : 1;
         const normalY = distance > 0 ? dy / distance : playerSpeed > 0 ? playerBody.velocity.y / playerSpeed : 0;
-        const kickSpeed = player.activePower === 'SUPER_KICK' ? Math.max(10, playerSpeed * 2) : Math.max(6, playerSpeed * 1.6);
+        const kickSpeed = player.activePower === 'SUPER_KICK'
+            ? Math.max(10, 9 + playerSpeed * 0.5)
+            : Math.max(6, 5 + playerSpeed * 0.5);
         MatterApi.Body.setVelocity(ballBody, {
             x: normalX * kickSpeed + playerBody.velocity.x * 0.5,
             y: normalY * kickSpeed + playerBody.velocity.y * 0.5
