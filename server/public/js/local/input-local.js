@@ -8,6 +8,7 @@
  */
 (function (global) {
     const teclas = new Set();
+    const kickPressed = { j1: false, j2: false };
     const teclasDeFlecha = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
     function normalizarTecla(tecla) {
@@ -21,30 +22,40 @@
                 down: teclas.has('s'),
                 left: teclas.has('a'),
                 right: teclas.has('d'),
-                kick: teclas.has('v')
+                kick: teclas.has('v'),
+                kickPressed: kickPressed.j1
             },
             j2: {
                 up: teclas.has('ArrowUp'),
                 down: teclas.has('ArrowDown'),
                 left: teclas.has('ArrowLeft'),
                 right: teclas.has('ArrowRight'),
-                kick: teclas.has('l')
+                kick: teclas.has('l'),
+                kickPressed: kickPressed.j2
             }
         };
     }
 
     function limpiar() {
         teclas.clear();
+        kickPressed.j1 = false;
+        kickPressed.j2 = false;
     }
 
     document.addEventListener('keydown', event => {
         if (teclasDeFlecha.has(event.key)) event.preventDefault();
-        teclas.add(normalizarTecla(event.key));
+        const tecla = normalizarTecla(event.key);
+        teclas.add(tecla);
+        if (tecla === 'v') kickPressed.j1 = true;
+        if (tecla === 'l') kickPressed.j2 = true;
     });
 
     document.addEventListener('keyup', event => {
         if (teclasDeFlecha.has(event.key)) event.preventDefault();
-        teclas.delete(normalizarTecla(event.key));
+        const tecla = normalizarTecla(event.key);
+        teclas.delete(tecla);
+        if (tecla === 'v') kickPressed.j1 = false;
+        if (tecla === 'l') kickPressed.j2 = false;
     });
 
     window.addEventListener('blur', limpiar);
