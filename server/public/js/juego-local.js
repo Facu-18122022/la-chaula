@@ -27,7 +27,7 @@
     let celebracionGol = null;
     let ultimoGolMostrado = null;
     const kickEffects = [];
-    const duracionEfectoPatadaMs = 120;
+    const duracionEfectoPatadaMs = 160;
     const duracionCelebracionGolMs = 1400;
     const duracionEstelaRapidezMs = 280;
     const duracionGrietasMs = 560;
@@ -585,6 +585,11 @@
                 player: evento.player,
                 startTime: timestamp
             });
+        });
+        estado.kickImpactEvents.splice(0).forEach(evento => {
+            for (let index = kickEffects.length - 1; index >= 0; index -= 1) {
+                if (kickEffects[index].player === evento.player) kickEffects.splice(index, 1);
+            }
         });
     }
 

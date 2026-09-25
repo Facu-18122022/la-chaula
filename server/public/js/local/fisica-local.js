@@ -18,7 +18,7 @@
     const BALL_CONTACT_TOLERANCE = 2;
     const KICK_BUFFER_MS = 100;
     const KICK_RADIUS_EXTRA = 4;
-    const KICK_EFFECT_REPEAT_MS = 140;
+    const KICK_EFFECT_REPEAT_MS = 80;
     const MAX_COLLISION_SUBSTEPS = 4;
 
     function normalizeMap(map) {
@@ -79,6 +79,7 @@
             kickWasDown: {},
             kickConsumed: {},
             kickEvents: [],
+            kickImpactEvents: [],
             timerStarted: false,
             goalResetPending: false,
             lastTouch: null,
@@ -288,6 +289,7 @@
         }
         if (inputKick) {
             state.kickConsumed[player.id] = true;
+            state.kickImpactEvents.push({ player });
             const speed = Math.hypot(player.vx, player.vy);
             const force = player.activePower === 'SUPER_KICK'
                 ? Math.max(10, 9 + speed * 0.5)
