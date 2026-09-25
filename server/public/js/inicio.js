@@ -7,6 +7,17 @@
  */
 document.addEventListener("DOMContentLoaded", () => {
 
+    const settings = JSON.parse(
+        localStorage.getItem("lachaula_settings") || "null"
+    );
+    const selectedTheme = settings && ["light", "neon"].includes(settings.theme)
+        ? settings.theme
+        : "dark";
+
+    document.body.classList.add(
+        selectedTheme === "light" ? "tema-claro" : `tema-${selectedTheme}`
+    );
+
     // Pantallas
     const inicio = document.getElementById("inicio");
     

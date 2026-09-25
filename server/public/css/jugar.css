@@ -13,10 +13,9 @@ body{
     overflow:hidden;
 
     background:
-    radial-gradient(circle at center,
-    #1e3a8a 0%,
-    #0f172a 45%,
-    #020617 100%);
+        radial-gradient(circle at 15% 10%, rgba(36,215,208,.16), transparent 32%),
+        radial-gradient(circle at 85% 90%, rgba(255,79,139,.14), transparent 34%),
+        var(--background-color);
 
     color:white;
 }

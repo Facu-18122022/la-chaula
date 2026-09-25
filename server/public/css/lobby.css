@@ -239,11 +239,11 @@ body{
 }
 
 .team-red{
-    background:linear-gradient(135deg,#ef4444,#991b1b);
+    background:linear-gradient(135deg,#ff4f8b,#a62f61);
 }
 
 .team-blue{
-    background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+    background:linear-gradient(135deg,#24d7d0,#168f92);
 }
 
 .team-header{

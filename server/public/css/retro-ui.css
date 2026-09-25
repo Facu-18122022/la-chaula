@@ -1,0 +1,264 @@
+:root {
+    --retro-red: #d40034;
+    --retro-cyan: #00bcd4;
+    --retro-orange: #ff9800;
+    --retro-blue: #0d47a1;
+    --retro-purple: #6a1b9a;
+    --retro-ink: #080a14;
+    --retro-night: #172b72;
+    --retro-violet: #2e0a5e;
+    --retro-paper: #f7fbff;
+    --retro-muted: #b9c6e4;
+    --retro-line: rgba(255, 255, 255, .72);
+    --retro-panel-a: rgba(13, 71, 161, .86);
+    --retro-panel-b: rgba(8, 10, 20, .94);
+    --retro-panel-alt-a: rgba(212, 0, 52, .86);
+    --retro-panel-alt-b: rgba(106, 27, 154, .9);
+    --retro-star: rgba(255, 255, 255, .9);
+    --retro-star-cyan: rgba(0, 188, 212, .7);
+    --retro-star-warm: rgba(255, 152, 0, .6);
+    --retro-solar-glow: rgba(0, 188, 212, .2);
+    --retro-alt-glow: rgba(212, 0, 52, .25);
+    --retro-control-glow: rgba(0, 188, 212, .35);
+    --retro-shadow: rgba(0, 0, 0, .32);
+    --retro-text-shadow: #000000;
+    --retro-hover-brightness: 1.12;
+    --retro-hover-saturation: 1.1;
+    --retro-button-a: #0d47a1;
+    --retro-button-b: #00bcd4;
+    --retro-danger-a: #7d082d;
+    --retro-danger-b: #d40034;
+    --retro-start-a: #b34b00;
+    --retro-start-b: #ff9800;
+    --retro-input-bg: rgba(8, 10, 20, .72);
+    --retro-input-line: rgba(255, 255, 255, .48);
+    --retro-focus: #ff9800;
+}
+
+body {
+    overflow-x: hidden;
+    color: var(--retro-paper);
+    background-color: var(--retro-ink);
+    background-image: radial-gradient(circle at 50% 35%, var(--retro-night) 0%, var(--retro-ink) 48%, var(--retro-violet) 100%);
+}
+
+body::before,
+body::after {
+    position: fixed;
+    inset: -35%;
+    z-index: -1;
+    pointer-events: none;
+    content: "";
+}
+
+body::before {
+    opacity: .34;
+    background-image:
+        radial-gradient(circle, var(--retro-star) 0 1px, transparent 1.8px),
+        radial-gradient(circle, var(--retro-star-cyan) 0 1px, transparent 2px),
+        radial-gradient(circle, var(--retro-star-warm) 0 1px, transparent 2px);
+    background-position: 0 0, 37px 61px, 119px 23px;
+    background-size: 151px 137px, 211px 193px, 263px 229px;
+    animation: retroSpaceDrift 80s linear infinite;
+}
+
+body::after {
+    opacity: .3;
+    background:
+        radial-gradient(ellipse at 20% 35%, var(--retro-star-cyan) 0 1px, transparent 7%),
+        radial-gradient(ellipse at 74% 66%, var(--retro-star-warm) 0 1px, transparent 10%),
+        radial-gradient(ellipse at 88% 17%, var(--retro-red) 0 1px, transparent 8%);
+    filter: blur(2px);
+    animation: retroParallax 23s ease-in-out infinite alternate;
+}
+
+@keyframes retroSpaceDrift {
+    from { background-position: 0% 0%, 37px 61px, 119px 23px; }
+    to { background-position: 100% -50%, 137px -39px, 19px -97px; }
+}
+
+@keyframes retroParallax {
+    from { transform: translate3d(-2%, -1%, 0) scale(1); }
+    to { transform: translate3d(2%, 2%, 0) scale(1.06); }
+}
+
+.settings-page,
+.admin-page,
+.lobby {
+    position: relative;
+    min-height: 100vh;
+    isolation: isolate;
+}
+
+.logo-placeholder {
+    width: 300px !important;
+    height: 96px !important;
+    border-radius: 0 !important;
+    background: url("../img/logo.png") center / contain no-repeat !important;
+    filter: drop-shadow(0 0 18px var(--retro-control-glow));
+}
+
+.header-info h1,
+.room-info h1 {
+    color: var(--retro-paper) !important;
+    font-family: "Arial Narrow", "Trebuchet MS", sans-serif;
+    font-size: clamp(2rem, 4vw, 3.2rem) !important;
+    letter-spacing: .04em;
+    text-shadow: 3px 3px 0 var(--retro-text-shadow), -1px -1px 0 var(--retro-text-shadow) !important;
+}
+
+.header-info p,
+.room-info p,
+.ssf-subtitle {
+    color: var(--retro-muted) !important;
+}
+
+.settings-card,
+.panel-card,
+.rooms-container,
+.chat-panel,
+.team-card,
+.info-card,
+.local-dialog {
+    position: relative;
+    overflow: hidden;
+    border: 3px solid var(--retro-line) !important;
+    border-radius: 0 !important;
+    background: linear-gradient(145deg, var(--retro-panel-a), var(--retro-panel-b)) !important;
+    box-shadow: 0 0 15px 5px var(--retro-solar-glow), 0 9px 0 var(--retro-shadow) !important;
+}
+
+.settings-card::after,
+.panel-card::after,
+.rooms-container::after,
+.chat-panel::after,
+.team-card::after,
+.info-card::after,
+.local-dialog::after {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    content: "";
+    opacity: .12;
+    background-image: radial-gradient(var(--retro-star) 1px, transparent 1.5px);
+    background-size: 8px 8px;
+    mix-blend-mode: overlay;
+}
+
+.settings-card > *,
+.panel-card > *,
+.rooms-container > *,
+.chat-panel > *,
+.team-card > *,
+.info-card > *,
+.local-dialog > * {
+    position: relative;
+    z-index: 1;
+}
+
+.settings-card:nth-child(2),
+.panel-card:nth-child(2),
+.team-blue,
+.info-card:nth-child(2) {
+    background: linear-gradient(145deg, var(--retro-panel-alt-a), var(--retro-panel-alt-b)) !important;
+    box-shadow: 0 0 15px 5px var(--retro-alt-glow), 0 9px 0 var(--retro-shadow) !important;
+}
+
+.settings-card h2,
+.panel-card h2,
+.panel-title,
+.team-header {
+    color: var(--retro-paper) !important;
+    font-family: "Arial Narrow", "Trebuchet MS", sans-serif;
+    letter-spacing: .04em;
+    text-shadow: 2px 2px 0 var(--retro-text-shadow);
+}
+
+.settings-card:hover,
+.panel-card:hover,
+.rooms-container:hover,
+.chat-panel:hover,
+.team-card:hover,
+.info-card:hover {
+    transform: translateY(-3px);
+    filter: brightness(var(--retro-hover-brightness)) saturate(var(--retro-hover-saturation));
+    box-shadow: 0 0 25px 9px var(--retro-solar-glow), 0 9px 0 var(--retro-shadow) !important;
+    transition: transform .2s ease-out, filter .2s ease-out, box-shadow .2s ease-out;
+}
+
+.ssf-button,
+.btn-primary,
+.btn-secondary,
+.action-button,
+.local-button {
+    border: 2px solid var(--retro-line) !important;
+    border-radius: 0 !important;
+    color: var(--retro-paper) !important;
+    background: linear-gradient(135deg, var(--retro-button-a), var(--retro-button-b)) !important;
+    box-shadow: 0 0 12px var(--retro-control-glow), 3px 3px 0 var(--retro-shadow) !important;
+    text-shadow: 2px 2px 0 var(--retro-text-shadow);
+    transition: transform .2s ease-out, filter .2s ease-out, box-shadow .2s ease-out !important;
+}
+
+.ssf-button:hover,
+.btn-primary:hover,
+.btn-secondary:hover,
+.action-button:hover,
+.local-button:hover {
+    transform: translate(-2px, -2px) !important;
+    filter: brightness(var(--retro-hover-brightness)) saturate(var(--retro-hover-saturation));
+    box-shadow: 0 0 20px var(--retro-control-glow), 5px 5px 0 var(--retro-shadow) !important;
+}
+
+.ssf-button-danger,
+.btn-secondary,
+.action-button.secondary,
+.local-button--danger {
+    background: linear-gradient(135deg, var(--retro-danger-a), var(--retro-danger-b)) !important;
+}
+
+.action-button.start,
+.local-button--primary {
+    background: linear-gradient(135deg, var(--retro-start-a), var(--retro-start-b)) !important;
+}
+
+input,
+select,
+textarea,
+.mute-toggle,
+.map-preview,
+.map-preview-container {
+    border-radius: 0 !important;
+}
+
+input,
+select,
+textarea {
+    border-color: var(--retro-input-line) !important;
+    background: var(--retro-input-bg) !important;
+    color: var(--retro-paper) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.ssf-button:focus-visible,
+button:focus-visible {
+    outline: 3px solid var(--retro-focus) !important;
+    outline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+    .logo-placeholder { width: 220px !important; height: 76px !important; }
+    .settings-card,
+    .panel-card,
+    .rooms-container,
+    .chat-panel,
+    .team-card { box-shadow: 0 0 10px 3px var(--retro-solar-glow) !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body::before, body::after { animation: none; }
+    .settings-card, .panel-card, .rooms-container, .chat-panel, .team-card, .info-card { transition: none; }
+}

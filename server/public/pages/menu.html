@@ -6,6 +6,7 @@
     <title>La Chaula</title>
     
     <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/retro-ui.css">
     <link rel="stylesheet" href="../css/menu.css">
     <link rel="stylesheet" href="../css/ssf-theme.css">
 </head>
@@ -16,11 +17,11 @@
     <!-- MENU PRINCIPAL -->
     <!-- ========================= -->
 
-    <main id="main-menu" class="view active">
+    <main id="main-menu" class="view active smash-ui-container">
 
         <div class="menu-grid">
 
-           <button id="btnPlayLocal" class="menu-card menu-card--play ssf-card-primary ssf-button">
+           <button id="btnPlayLocal" class="menu-card smash-panel menu-card--play" type="button">
                 <div class="menu-card__image"></div>
 
                 <div class="menu-card__content">
@@ -28,16 +29,16 @@
                         DOS JUGADORES
                     </span>
 
-                    <h2 class="ssf-title">JUGAR LOCAL</h2>
+                    <h2>JUGAR LOCAL</h2>
                 </div>
 
             </button>
 
-            <div class="menu-card menu-card--art ssf-card" aria-hidden="true">
+            <div class="menu-card smash-panel menu-card--art" aria-hidden="true">
                 <div class="menu-card__image"></div>
             </div>
 
-           <button  id="btnSettings"  class="menu-card menu-card--settings ssf-card">
+           <button id="btnSettings" class="menu-card smash-panel menu-card--settings" type="button">
 
                 <div class="menu-card__image"></div>
 
@@ -46,12 +47,12 @@
                         AJUSTES
                     </span>
 
-                    <h2 class="ssf-title">CONFIGURACIÓN</h2>
+                    <h2>CONFIGURACIÓN</h2>
                 </div>
 
             </button>
 
-            <button id="btnExit"  class="menu-card menu-card--exit ssf-card ssf-button-danger">
+            <button id="btnExit" class="menu-card smash-panel menu-card--exit" type="button">
 
                 <div class="menu-card__image"></div>
 
@@ -60,7 +61,7 @@
                         SISTEMA
                     </span>
 
-                    <h2 class="ssf-title">SALIR</h2>
+                    <h2>SALIR</h2>
                     
                 </div>
 
@@ -74,7 +75,6 @@
 
     </main>
 
-    <script src="../js/theme-loader.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="../js/menu.js"></script>
 

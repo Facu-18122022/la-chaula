@@ -25,6 +25,10 @@
     background: var(--ssf-cyan);
 }
 
+.ssf-button-primary {
+    background: var(--ssf-cyan);
+}
+
 .ssf-title {
     color: var(--ssf-ink);
     font-family: "Arial Black", "Trebuchet MS", sans-serif;
@@ -83,6 +87,11 @@
 
 .ssf-button-danger {
     background: var(--ssf-pink);
+}
+
+.pantalla .ssf-title {
+    color: var(--ssf-paper);
+    text-shadow: 3px 3px 0 var(--ssf-pink), 6px 6px 0 var(--ssf-ink);
 }
 
 .ssf-button:disabled {

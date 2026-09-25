@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/jugar.css">
     <link rel="stylesheet" href="../css/ssf-theme.css">
+    <link rel="stylesheet" href="../css/menu.css">
 </head>
 <body>
 <script src="../js/music.js"></script>
@@ -16,11 +17,11 @@
     <!-- VISTA DE JUEGO -->
     <!-- ========================= -->
 
-    <main id="jugar-menu" class="view active">
+    <main id="jugar-menu" class="view active smash-ui-container">
 
         <div class="menu-grid">
 
-           <button id="btnCreateRoom" class="menu-card menu-card--play ssf-card-primary ssf-button">
+           <button id="btnCreateRoom" class="menu-card smash-panel menu-card--play" type="button">
                 <div class="menu-card__image"></div>
 
                 <div class="menu-card__content">
@@ -28,12 +29,12 @@
                         ANFITRIÓN
                     </span>
 
-                    <h2 class="ssf-title">CREAR SALA</h2>
+                    <h2>CREAR SALA</h2>
                 </div>
 
             </button>
 
-           <button id="btnJoinRoom" class="menu-card menu-card--play ssf-card ssf-button">
+           <button id="btnJoinRoom" class="menu-card smash-panel menu-card--settings" type="button">
                 <div class="menu-card__image"></div>
 
                 <div class="menu-card__content">
@@ -41,7 +42,7 @@
                         BUSCAR
                     </span>
 
-                    <h2 class="ssf-title">SALAS DISPONIBLES</h2>
+                    <h2>SALAS DISPONIBLES</h2>
                 </div>
 
             </button>
@@ -53,11 +54,10 @@
         </div>
 
         <!-- Botón para volver al menú -->
-        <button id="btnBack" class="btn-back ssf-button ssf-button-danger">← Volver</button>
+        <button id="btnBack" class="btn-back ssf-button ssf-button-danger" type="button">← Volver</button>
 
     </main>
 
-    <script src="../js/theme-loader.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="../js/jugar.js"></script>
 

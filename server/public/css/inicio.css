@@ -1,56 +1,307 @@
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial, Helvetica, sans-serif;
+:root {
+    --intro-space-center: #182d78;
+    --intro-space-edge: #2e0a5e;
+    --intro-space-base: #080a14;
+    --intro-text: #ffffff;
+    --intro-text-shadow: #05050a;
+    --intro-muted: rgba(255, 255, 255, .78);
+    --intro-line: rgba(255, 255, 255, .88);
+    --intro-accent-a: #d40034;
+    --intro-accent-b: #ff5a38;
+    --intro-glow: rgba(212, 0, 52, .75);
+    --intro-solar: rgba(255, 152, 0, .8);
+    --intro-shadow: rgba(0, 0, 0, .7);
+    --intro-star: rgba(255, 255, 255, .9);
+    --intro-star-cyan: rgba(0, 188, 212, .75);
+    --intro-star-warm: rgba(255, 152, 0, .55);
+    --intro-hover-brightness: 1.16;
+    --intro-hover-saturation: 1.15;
+    --intro-button-scale: 1.04;
+    --intro-ball-glow: rgba(255, 255, 255, .7);
 }
 
-body{
-    overflow:hidden;
-    
+body.tema-claro {
+    --intro-space-center: #e6f0fa;
+    --intro-space-edge: #b6cfe4;
+    --intro-space-base: #ffffff;
+    --intro-text: #0d0d0d;
+    --intro-text-shadow: #ffffff;
+    --intro-muted: rgba(13, 13, 13, .72);
+    --intro-line: #1a1a1a;
+    --intro-accent-a: #c40032;
+    --intro-accent-b: #ff9f1c;
+    --intro-glow: rgba(255, 152, 0, .85);
+    --intro-solar: rgba(255, 255, 255, .95);
+    --intro-shadow: rgba(19, 36, 56, .45);
+    --intro-star: rgba(255, 255, 255, .95);
+    --intro-star-cyan: rgba(0, 155, 190, .3);
+    --intro-star-warm: rgba(255, 152, 0, .36);
+    --intro-hover-brightness: 1.1;
+    --intro-hover-saturation: 1.25;
+    --intro-ball-glow: rgba(255, 190, 60, .95);
 }
 
-.pantalla{
-    width:100vw;
-    height:100vh;
+body.tema-neon {
+    --intro-space-center: #05051a;
+    --intro-space-edge: #17002b;
+    --intro-space-base: #000000;
+    --intro-text: #ffffff;
+    --intro-text-shadow: #00f3ff;
+    --intro-muted: rgba(255, 255, 255, .82);
+    --intro-line: #00f3ff;
+    --intro-accent-a: #ff007f;
+    --intro-accent-b: #00f3ff;
+    --intro-glow: rgba(255, 0, 127, .95);
+    --intro-solar: rgba(0, 243, 255, .95);
+    --intro-shadow: rgba(0, 243, 255, .65);
+    --intro-star: #ffffff;
+    --intro-star-cyan: #00f3ff;
+    --intro-star-warm: #ffe600;
+    --intro-hover-brightness: 1.3;
+    --intro-hover-saturation: 1.45;
+    --intro-button-scale: 1.06;
+    --intro-ball-glow: rgba(0, 243, 255, 1);
 }
 
-#inicio{
-    background-image:url("../img/fondo.jpg");
-    background-size:cover;
-    background-position:center;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-.overlay{
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,.5);
-
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    gap:30px;
+body {
+    overflow: hidden;
+    color: var(--intro-text);
+    background-color: var(--intro-space-base);
+    font-family: "Arial Narrow", "Trebuchet MS", Arial, sans-serif;
 }
 
-.overlay h1{
-    color:white;
-    font-size:4rem;
+.pantalla {
+    width: 100vw;
+    height: 100vh;
 }
 
-#btnJugar{
-    padding:15px 40px;
-    font-size:1.2rem;
-    border:none;
-    border-radius:12px;
-    cursor:pointer;
-    transition:.3s;
+#inicio {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 38%, var(--intro-space-center) 0%, var(--intro-space-base) 53%, var(--intro-space-edge) 100%),
+        url("../img/fondo.jpg") center / cover no-repeat;
 }
 
-#btnJugar:hover{
-    transform:scale(1.05);
+#inicio::before,
+#inicio::after {
+    position: absolute;
+    inset: -35%;
+    z-index: -1;
+    pointer-events: none;
+    content: "";
 }
 
-.oculto{
-    display:none !important;
+#inicio::before {
+    opacity: .42;
+    background-image:
+        radial-gradient(circle, var(--intro-star) 0 1px, transparent 1.8px),
+        radial-gradient(circle, var(--intro-star-cyan) 0 1px, transparent 2px),
+        radial-gradient(circle, var(--intro-star-warm) 0 1px, transparent 2px);
+    background-position: 0 0, 43px 71px, 131px 29px;
+    background-size: 157px 143px, 223px 197px, 271px 233px;
+    animation: introSpaceDrift 72s linear infinite;
+}
+
+#inicio::after {
+    opacity: .4;
+    background:
+        radial-gradient(ellipse at 18% 28%, var(--intro-solar) 0 1px, transparent 8%),
+        radial-gradient(ellipse at 80% 68%, var(--intro-glow) 0 1px, transparent 9%),
+        linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, .08) 50%, transparent 58%);
+    filter: blur(2px);
+    animation: introParallax 19s ease-in-out infinite alternate;
+}
+
+@keyframes introSpaceDrift {
+    from { background-position: 0 0, 43px 71px, 131px 29px; }
+    to { background-position: 100% -50%, 153px -39px, 21px -101px; }
+}
+
+@keyframes introParallax {
+    from { transform: translate3d(-2%, -1%, 0) scale(1); }
+    to { transform: translate3d(2%, 2%, 0) scale(1.08); }
+}
+
+.overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    gap: 28px;
+    padding: 24px;
+    background: linear-gradient(180deg, rgba(8, 10, 20, .22), rgba(8, 10, 20, .74));
+}
+
+.overlay h1 {
+    position: relative;
+    z-index: 1;
+    color: var(--intro-text);
+    font-family: "Arial Black", "Arial Narrow", sans-serif;
+    font-size: clamp(3rem, 9vw, 7rem);
+    font-weight: 950;
+    letter-spacing: .055em;
+    line-height: .9;
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow:
+        4px 4px 0 var(--intro-text-shadow),
+        8px 8px 0 var(--intro-accent-a),
+        12px 12px 0 var(--intro-shadow),
+        0 0 26px var(--intro-glow);
+    animation: titlePunch .8s cubic-bezier(.2, .85, .3, 1.2) both;
+}
+
+@keyframes titlePunch {
+    from { opacity: 0; transform: translateY(-24px) skewX(-5deg) scale(.88); }
+    to { opacity: 1; transform: translateY(0) skewX(-5deg) scale(1); }
+}
+
+.play-button-shell {
+    position: relative;
+    z-index: 2;
+    width: min(420px, 86vw);
+    height: 152px;
+    overflow: visible;
+    filter: drop-shadow(0 0 14px var(--intro-glow)) drop-shadow(0 10px 0 var(--intro-shadow));
+    transition: filter .2s ease-out;
+}
+
+.play-button-shell:hover {
+    filter: drop-shadow(0 0 28px var(--intro-solar)) drop-shadow(0 0 54px var(--intro-glow)) drop-shadow(0 10px 0 var(--intro-shadow));
+}
+
+#btnJugar {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    width: 100%;
+    min-height: 78px;
+    padding: 18px 40px;
+    overflow: hidden;
+    border: 3px solid var(--intro-line);
+    border-radius: 0;
+    clip-path: polygon(7% 0, 100% 0, 93% 100%, 0 100%);
+    color: var(--intro-text);
+    background:
+        radial-gradient(circle at 75% 25%, rgba(255, 255, 255, .3), transparent 28%),
+        linear-gradient(135deg, var(--intro-accent-a), var(--intro-accent-b));
+    cursor: pointer;
+    font-family: "Arial Black", "Arial Narrow", sans-serif;
+    font-size: clamp(1.05rem, 3vw, 1.45rem);
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    text-shadow:
+        2px 2px 0 var(--intro-text-shadow),
+        4px 4px 0 var(--intro-shadow);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .16);
+    transition: transform .2s ease-out, filter .2s ease-out, background .2s ease-out;
+}
+
+#btnJugar::after {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    opacity: .2;
+    background-image: radial-gradient(var(--intro-line) 1px, transparent 1.5px);
+    background-size: 8px 8px;
+    mix-blend-mode: overlay;
+}
+
+#btnJugar:hover {
+    transform: scale(var(--intro-button-scale)) translateY(-3px);
+    filter: brightness(var(--intro-hover-brightness)) saturate(var(--intro-hover-saturation));
+}
+
+#btnJugar:active {
+    transform: scale(.98) translateY(2px);
+}
+
+#btnJugar:focus-visible {
+    outline: 3px solid var(--intro-solar);
+    outline-offset: 6px;
+}
+
+.football {
+    position: absolute;
+    top: 30px;
+    left: 2%;
+    z-index: 3;
+    display: block;
+    width: 42px;
+    height: 42px;
+    pointer-events: none;
+    color: #ffffff;
+    font-size: 2.45rem;
+    line-height: 42px;
+    text-align: center;
+    filter: drop-shadow(0 0 6px var(--intro-ball-glow));
+    animation: footballTricks 8.4s cubic-bezier(.45, .05, .55, .95) infinite;
+    will-change: left, top, transform;
+}
+
+@keyframes footballTricks {
+    /* Tres jueguitos: X permanece exactamente fija en el extremo izquierdo. */
+    0%, 3% { left: 2%; top: 30px; transform: rotate(0deg) scaleY(1); }
+    6% { left: 2%; top: -8px; transform: rotate(110deg) scaleY(1.08); }
+    9% { left: 2%; top: 30px; transform: rotate(220deg) scaleY(.66) scaleX(1.2); }
+    12% { left: 2%; top: -11px; transform: rotate(330deg) scaleY(1.08); }
+    15% { left: 2%; top: 30px; transform: rotate(440deg) scaleY(.66) scaleX(1.2); }
+    18% { left: 2%; top: -8px; transform: rotate(550deg) scaleY(1.08); }
+    21% { left: 2%; top: 30px; transform: rotate(660deg) scaleY(.66) scaleX(1.2); }
+
+    /* Único tramo con movimiento X: sombrerito sobre el título. */
+    26% { left: 12%; top: -44px; transform: rotate(760deg) scaleY(1); }
+    33% { left: 30%; top: -92px; transform: rotate(900deg) scaleY(1.06); }
+    40% { left: 52%; top: -100px; transform: rotate(1040deg) scaleY(1.06); }
+    47% { left: 72%; top: -44px; transform: rotate(1180deg) scaleY(1); }
+    50% { left: 86%; top: 30px; transform: rotate(1240deg) scaleY(1); }
+
+    /* Tres jueguitos: X permanece exactamente fija en el extremo derecho. */
+    53%, 56% { left: 86%; top: -8px; transform: rotate(1350deg) scaleY(1.08); }
+    59% { left: 86%; top: 30px; transform: rotate(1460deg) scaleY(.66) scaleX(1.2); }
+    62% { left: 86%; top: -11px; transform: rotate(1570deg) scaleY(1.08); }
+    65% { left: 86%; top: 30px; transform: rotate(1680deg) scaleY(.66) scaleX(1.2); }
+    68% { left: 86%; top: -8px; transform: rotate(1790deg) scaleY(1.08); }
+    71% { left: 86%; top: 30px; transform: rotate(1900deg) scaleY(.66) scaleX(1.2); }
+
+    /* Único tramo con movimiento X de regreso al extremo izquierdo. */
+    76% { left: 72%; top: -44px; transform: rotate(2020deg) scaleY(1); }
+    83% { left: 52%; top: -100px; transform: rotate(2160deg) scaleY(1.06); }
+    90% { left: 30%; top: -92px; transform: rotate(2300deg) scaleY(1.06); }
+    97% { left: 12%; top: -44px; transform: rotate(2440deg) scaleY(1); }
+    100% { left: 2%; top: 30px; transform: rotate(2500deg) scaleY(1); }
+}
+
+.oculto { display: none !important; }
+
+@media (max-width: 560px) {
+    .overlay { gap: 22px; }
+    .play-button-shell { height: 138px; }
+    #btnJugar { min-height: 70px; padding-inline: 24px; }
+    .football { top: 28px; font-size: 2.1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #inicio::before,
+    #inicio::after,
+    .overlay h1,
+    .football { animation: none; }
+
+    .football { left: 2%; top: 30px; }
+    #btnJugar,
+    .play-button-shell { transition: none; }
 }
