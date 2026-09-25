@@ -741,6 +741,7 @@
         }
         const snapshot = partido.obtenerSnapshot();
         registrarEfectosPatada(snapshot.estadoFisica, timestamp);
+        actualizarEfectosPatada(timestamp);
         if (snapshot.fase === 'GOL') iniciarCelebracionGol(snapshot);
         renderizar(snapshot, deltaMs);
         if (snapshot.fase === 'FIN' && finishOverlay.hidden) {

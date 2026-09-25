@@ -303,7 +303,6 @@
                 };
             }
         } else if (playerSpeed > 0) {
-    } else if (playerSpeed > 0) {
             const normalX = Math.cos(angle);
             const normalY = Math.sin(angle);
             const ballNormalSpeed = ball.vx * normalX + ball.vy * normalY;
