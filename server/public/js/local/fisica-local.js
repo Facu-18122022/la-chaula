@@ -77,6 +77,7 @@
             lastKickPressAt: {},
             lastKickEffectAt: {},
             kickWasDown: {},
+            kickConsumed: {},
             kickEvents: [],
             timerStarted: false,
             goalResetPending: false,
@@ -260,9 +261,10 @@
         const dy = ball.y - player.y;
         const distance = Math.hypot(dx, dy);
         const normalRadius = player.r + ball.r;
-        const inputKick = !!input.kick || (
+        const kickAvailable = !state.kickConsumed[player.id];
+        const inputKick = kickAvailable && (!!input.kick || (
             state.clockMs - (state.lastKickPressAt[player.id] || -Infinity) <= KICK_BUFFER_MS
-        );
+        ));
         const kickingRadius = normalRadius + KICK_RADIUS_EXTRA;
         const contactRadius = inputKick ? kickingRadius : normalRadius + BALL_CONTACT_TOLERANCE;
         if (distance > contactRadius) return;
@@ -285,6 +287,7 @@
             events.push('primerToque');
         }
         if (inputKick) {
+            state.kickConsumed[player.id] = true;
             const speed = Math.hypot(player.vx, player.vy);
             const force = player.activePower === 'SUPER_KICK'
                 ? Math.max(10, 9 + speed * 0.5)
@@ -385,7 +388,8 @@
         state.players.forEach(player => {
             const input = inputFor(inputs, player);
             const wasDown = !!state.kickWasDown[player.id];
-            const canShowKickEffect = input.kickPressed && (
+            if (!input.kickPressed) state.kickConsumed[player.id] = false;
+            const canShowKickEffect = input.kickPressed && !state.kickConsumed[player.id] && (
                 !wasDown || state.clockMs - (state.lastKickEffectAt[player.id] || -Infinity) >= KICK_EFFECT_REPEAT_MS
             );
             if (input.kickPressed && !wasDown) {
@@ -419,12 +423,6 @@
             const oppositeTeam = state.ladoIzquierdo === 'red' ? 'blue' : 'red';
             state.lastGoalTeam = rightGoal ? state.ladoIzquierdo : oppositeTeam;
             events.push('gol');
-            ball.x = state.mapa.width / 2;
-            ball.y = state.mapa.height / 2;
-            ball.vx = 0;
-            ball.vy = 0;
-            resetKickoffPositions(state);
-            resetPowerUps(state);
             state.activePowerUps.length = 0;
             state.powerUpSpawnTimer = 0;
             state.players.forEach(player => {
