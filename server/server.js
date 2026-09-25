@@ -321,6 +321,29 @@ function processRoomGameTick(room) {
     const BALL_FRICTION = 0.985;
     const RESTITUTION = -0.55;
 
+    function collidePlayerWithBackPost(player, postX) {
+        const closestY = Math.max(room.game.goalTop, Math.min(room.game.goalBottom, player.y));
+        let dx = player.x - postX;
+        let dy = player.y - closestY;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance >= player.r) return;
+        if (!distance) {
+            dx = player.x <= postX ? -1 : 1;
+            dy = 0;
+            distance = 1;
+        }
+        const normalX = dx / distance;
+        const normalY = dy / distance;
+        const overlap = player.r - distance;
+        player.x += normalX * overlap;
+        player.y += normalY * overlap;
+        const velocityIntoPost = player.vx * normalX + player.vy * normalY;
+        if (velocityIntoPost < 0) {
+            player.vx -= normalX * velocityIntoPost;
+            player.vy -= normalY * velocityIntoPost;
+        }
+    }
+
     room.game.players.forEach(player => {
         const input = room.game.inputStates[player.nickname] || {};
         let moveX = 0;
@@ -362,6 +385,8 @@ function processRoomGameTick(room) {
         const r = player.r;
         player.x = Math.max(r, Math.min(room.game.map.width - r, player.x));
         player.y = Math.max(r, Math.min(room.game.map.height - r, player.y));
+        collidePlayerWithBackPost(player, room.game.field.left - room.game.goalWidth);
+        collidePlayerWithBackPost(player, room.game.field.right + room.game.goalWidth);
     });
 
     const ball = room.game.ball;

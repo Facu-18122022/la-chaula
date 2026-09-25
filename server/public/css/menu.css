@@ -5,7 +5,7 @@
     font-family:Arial, Helvetica, sans-serif;
 }
 
-body{
+body.menu-page{
 
     width:100vw;
     height:100vh;
@@ -13,10 +13,8 @@ body{
     overflow:hidden;
 
     background:
-    radial-gradient(circle at center,
-    #1e3a8a 0%,
-    #0f172a 45%,
-    #020617 100%);
+    linear-gradient(rgba(2, 6, 23, .58), rgba(2, 6, 23, .78)),
+    url("../img/fondo.jpg") center / cover no-repeat;
 
     color:white;
 }
@@ -55,19 +53,18 @@ body{
 
 .logo-container{
 
-    position:absolute;
+    grid-column:2;
+    grid-row:1;
 
-    top:20px;
-    left:30px;
-
-    width:320px;
-    height:110px;
+    width:100%;
+    height:100%;
 
     border-radius:18px;
 
     background-image:url("../img/logo.png");
-    background-size:cover;
+    background-size:contain;
     background-position:center;
+    background-repeat:no-repeat;
 
     display:flex;
     justify-content:center;
@@ -189,6 +186,9 @@ body{
 
 .menu-card--settings{
 
+    grid-column:1;
+    grid-row:2;
+
     background:
     linear-gradient(
         135deg,
@@ -200,35 +200,15 @@ body{
 
 .menu-card--exit{
 
+    grid-column:2;
+    grid-row:2;
+
     background:
     linear-gradient(
         135deg,
         #334155,
         #64748b
     );
-
-}
-
-.menu-card--art{
-
-    background:
-        url("../img/fondo.jpg") center center / cover no-repeat;
-
-    border: 2px solid rgba(255,255,255,.18);
-    box-shadow: inset 0 0 35px rgba(0,0,0,.35);
-    cursor: default;
-    opacity: .95;
-
-}
-
-.menu-card--art .menu-card__image{
-
-    background:
-        linear-gradient(
-            180deg,
-            rgba(15, 23, 42, 0.15),
-            rgba(15, 23, 42, 0.4)
-        );
 
 }
 
@@ -320,6 +300,22 @@ body{
 
         grid-template-rows:
             repeat(4,1fr);
+
+    }
+
+    .menu-card--settings,
+    .menu-card--exit{
+
+        grid-column:auto;
+        grid-row:auto;
+
+    }
+
+    .logo-container{
+
+        grid-column:auto;
+        grid-row:auto;
+        min-height:140px;
 
     }
 

@@ -64,7 +64,9 @@
             lastTouch: null,
             secondLastTouch: null,
             lastGoalTeam: null,
-            goalDetected: false
+            goalDetected: false,
+            powerImpactId: 0,
+            lastPowerImpact: null
         };
     }
 
@@ -136,6 +138,41 @@
         }
     }
 
+    function collidePlayerWithBackPost(player, state, postX) {
+        const postTop = state.goalTop;
+        const postBottom = state.goalBottom;
+        const closestY = Math.max(postTop, Math.min(postBottom, player.y));
+        let dx = player.x - postX;
+        let dy = player.y - closestY;
+        let distance = Math.hypot(dx, dy);
+        const minimumDistance = player.r;
+        if (distance >= minimumDistance) return;
+
+        if (!distance) {
+            dx = player.x <= postX ? -1 : 1;
+            dy = 0;
+            distance = 1;
+        }
+
+        const normalX = dx / distance;
+        const normalY = dy / distance;
+        const overlap = minimumDistance - distance;
+        player.x += normalX * overlap;
+        player.y += normalY * overlap;
+        const velocityIntoPost = player.vx * normalX + player.vy * normalY;
+        if (velocityIntoPost < 0) {
+            player.vx -= normalX * velocityIntoPost;
+            player.vy -= normalY * velocityIntoPost;
+        }
+    }
+
+    function collidePlayersWithBackPosts(state) {
+        state.players.forEach(player => {
+            collidePlayerWithBackPost(player, state, state.field.left - GOAL_WIDTH);
+            collidePlayerWithBackPost(player, state, state.field.right + GOAL_WIDTH);
+        });
+    }
+
     function collideBall(player, input, state, events) {
         const ball = state.ball;
         const dx = ball.x - player.x;
@@ -163,6 +200,14 @@
             const force = player.activePower === 'SUPER_KICK' ? Math.max(10, speed * 2) : Math.max(6, speed * 1.6);
             ball.vx = Math.cos(angle) * force + player.vx * 0.5;
             ball.vy = Math.sin(angle) * force + player.vy * 0.5;
+            if (player.activePower === 'SUPER_KICK') {
+                state.powerImpactId += 1;
+                state.lastPowerImpact = {
+                    id: state.powerImpactId,
+                    x: ball.x,
+                    y: ball.y
+                };
+            }
         } else if (playerSpeed > 0) {
             const normalX = Math.cos(angle);
             const normalY = Math.sin(angle);
@@ -216,6 +261,16 @@
         });
     }
 
+    function resetPowerUps(state) {
+        state.players.forEach(player => {
+            player.r = player.rBase;
+            player.activePower = null;
+            player.powerTimer = 0;
+        });
+        state.activePowerUps.length = 0;
+        state.powerUpSpawnTimer = 0;
+    }
+
     function avanzar(state, deltaMs, inputs = {}) {
         if (!state || !state.ball) return { pasos: 0, eventos: [] };
         const step = Math.min(Math.max(Number(deltaMs) || 0, 0) / 16.666, 2);
@@ -223,6 +278,7 @@
         const events = [];
         state.players.forEach(player => movePlayer(player, inputFor(inputs, player), state, step));
         collidePlayers(state.players);
+        collidePlayersWithBackPosts(state);
         const ball = state.ball;
         ball.x += ball.vx * step;
         ball.y += ball.vy * step;
@@ -245,6 +301,7 @@
             ball.vx = 0;
             ball.vy = 0;
             resetKickoffPositions(state);
+            resetPowerUps(state);
             state.waitingForKickOff = true;
             state.timerStarted = false;
         } else {
