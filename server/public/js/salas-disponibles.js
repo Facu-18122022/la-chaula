@@ -127,9 +127,9 @@ function renderRooms(rooms) {
         const mapNames = [
             "Classic Arena (1v1)",
             "Street Arena (1v1)",
-            "Frozen Arena (3v3)",
-            "Desert Arena (3v3)",
-            "Champions Arena (6v6)"
+            "Frozen Arena (1v1)",
+            "Desert Arena (1v1)",
+            "Champions Arena (1v1)"
         ];
 
         const mapName = mapNames[room.selectedMapIndex] || "Mapa desconocido";

@@ -98,7 +98,7 @@
         let moveX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
         let moveY = (input.down ? 1 : 0) - (input.up ? 1 : 0);
         if (moveX && moveY) { moveX *= 0.7071; moveY *= 0.7071; }
-        const speedMultiplier = player.activePower === 'SPEED' ? 1.55 : 1;
+        const speedMultiplier = player.activePower === 'SPEED' ? 1.55 : player.activePower === 'BIG' ? 0.7 : 1;
         player.vx += moveX * ACCEL * speedMultiplier * step;
         player.vy += moveY * ACCEL * speedMultiplier * step;
         const speed = Math.hypot(player.vx, player.vy);
@@ -109,14 +109,38 @@
         }
         player.vx *= FRICTION;
         player.vy *= FRICTION;
-        player.x += player.vx * step;
-        player.y += player.vy * step;
+        let nextX = player.x + player.vx * step;
+        let nextY = player.y + player.vy * step;
+        const inGoalMouth = nextY + player.r > state.goalTop && nextY - player.r < state.goalBottom;
+        const isLeftTeam = player.equipo === state.ladoIzquierdo;
+        const leftGoalBack = state.field.left - GOAL_WIDTH;
+        const rightGoalBack = state.field.right + GOAL_WIDTH;
+        const enteringLeftBack = inGoalMouth && player.x - player.r >= leftGoalBack && nextX - player.r < leftGoalBack;
+        const enteringRightBack = inGoalMouth && player.x + player.r <= rightGoalBack && nextX + player.r > rightGoalBack;
+        if (enteringLeftBack || enteringRightBack) {
+            nextX = player.x;
+            player.vx = 0;
+        }
+        player.x = nextX;
+        const inLeftGoalDepth = player.x > leftGoalBack && player.x < state.field.left;
+        const inRightGoalDepth = player.x > state.field.right && player.x < rightGoalBack;
+        const enteringTopRail = (inLeftGoalDepth || inRightGoalDepth)
+            && player.y - player.r >= state.goalTop && nextY - player.r < state.goalTop;
+        const enteringBottomRail = (inLeftGoalDepth || inRightGoalDepth)
+            && player.y + player.r <= state.goalBottom && nextY + player.r > state.goalBottom;
+        if (enteringTopRail) {
+            nextY = player.y;
+            if (player.vy < 0) player.vy = 0;
+        } else if (enteringBottomRail) {
+            nextY = player.y;
+            if (player.vy > 0) player.vy = 0;
+        }
+        player.y = nextY;
 
         const centerX = state.mapa.width / 2;
         if (state.waitingForKickOff) {
             const centerCircleRadius = state.mapa.width * 0.085;
             const servingTeam = isServingTeam(player, state);
-            const isLeftTeam = player.equipo === state.ladoIzquierdo;
             const lineLimit = isLeftTeam ? centerX - player.r : centerX + player.r;
             if (isLeftTeam) player.x = Math.min(player.x, lineLimit);
             else player.x = Math.max(player.x, lineLimit);
@@ -204,10 +228,13 @@
         const playerSpeed = Math.hypot(player.vx, player.vy);
         const angle = distance > 0
             ? Math.atan2(dy, dx)
-            : playerSpeed > 0 ? Math.atan2(player.vy, player.vx) : 0;
+            : (playerSpeed > 0 ? Math.atan2(player.vy, player.vx) : Math.atan2(1, 1));
         if (distance < normalRadius) {
+            const overlap = normalRadius - distance;
             ball.x = player.x + Math.cos(angle) * normalRadius;
             ball.y = player.y + Math.sin(angle) * normalRadius;
+            player.x -= Math.cos(angle) * overlap * 0.7;
+            player.y -= Math.sin(angle) * overlap * 0.7;
         }
         state.secondLastTouch = state.lastTouch;
         state.lastTouch = player.id;
@@ -309,6 +336,7 @@
         const field = state.field;
         if (ball.y - ball.r < field.top) { ball.y = field.top + ball.r; ball.vy *= RESTITUTION; }
         if (ball.y + ball.r > field.bottom) { ball.y = field.bottom - ball.r; ball.vy *= RESTITUTION; }
+
         const inGoalMouth = ball.y >= state.goalTop && ball.y <= state.goalBottom;
         const leftGoal = ball.x <= field.left && inGoalMouth;
         const rightGoal = ball.x >= field.right && inGoalMouth;
