@@ -26,6 +26,8 @@
     let loopActivo = true;
     let celebracionGol = null;
     let ultimoGolMostrado = null;
+    const kickEffects = [];
+    const duracionEfectoPatadaMs = 120;
     const duracionCelebracionGolMs = 1400;
     const duracionEstelaRapidezMs = 280;
     const duracionGrietasMs = 560;
@@ -402,7 +404,7 @@
             context.fill();
             context.globalAlpha = 1;
             context.strokeStyle = '#fff';
-            context.lineWidth = 2;
+            context.lineWidth = 3;
             context.stroke();
             context.fillStyle = '#fff';
             context.font = '700 16px Arial';
@@ -557,6 +559,7 @@
     }
 
     function dibujarJugador(player) {
+        const estaPateando = kickEffects.some(efecto => efecto.player === player);
         context.beginPath();
         context.arc(player.x, player.y, player.r, 0, Math.PI * 2);
         context.fillStyle = player.equipo === 'red' ? '#dc2626' : '#2563eb';
@@ -566,7 +569,7 @@
             context.lineWidth = 4;
             context.stroke();
         }
-        context.strokeStyle = '#fff';
+        context.strokeStyle = estaPateando ? '#fff' : '#000';
         context.lineWidth = 2;
         context.stroke();
         context.fillStyle = '#fff';
@@ -574,6 +577,24 @@
         context.textAlign = 'center';
         context.textBaseline = 'middle';
         context.fillText(player.id.toUpperCase(), player.x, player.y);
+    }
+
+    function registrarEfectosPatada(estado, timestamp) {
+        estado.kickEvents.splice(0).forEach(evento => {
+            kickEffects.push({
+                player: evento.player,
+                startTime: timestamp
+            });
+        });
+    }
+
+    function actualizarEfectosPatada(timestamp) {
+        for (let index = kickEffects.length - 1; index >= 0; index -= 1) {
+            const efecto = kickEffects[index];
+            if (timestamp - efecto.startTime >= duracionEfectoPatadaMs) {
+                kickEffects.splice(index, 1);
+            }
+        }
     }
 
     function obtenerClaveGol(snapshot) {
@@ -681,6 +702,7 @@
         crearPartido();
         celebracionGol = null;
         ultimoGolMostrado = null;
+        kickEffects.length = 0;
         finishOverlay.hidden = true;
         mostrarPausa(false);
         ultimoTimestamp = null;
@@ -718,6 +740,7 @@
             partido.actualizar(deltaMs, global.InputLocal.obtenerInputs());
         }
         const snapshot = partido.obtenerSnapshot();
+        registrarEfectosPatada(snapshot.estadoFisica, timestamp);
         if (snapshot.fase === 'GOL') iniciarCelebracionGol(snapshot);
         renderizar(snapshot, deltaMs);
         if (snapshot.fase === 'FIN' && finishOverlay.hidden) {

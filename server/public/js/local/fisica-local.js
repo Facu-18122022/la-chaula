@@ -18,6 +18,8 @@
     const BALL_CONTACT_TOLERANCE = 2;
     const KICK_BUFFER_MS = 100;
     const KICK_RADIUS_EXTRA = 4;
+    const KICK_EFFECT_REPEAT_MS = 140;
+    const MAX_COLLISION_SUBSTEPS = 4;
 
     function normalizeMap(map) {
         const width = Number(map && map.width) || 800;
@@ -73,7 +75,9 @@
             kickoffTeam: kickoffTeam === 'blue' ? 'blue' : kickoffTeam === 'red' ? 'red' : null,
             clockMs: 0,
             lastKickPressAt: {},
+            lastKickEffectAt: {},
             kickWasDown: {},
+            kickEvents: [],
             timerStarted: false,
             goalResetPending: false,
             lastTouch: null,
@@ -296,15 +300,21 @@
                 };
             }
         } else if (playerSpeed > 0) {
+    } else if (playerSpeed > 0) {
             const normalX = Math.cos(angle);
             const normalY = Math.sin(angle);
+            const ballNormalSpeed = ball.vx * normalX + ball.vy * normalY;
             const approachSpeed = player.vx * normalX + player.vy * normalY;
-            if (approachSpeed > 0) {
-                const ballNormalSpeed = ball.vx * normalX + ball.vy * normalY;
+            if (playerSpeed > 0 && approachSpeed > 0) {
                 const targetNormalSpeed = approachSpeed * 1.1;
                 const normalSpeedDelta = Math.max(0, targetNormalSpeed - ballNormalSpeed);
                 ball.vx += normalX * normalSpeedDelta;
                 ball.vy += normalY * normalSpeedDelta;
+            }
+            const resultingNormalSpeed = ball.vx * normalX + ball.vy * normalY;
+            if (resultingNormalSpeed < 0) {
+                ball.vx -= normalX * resultingNormalSpeed * 1.1;
+                ball.vy -= normalY * resultingNormalSpeed * 1.1;
             }
         }
     }
@@ -375,8 +385,17 @@
         state.players.forEach(player => {
             const input = inputFor(inputs, player);
             const wasDown = !!state.kickWasDown[player.id];
-            if (input.kick && !wasDown) state.lastKickPressAt[player.id] = state.clockMs;
-            state.kickWasDown[player.id] = !!input.kick;
+            const canShowKickEffect = input.kickPressed && (
+                !wasDown || state.clockMs - (state.lastKickEffectAt[player.id] || -Infinity) >= KICK_EFFECT_REPEAT_MS
+            );
+            if (input.kickPressed && !wasDown) {
+                state.lastKickPressAt[player.id] = state.clockMs;
+            }
+            if (canShowKickEffect) {
+                state.lastKickEffectAt[player.id] = state.clockMs;
+                state.kickEvents.push({ player });
+            }
+            state.kickWasDown[player.id] = !!input.kickPressed;
         });
         state.players.forEach(player => movePlayer(player, inputFor(inputs, player), state, step));
         collidePlayers(state.players);
@@ -392,7 +411,6 @@
         const field = state.field;
         if (ball.y - ball.r < field.top) { ball.y = field.top + ball.r; ball.vy *= RESTITUTION; }
         if (ball.y + ball.r > field.bottom) { ball.y = field.bottom - ball.r; ball.vy *= RESTITUTION; }
-
         const inGoalMouth = ball.y >= state.goalTop && ball.y <= state.goalBottom;
         const leftGoal = ball.x <= field.left && inGoalMouth;
         const rightGoal = ball.x >= field.right && inGoalMouth;
