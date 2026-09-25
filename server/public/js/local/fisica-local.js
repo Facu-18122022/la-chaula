@@ -16,6 +16,10 @@
     const FIELD_MARGIN_Y = 40;
     const GOAL_WIDTH = 45;
     const BALL_CONTACT_TOLERANCE = 2;
+    const KICK_BUFFER_MS = 100;
+    const KICK_RADIUS_EXTRA = 4;
+    const KICK_EFFECT_REPEAT_MS = 140;
+    const MAX_COLLISION_SUBSTEPS = 4;
 
     function normalizeMap(map) {
         const width = Number(map && map.width) || 800;
@@ -45,7 +49,7 @@
                 id,
                 equipo: team,
                 x: isLeft ? centerX - 150 - sameTeam * 50 : centerX + 150 + sameTeam * 50,
-                y: map.height / 2 + ((sameTeam % 3) - 1) * 45,
+                y: map.height / 2,
                 vx: 0,
                 vy: 0,
                 r: rBase,
@@ -69,7 +73,14 @@
             waitingForKickOff: true,
             kickoffPlayerId: 'j1',
             kickoffTeam: kickoffTeam === 'blue' ? 'blue' : kickoffTeam === 'red' ? 'red' : null,
+            clockMs: 0,
+            lastKickPressAt: {},
+            lastKickEffectAt: {},
+            kickWasDown: {},
+            kickConsumed: {},
+            kickEvents: [],
             timerStarted: false,
+            goalResetPending: false,
             lastTouch: null,
             secondLastTouch: null,
             lastGoalTeam: null,
@@ -92,7 +103,7 @@
         let moveX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
         let moveY = (input.down ? 1 : 0) - (input.up ? 1 : 0);
         if (moveX && moveY) { moveX *= 0.7071; moveY *= 0.7071; }
-        const speedMultiplier = player.activePower === 'SPEED' ? 1.55 : 1;
+        const speedMultiplier = player.activePower === 'SPEED' ? 1.55 : player.activePower === 'BIG' ? 0.7 : 1;
         player.vx += moveX * ACCEL * speedMultiplier * step;
         player.vy += moveY * ACCEL * speedMultiplier * step;
         const speed = Math.hypot(player.vx, player.vy);
@@ -103,23 +114,41 @@
         }
         player.vx *= FRICTION;
         player.vy *= FRICTION;
-        player.x += player.vx * step;
-        player.y += player.vy * step;
+        let nextX = player.x + player.vx * step;
+        let nextY = player.y + player.vy * step;
+        const inGoalMouth = nextY + player.r > state.goalTop && nextY - player.r < state.goalBottom;
+        const isLeftTeam = player.equipo === state.ladoIzquierdo;
+        const leftGoalBack = state.field.left - GOAL_WIDTH;
+        const rightGoalBack = state.field.right + GOAL_WIDTH;
+        const enteringLeftBack = inGoalMouth && player.x - player.r >= leftGoalBack && nextX - player.r < leftGoalBack;
+        const enteringRightBack = inGoalMouth && player.x + player.r <= rightGoalBack && nextX + player.r > rightGoalBack;
+        if (enteringLeftBack || enteringRightBack) {
+            nextX = player.x;
+            player.vx = 0;
+        }
+        player.x = nextX;
+        const inLeftGoalDepth = player.x > leftGoalBack && player.x < state.field.left;
+        const inRightGoalDepth = player.x > state.field.right && player.x < rightGoalBack;
+        const enteringTopRail = (inLeftGoalDepth || inRightGoalDepth)
+            && player.y - player.r >= state.goalTop && nextY - player.r < state.goalTop;
+        const enteringBottomRail = (inLeftGoalDepth || inRightGoalDepth)
+            && player.y + player.r <= state.goalBottom && nextY + player.r > state.goalBottom;
+        if (enteringTopRail) {
+            nextY = player.y;
+            if (player.vy < 0) player.vy = 0;
+        } else if (enteringBottomRail) {
+            nextY = player.y;
+            if (player.vy > 0) player.vy = 0;
+        }
+        player.y = nextY;
 
         const centerX = state.mapa.width / 2;
         if (state.waitingForKickOff) {
             const centerCircleRadius = state.mapa.width * 0.085;
             const servingTeam = isServingTeam(player, state);
-            const isLeftTeam = player.equipo === state.ladoIzquierdo;
-            const halfLimit = isLeftTeam ? centerX - player.r : centerX + player.r;
-            const restrictedLimit = isLeftTeam
-                ? centerX - centerCircleRadius - player.r
-                : centerX + centerCircleRadius + player.r;
-            if (isLeftTeam) {
-                player.x = Math.min(player.x, servingTeam ? halfLimit : restrictedLimit);
-            } else {
-                player.x = Math.max(player.x, servingTeam ? halfLimit : restrictedLimit);
-            }
+            const lineLimit = isLeftTeam ? centerX - player.r : centerX + player.r;
+            if (isLeftTeam) player.x = Math.min(player.x, lineLimit);
+            else player.x = Math.max(player.x, lineLimit);
         }
         player.x = Math.max(player.r, Math.min(state.mapa.width - player.r, player.x));
         player.y = Math.max(player.r, Math.min(state.mapa.height - player.r, player.y));
@@ -154,21 +183,64 @@
         }
     }
 
+    function enforceKickoffLimits(state) {
+        if (!state.waitingForKickOff) return;
+        const centerX = state.mapa.width / 2;
+        const centerCircleRadius = state.mapa.width * 0.085;
+        const centerY = state.mapa.height / 2;
+        state.players.forEach(player => {
+            const servingTeam = isServingTeam(player, state);
+            const isLeftTeam = player.equipo === state.ladoIzquierdo;
+            const lineLimit = isLeftTeam ? centerX - player.r : centerX + player.r;
+            if (isLeftTeam && player.x > lineLimit) {
+                player.x = lineLimit;
+                if (player.vx > 0) player.vx = 0;
+            } else if (!isLeftTeam && player.x < lineLimit) {
+                player.x = lineLimit;
+                if (player.vx < 0) player.vx = 0;
+            }
+            if (servingTeam) return;
+            const dx = player.x - centerX;
+            const dy = player.y - centerY;
+            const distance = Math.hypot(dx, dy);
+            const minimumDistance = centerCircleRadius + player.r;
+            if (distance >= minimumDistance) return;
+            const normalX = distance > 0 ? dx / distance : (isLeftTeam ? -1 : 1);
+            const normalY = distance > 0 ? dy / distance : 0;
+            player.x = centerX + normalX * minimumDistance;
+            player.y = centerY + normalY * minimumDistance;
+            const inwardVelocity = player.vx * normalX + player.vy * normalY;
+            if (inwardVelocity < 0) {
+                player.vx -= normalX * inwardVelocity;
+                player.vy -= normalY * inwardVelocity;
+            }
+        });
+    }
+
     function collideBall(player, input, state, events) {
         const ball = state.ball;
         if (state.waitingForKickOff && state.kickoffTeam && player.equipo !== state.kickoffTeam) return;
         const dx = ball.x - player.x;
         const dy = ball.y - player.y;
         const distance = Math.hypot(dx, dy);
-        const minDistance = player.r + ball.r;
-        if (distance > minDistance + BALL_CONTACT_TOLERANCE) return;
+        const normalRadius = player.r + ball.r;
+        const kickAvailable = !state.kickConsumed[player.id];
+        const inputKick = kickAvailable && (!!input.kick || (
+            state.clockMs - (state.lastKickPressAt[player.id] || -Infinity) <= KICK_BUFFER_MS
+        ));
+        const kickingRadius = normalRadius + KICK_RADIUS_EXTRA;
+        const contactRadius = inputKick ? kickingRadius : normalRadius + BALL_CONTACT_TOLERANCE;
+        if (distance > contactRadius) return;
         const playerSpeed = Math.hypot(player.vx, player.vy);
         const angle = distance > 0
             ? Math.atan2(dy, dx)
-            : playerSpeed > 0 ? Math.atan2(player.vy, player.vx) : 0;
-        if (distance < minDistance) {
-            ball.x = player.x + Math.cos(angle) * minDistance;
-            ball.y = player.y + Math.sin(angle) * minDistance;
+            : (playerSpeed > 0 ? Math.atan2(player.vy, player.vx) : Math.atan2(1, 1));
+        if (distance < normalRadius) {
+            const overlap = normalRadius - distance;
+            ball.x = player.x + Math.cos(angle) * normalRadius;
+            ball.y = player.y + Math.sin(angle) * normalRadius;
+            player.x -= Math.cos(angle) * overlap * 0.7;
+            player.y -= Math.sin(angle) * overlap * 0.7;
         }
         state.secondLastTouch = state.lastTouch;
         state.lastTouch = player.id;
@@ -177,21 +249,29 @@
             state.waitingForKickOff = false;
             events.push('primerToque');
         }
-        if (input.kick) {
+        if (inputKick) {
+            state.kickConsumed[player.id] = true;
             const speed = Math.hypot(player.vx, player.vy);
-            const force = player.activePower === 'SUPER_KICK' ? Math.max(10, speed * 2) : Math.max(6, speed * 1.6);
+            const force = player.activePower === 'SUPER_KICK'
+                ? Math.max(10, 9 + speed * 0.5)
+                : Math.max(6, 5 + speed * 0.5);
             ball.vx = Math.cos(angle) * force + player.vx * 0.5;
             ball.vy = Math.sin(angle) * force + player.vy * 0.5;
-        } else if (playerSpeed > 0) {
+        } else {
             const normalX = Math.cos(angle);
             const normalY = Math.sin(angle);
+            const ballNormalSpeed = ball.vx * normalX + ball.vy * normalY;
             const approachSpeed = player.vx * normalX + player.vy * normalY;
-            if (approachSpeed > 0) {
-                const ballNormalSpeed = ball.vx * normalX + ball.vy * normalY;
+            if (playerSpeed > 0 && approachSpeed > 0) {
                 const targetNormalSpeed = approachSpeed * 1.1;
                 const normalSpeedDelta = Math.max(0, targetNormalSpeed - ballNormalSpeed);
                 ball.vx += normalX * normalSpeedDelta;
                 ball.vy += normalY * normalSpeedDelta;
+            }
+            const resultingNormalSpeed = ball.vx * normalX + ball.vy * normalY;
+            if (resultingNormalSpeed < 0) {
+                ball.vx -= normalX * resultingNormalSpeed * 1.1;
+                ball.vy -= normalY * resultingNormalSpeed * 1.1;
             }
         }
     }
@@ -239,35 +319,76 @@
         if (!state || !state.ball) return { pasos: 0, eventos: [] };
         const step = Math.min(Math.max(Number(deltaMs) || 0, 0) / 16.666, 2);
         if (!step) return { pasos: 0, eventos: [] };
-        const events = [];
-        state.players.forEach(player => movePlayer(player, inputFor(inputs, player), state, step));
-        collidePlayers(state.players);
-        const ball = state.ball;
-        ball.x += ball.vx * step;
-        ball.y += ball.vy * step;
-        ball.vx *= BALL_FRICTION;
-        ball.vy *= BALL_FRICTION;
-
-        state.players.forEach(player => collideBall(player, inputFor(inputs, player), state, events));
-        const field = state.field;
-        if (ball.y - ball.r < field.top) { ball.y = field.top + ball.r; ball.vy *= RESTITUTION; }
-        if (ball.y + ball.r > field.bottom) { ball.y = field.bottom - ball.r; ball.vy *= RESTITUTION; }
-        const inGoalMouth = ball.y >= state.goalTop && ball.y <= state.goalBottom;
-        const leftGoal = ball.x - ball.r <= field.left && inGoalMouth;
-        const rightGoal = ball.x + ball.r >= field.right && inGoalMouth;
-        if (leftGoal || rightGoal) {
-            state.goalDetected = true;
-            const oppositeTeam = state.ladoIzquierdo === 'red' ? 'blue' : 'red';
-            state.lastGoalTeam = rightGoal ? state.ladoIzquierdo : oppositeTeam;
-            events.push('gol');
-            ball.x = state.mapa.width / 2;
-            ball.y = state.mapa.height / 2;
-            ball.vx = 0;
-            ball.vy = 0;
+        if (state.goalResetPending) {
+            state.ball.x = state.mapa.width / 2;
+            state.ball.y = state.mapa.height / 2;
+            state.ball.vx = 0;
+            state.ball.vy = 0;
             resetKickoffPositions(state);
-            state.waitingForKickOff = true;
-            state.timerStarted = false;
-        } else {
+            state.goalResetPending = false;
+        }
+        const events = [];
+        state.clockMs += Math.max(Number(deltaMs) || 0, 0);
+        state.players.forEach(player => {
+            const input = inputFor(inputs, player);
+            const wasDown = !!state.kickWasDown[player.id];
+            if (!input.kickPressed) state.kickConsumed[player.id] = false;
+            const canShowKickEffect = input.kickPressed && !state.kickConsumed[player.id] && (
+                !wasDown || state.clockMs - (state.lastKickEffectAt[player.id] || -Infinity) >= KICK_EFFECT_REPEAT_MS
+            );
+            if (input.kickPressed && !wasDown) {
+                state.lastKickPressAt[player.id] = state.clockMs;
+            }
+            if (canShowKickEffect) {
+                state.lastKickEffectAt[player.id] = state.clockMs;
+                state.kickEvents.push({ player });
+            }
+            state.kickWasDown[player.id] = !!input.kickPressed;
+        });
+        const field = state.field;
+        const maxTravel = Math.max(
+            Math.hypot(state.ball.vx, state.ball.vy),
+            ...state.players.map(player => Math.hypot(player.vx, player.vy))
+        ) * step;
+        const substeps = Math.max(1, Math.min(
+            MAX_COLLISION_SUBSTEPS,
+            Math.ceil(maxTravel / Math.max(1, state.ball.r / 2))
+        ));
+        const subStep = step / substeps;
+        const ballFrictionPerSubstep = Math.pow(BALL_FRICTION, 1 / substeps);
+        for (let substep = 0; substep < substeps; substep += 1) {
+            state.players.forEach(player => movePlayer(player, inputFor(inputs, player), state, subStep));
+            collidePlayers(state.players);
+            enforceKickoffLimits(state);
+            const ball = state.ball;
+            ball.x += ball.vx * subStep;
+            ball.y += ball.vy * subStep;
+            ball.vx *= ballFrictionPerSubstep;
+            ball.vy *= ballFrictionPerSubstep;
+
+            state.players.forEach(player => collideBall(player, inputFor(inputs, player), state, events));
+            if (ball.y - ball.r < field.top) { ball.y = field.top + ball.r; ball.vy *= RESTITUTION; }
+            if (ball.y + ball.r > field.bottom) { ball.y = field.bottom - ball.r; ball.vy *= RESTITUTION; }
+            const inGoalMouth = ball.y >= state.goalTop && ball.y <= state.goalBottom;
+            const leftGoal = ball.x <= field.left && inGoalMouth;
+            const rightGoal = ball.x >= field.right && inGoalMouth;
+            if (leftGoal || rightGoal) {
+                state.goalDetected = true;
+                const oppositeTeam = state.ladoIzquierdo === 'red' ? 'blue' : 'red';
+                state.lastGoalTeam = rightGoal ? state.ladoIzquierdo : oppositeTeam;
+                events.push('gol');
+                state.activePowerUps.length = 0;
+                state.powerUpSpawnTimer = 0;
+                state.players.forEach(player => {
+                    player.activePower = null;
+                    player.powerTimer = 0;
+                    player.r = player.rBase;
+                });
+                state.goalResetPending = true;
+                state.waitingForKickOff = true;
+                state.timerStarted = false;
+                break;
+            }
             if (!inGoalMouth && ball.x - ball.r < field.left) { ball.x = field.left + ball.r; ball.vx *= RESTITUTION; }
             if (!inGoalMouth && ball.x + ball.r > field.right) { ball.x = field.right - ball.r; ball.vx *= RESTITUTION; }
         }

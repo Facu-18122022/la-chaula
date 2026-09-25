@@ -12,6 +12,7 @@
     const FIELD_MARGIN_Y = 40;
     const GOAL_WIDTH = 45;
     const KICK_BUFFER_MS = 100;
+    const BALL_CONTROL_RESPONSE = 0.25;
     const MIN_DELTA_MS = 0;
     const runtimeByState = new WeakMap();
 
@@ -184,7 +185,7 @@
                 id,
                 equipo: team,
                 x: isLeft ? centerX - 150 - sameTeam * 50 : centerX + 150 + sameTeam * 50,
-                y: map.height / 2 + ((sameTeam % 3) - 1) * 45,
+                y: map.height / 2,
                 vx: 0,
                 vy: 0,
                 r: rBase,
@@ -252,7 +253,7 @@
         let moveX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
         let moveY = (input.down ? 1 : 0) - (input.up ? 1 : 0);
         if (moveX && moveY) { moveX *= 0.7071; moveY *= 0.7071; }
-        const speedMultiplier = player.activePower === 'SPEED' ? 1.55 : 1;
+        const speedMultiplier = player.activePower === 'SPEED' ? 1.55 : player.activePower === 'BIG' ? 0.7 : 1;
         let vx = body.velocity.x + moveX * ACCEL * speedMultiplier * step;
         let vy = body.velocity.y + moveY * ACCEL * speedMultiplier * step;
         const speed = Math.hypot(vx, vy);
@@ -269,11 +270,35 @@
         });
         let x = body.position.x + vx * step;
         let y = body.position.y + vy * step;
+        const inGoalMouth = y + player.r > state.goalTop && y - player.r < state.goalBottom;
         const centerX = state.mapa.width / 2;
+        const isLeftTeam = player.equipo === state.ladoIzquierdo;
+        const leftGoalBack = state.field.left - GOAL_WIDTH;
+        const rightGoalBack = state.field.right + GOAL_WIDTH;
+        const enteringLeftBack = inGoalMouth
+            && body.position.x - player.r >= leftGoalBack && x - player.r < leftGoalBack;
+        const enteringRightBack = inGoalMouth
+            && body.position.x + player.r <= rightGoalBack && x + player.r > rightGoalBack;
+        if (enteringLeftBack || enteringRightBack) {
+            x = body.position.x;
+            vx = 0;
+        }
+        const inLeftGoalDepth = x > leftGoalBack && x < state.field.left;
+        const inRightGoalDepth = x > state.field.right && x < rightGoalBack;
+        const enteringTopRail = (inLeftGoalDepth || inRightGoalDepth)
+            && body.position.y - player.r >= state.goalTop && y - player.r < state.goalTop;
+        const enteringBottomRail = (inLeftGoalDepth || inRightGoalDepth)
+            && body.position.y + player.r <= state.goalBottom && y + player.r > state.goalBottom;
+        if (enteringTopRail) {
+            y = body.position.y;
+            if (vy < 0) vy = 0;
+        } else if (enteringBottomRail) {
+            y = body.position.y;
+            if (vy > 0) vy = 0;
+        }
         if (state.waitingForKickOff) {
             const centerCircleRadius = state.mapa.width * 0.085;
             const servingTeam = isServingTeam(player, state);
-            const isLeftTeam = player.equipo === state.ladoIzquierdo;
             const halfLimit = isLeftTeam ? centerX - player.r : centerX + player.r;
             const restrictedLimit = isLeftTeam
                 ? centerX - centerCircleRadius - player.r
@@ -345,14 +370,6 @@
             const minimum = player.r + state.ball.r;
             const distance = Math.hypot(ballBody.position.x - closest.x, ballBody.position.y - closest.y);
             if (distance > minimum + 2) return;
-            if (closest.t < 1 && distance > 0) {
-                const normalX = (ballBody.position.x - closest.x) / distance;
-                const normalY = (ballBody.position.y - closest.y) / distance;
-                MatterApi.Body.setPosition(playerBody, {
-                    x: ballBody.position.x - normalX * minimum,
-                    y: ballBody.position.y - normalY * minimum
-                });
-            }
             runtime.sweptContacts.add(index);
             collideBall(player, playerBody, inputFor(runtime.inputs, player), state, runtime);
         });
@@ -365,29 +382,36 @@
         const dx = ballBody.position.x - playerBody.position.x;
         const dy = ballBody.position.y - playerBody.position.y;
         const distance = Math.hypot(dx, dy);
-        const minDistance = player.r + ball.r;
-        if (distance > minDistance + 2) return;
+        const normalRadius = player.r + ball.r;
         const playerSpeed = Math.hypot(playerBody.velocity.x, playerBody.velocity.y);
+        const inputKick = !!input.kick || (
+            runtime.clockMs - (runtime.lastKickPressAt[player.id] || -Infinity) <= KICK_BUFFER_MS
+        );
+        const kickingRadius = normalRadius + 4;
+        const contactRadius = inputKick ? kickingRadius : normalRadius;
+        if (distance > contactRadius) return;
         const normalX = distance > 0
             ? dx / distance
             : playerSpeed > 0 ? playerBody.velocity.x / playerSpeed : 1;
         const normalY = distance > 0
             ? dy / distance
             : playerSpeed > 0 ? playerBody.velocity.y / playerSpeed : 0;
-        const correctedDistance = minDistance + 0.01;
+        const correctedDistance = normalRadius + 0.01;
         if (distance < correctedDistance) {
+            const overlap = correctedDistance - distance;
             MatterApi.Body.setPosition(ballBody, {
                 x: playerBody.position.x + normalX * correctedDistance,
                 y: playerBody.position.y + normalY * correctedDistance
             });
+            MatterApi.Body.setPosition(playerBody, {
+                x: playerBody.position.x - normalX * overlap * 0.7,
+                y: playerBody.position.y - normalY * overlap * 0.7
+            });
         }
-        const inputKick = !!input.kick || (
-            runtime.clockMs - (runtime.lastKickPressAt[player.id] || -Infinity) <= KICK_BUFFER_MS
-        );
         if (inputKick) {
             const force = player.activePower === 'SUPER_KICK'
-                ? Math.max(10, playerSpeed * 2)
-                : Math.max(6, playerSpeed * 1.6);
+                ? Math.max(10, 9 + playerSpeed * 0.5)
+                : Math.max(6, 5 + playerSpeed * 0.5);
             MatterApi.Body.setVelocity(ballBody, {
                 x: normalX * force + playerBody.velocity.x * 0.5,
                 y: normalY * force + playerBody.velocity.y * 0.5
@@ -395,9 +419,9 @@
         } else {
             const ballNormalSpeed = ballBody.velocity.x * normalX + ballBody.velocity.y * normalY;
             const playerNormalSpeed = playerBody.velocity.x * normalX + playerBody.velocity.y * normalY;
-            const requiredOutwardSpeed = Math.max(0, playerNormalSpeed * 1.1);
-            const normalSpeedDelta = Math.max(0, requiredOutwardSpeed - ballNormalSpeed);
-            if (normalSpeedDelta > 0) {
+            const controlTarget = Math.max(0, playerNormalSpeed);
+            const normalSpeedDelta = (controlTarget - ballNormalSpeed) * BALL_CONTROL_RESPONSE;
+            if (Math.abs(normalSpeedDelta) > 0.001) {
                 MatterApi.Body.setVelocity(ballBody, {
                     x: ballBody.velocity.x + normalX * normalSpeedDelta,
                     y: ballBody.velocity.y + normalY * normalSpeedDelta
@@ -405,12 +429,14 @@
             }
         }
         const finalVelocity = ballBody.velocity;
-        if (finalVelocity.x * normalX + finalVelocity.y * normalY < 0) {
-            const tangentX = finalVelocity.x - normalX * (finalVelocity.x * normalX + finalVelocity.y * normalY);
-            const tangentY = finalVelocity.y - normalY * (finalVelocity.x * normalX + finalVelocity.y * normalY);
+        const finalNormalSpeed = finalVelocity.x * normalX + finalVelocity.y * normalY;
+        if (finalNormalSpeed < 0) {
+            const tangentX = finalVelocity.x - normalX * finalNormalSpeed;
+            const tangentY = finalVelocity.y - normalY * finalNormalSpeed;
+            const reboundNormalSpeed = -finalNormalSpeed * BALL_RESTITUTION;
             MatterApi.Body.setVelocity(ballBody, {
-                x: tangentX,
-                y: tangentY
+                x: tangentX + normalX * reboundNormalSpeed,
+                y: tangentY + normalY * reboundNormalSpeed
             });
         }
         state.secondLastTouch = state.lastTouch;
@@ -430,7 +456,9 @@
         const playerSpeed = velocityMagnitude(playerBody);
         const normalX = distance > 0 ? dx / distance : playerSpeed > 0 ? playerBody.velocity.x / playerSpeed : 1;
         const normalY = distance > 0 ? dy / distance : playerSpeed > 0 ? playerBody.velocity.y / playerSpeed : 0;
-        const kickSpeed = player.activePower === 'SUPER_KICK' ? Math.max(10, playerSpeed * 2) : Math.max(6, playerSpeed * 1.6);
+        const kickSpeed = player.activePower === 'SUPER_KICK'
+            ? Math.max(10, 9 + playerSpeed * 0.5)
+            : Math.max(6, 5 + playerSpeed * 0.5);
         MatterApi.Body.setVelocity(ballBody, {
             x: normalX * kickSpeed + playerBody.velocity.x * 0.5,
             y: normalY * kickSpeed + playerBody.velocity.y * 0.5
@@ -535,6 +563,14 @@
         return false;
     }
 
+    function crossedGoalLine(previous, current, state) {
+        const inMouth = y => y >= state.goalTop - state.ball.r && y <= state.goalBottom + state.ball.r;
+        if (!inMouth(current.y) && !inMouth(previous.y)) return null;
+        if (previous.x > state.field.left - GOAL_WIDTH && current.x <= state.field.left - GOAL_WIDTH) return 'blue';
+        if (previous.x < state.field.right + GOAL_WIDTH && current.x >= state.field.right + GOAL_WIDTH) return 'red';
+        return null;
+    }
+
     function advancePowerUps(state, runtime, events, step) {
         state.powerUpSpawnTimer += step;
         if (state.powerUpSpawnTimer >= 480 && state.activePowerUps.length < 2) {
@@ -601,6 +637,10 @@
         runtime.inputs = inputs;
         runtime.sweptContacts.clear();
         runtime.clockMs += elapsed;
+        const previousBallPosition = {
+            x: runtime.ballBody.position.x,
+            y: runtime.ballBody.position.y
+        };
         state.players.forEach((player, index) => {
             runtime.previousPlayerPositions[index] = {
                 x: runtime.playerBodies[index].position.x,
@@ -614,7 +654,9 @@
         state.players.forEach((player, index) => {
             applyInputVelocity(runtime.playerBodies[index], inputFor(inputs, player), player, state, step);
         });
+        enforceKickoff(state, runtime);
         collidePlayers(state, runtime);
+        enforceKickoff(state, runtime);
         resolveSweptPlayerBall(state, runtime);
         const ballBody = runtime.ballBody;
         MatterApi.Body.setPosition(ballBody, {
@@ -650,6 +692,15 @@
                 runtime.goalHandled = true;
                 state.goalDetected = true;
                 state.lastGoalTeam = goalBody.goalTeam;
+                runtime.events.push('gol');
+            }
+        }
+        if (!runtime.goalHandled) {
+            const crossedTeam = crossedGoalLine(previousBallPosition, ballBody.position, state);
+            if (crossedTeam) {
+                runtime.goalHandled = true;
+                state.goalDetected = true;
+                state.lastGoalTeam = crossedTeam;
                 runtime.events.push('gol');
             }
         }

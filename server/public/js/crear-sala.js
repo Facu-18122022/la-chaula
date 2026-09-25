@@ -35,9 +35,9 @@ teamButtons.forEach(button => {
 const maps = [
     { name: "Classic Arena (1v1)", width: 800, height: 400, fieldColor: "#2c3e50", lineColor: "#ffffff", goalHeight: 110, bg: "#11141a" },
     { name: "Street Arena (1v1)", width: 820, height: 390, fieldColor: "#4b5563", lineColor: "#ff9f43", goalHeight: 95, bg: "#1e293b" },
-    { name: "Frozen Arena (3v3)", width: 1020, height: 510, fieldColor: "#74b9ff", lineColor: "#ffffff", goalHeight: 140, bg: "#0984e3" },
-    { name: "Desert Arena (3v3)", width: 1000, height: 500, fieldColor: "#f4d03f", lineColor: "#784212", goalHeight: 135, bg: "#5e35b1" },
-    { name: "Champions Arena (6v6)", width: 1300, height: 640, fieldColor: "#27ae60", lineColor: "#ffffff", goalHeight: 180, bg: "#1a252f" }
+    { name: "Frozen Arena (1v1)", width: 1020, height: 510, fieldColor: "#74b9ff", lineColor: "#ffffff", goalHeight: 140, bg: "#0984e3" },
+    { name: "Desert Arena (1v1)", width: 1000, height: 500, fieldColor: "#f4d03f", lineColor: "#784212", goalHeight: 135, bg: "#5e35b1" },
+    { name: "Champions Arena (1v1)", width: 1300, height: 640, fieldColor: "#27ae60", lineColor: "#ffffff", goalHeight: 180, bg: "#1a252f" }
 ];
 // RUTAS CORREGIDAS APUNTANDO A TU CARPETA "img"
 const mapImages = [
