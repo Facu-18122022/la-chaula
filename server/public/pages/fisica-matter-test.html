@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Prueba Matter.js</title>
+    <style>
+        :root { color-scheme: dark; font-family: "Segoe UI", Tahoma, sans-serif; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; padding: 24px; background: #0f172a; color: #e2e8f0; }
+        main { width: min(920px, 100%); margin: 0 auto; }
+        h1 { margin: 0 0 8px; font-size: clamp(1.4rem, 4vw, 2.2rem); }
+        p { margin: 0 0 16px; color: #94a3b8; }
+        canvas { display: block; width: 100%; height: auto; border: 2px solid #475569; background: #1e293b; }
+        .status { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 12px; color: #cbd5e1; font-size: .95rem; }
+        .controls { display: flex; justify-content: flex-end; margin-top: 12px; }
+        button { border: 1px solid #64748b; border-radius: 6px; padding: 8px 14px; background: #334155; color: #f8fafc; font: inherit; cursor: pointer; }
+        button:hover { background: #475569; }
+        kbd { padding: 2px 6px; border: 1px solid #64748b; border-radius: 4px; background: #334155; color: #f8fafc; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Prototipo aislado de Matter.js</h1>
+        <p>Esta página no usa el motor ni el administrador del partido actual.</p>
+        <canvas id="matterCanvas" width="800" height="400"></canvas>
+        <div class="status">
+            <span>Rojo / J1: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> + <kbd>V</kbd></span>
+            <span>Azul / J2: <kbd>Flechas</kbd> + <kbd>L</kbd></span>
+            <span id="eventStatus">SAQUE: rojo</span>
+        </div>
+        <div class="controls">
+            <button id="pauseButton" type="button">Pausar</button>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js"></script>
+    <script src="../js/local/fisica-matter.js"></script>
+    <script>
+        const canvas = document.getElementById('matterCanvas');
+        const context = canvas.getContext('2d');
+        const eventStatus = document.getElementById('eventStatus');
+        const pauseButton = document.getElementById('pauseButton');
+        const pressedKeys = new Set();
+        let paused = false;
+        const state = FisicaMatter.crearEstado({
+            mapa: { width: canvas.width, height: canvas.height, goalHeight: 110, fieldColor: '#263746', lineColor: '#e2e8f0', bg: '#17212b', goalBg: '#0f172a' },
+            ladoIzquierdo: 'red',
+            kickoffTeam: 'red',
+            jugadores: [{ id: 'j1', equipo: 'red' }, { id: 'j2', equipo: 'blue' }]
+        });
+        let lastTimestamp = null;
+        let accumulatorMs = 0;
+
+        function isPressed(...keys) {
+            return keys.some(key => pressedKeys.has(key));
+        }
+
+        function getInputs() {
+            return {
+                j1: { up: isPressed('w'), down: isPressed('s'), left: isPressed('a'), right: isPressed('d'), kick: isPressed('v', ' ') },
+                j2: { up: isPressed('ArrowUp'), down: isPressed('ArrowDown'), left: isPressed('ArrowLeft'), right: isPressed('ArrowRight'), kick: isPressed('l', 'Enter') }
+            };
+        }
+
+        function draw() {
+            const map = state.mapa;
+            const field = state.field;
+            context.fillStyle = map.bg;
+            context.fillRect(0, 0, map.width, map.height);
+            context.fillStyle = map.goalBg;
+            context.fillRect(field.left - 45, state.goalTop, 45, map.goalHeight);
+            context.fillRect(field.right, state.goalTop, 45, map.goalHeight);
+            context.fillStyle = map.fieldColor;
+            context.fillRect(field.left, field.top, field.right - field.left, field.bottom - field.top);
+            context.strokeStyle = map.lineColor;
+            context.lineWidth = 3;
+            context.strokeRect(field.left, field.top, field.right - field.left, field.bottom - field.top);
+            context.beginPath();
+            context.moveTo(map.width / 2, field.top);
+            context.lineTo(map.width / 2, field.bottom);
+            context.stroke();
+            context.beginPath();
+            context.arc(map.width / 2, map.height / 2, map.width * .085, 0, Math.PI * 2);
+            context.stroke();
+            context.strokeRect(field.left - 45, state.goalTop, 45, map.goalHeight);
+            context.strokeRect(field.right, state.goalTop, 45, map.goalHeight);
+            state.players.forEach(player => {
+                context.beginPath();
+                context.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+                context.fillStyle = player.equipo === 'red' ? '#ef4444' : '#3b82f6';
+                context.fill();
+                context.strokeStyle = '#fff';
+                context.lineWidth = 2;
+                context.stroke();
+                context.fillStyle = '#fff';
+                context.font = '700 12px sans-serif';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(player.id.toUpperCase(), player.x, player.y);
+            });
+            state.activePowerUps.forEach(powerUp => {
+                const colors = { SPEED: '#facc15', BIG: '#fb923c', SUPER_KICK: '#f43f5e' };
+                const icons = { SPEED: '⚡', BIG: '◆', SUPER_KICK: '✦' };
+                context.beginPath();
+                context.arc(powerUp.x, powerUp.y, powerUp.r, 0, Math.PI * 2);
+                context.fillStyle = colors[powerUp.type] || '#facc15';
+                context.fill();
+                context.strokeStyle = '#fff';
+                context.lineWidth = 2;
+                context.stroke();
+                context.fillStyle = '#0f172a';
+                context.font = '700 16px sans-serif';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(icons[powerUp.type] || '?', powerUp.x, powerUp.y);
+            });
+            context.beginPath();
+            context.arc(state.ball.x, state.ball.y, state.ball.r, 0, Math.PI * 2);
+            context.fillStyle = '#f8fafc';
+            context.fill();
+            context.strokeStyle = '#0f172a';
+            context.stroke();
+        }
+
+        function frame(timestamp) {
+            if (paused) {
+                lastTimestamp = timestamp;
+                draw();
+                requestAnimationFrame(frame);
+                return;
+            }
+            const deltaMs = lastTimestamp === null ? 0 : Math.min(timestamp - lastTimestamp, 250);
+            lastTimestamp = timestamp;
+            accumulatorMs += deltaMs;
+            const inputs = getInputs();
+            let events = [];
+            while (accumulatorMs >= 16.666) {
+                events = FisicaMatter.avanzar(state, 16.666, inputs).eventos;
+                accumulatorMs -= 16.666;
+            }
+            if (events.length) eventStatus.textContent = `Eventos: ${events.join(', ')}`;
+            draw();
+            requestAnimationFrame(frame);
+        }
+
+        window.addEventListener('keydown', event => {
+            pressedKeys.add(event.key);
+            if ([' ', 'v', 'V', 'l', 'L', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(event.key)) event.preventDefault();
+        });
+        window.addEventListener('keyup', event => pressedKeys.delete(event.key));
+        pauseButton.addEventListener('click', () => {
+            paused = !paused;
+            pauseButton.textContent = paused ? 'Reanudar' : 'Pausar';
+            eventStatus.textContent = paused ? 'PAUSA' : 'SAQUE: rojo';
+        });
+        window.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                pauseButton.click();
+                event.preventDefault();
+            }
+        });
+        draw();
+        requestAnimationFrame(frame);
+    </script>
+</body>
+</html>

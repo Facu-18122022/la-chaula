@@ -1,3 +1,10 @@
+/**
+ * match-manager.js
+ * 
+ * Gestor del flujo y reglas de un partido.
+ * Controla el reloj (temporizador), el marcador, las transiciones de fases 
+ * (SAQUE, JUGANDO, GOL, FIN) y la lógica de tiempo extra.
+ */
 (function (global) {
     function crear({ estadoFisica, tiempoMs, limiteGoles = null } = {}) {
         const match = {

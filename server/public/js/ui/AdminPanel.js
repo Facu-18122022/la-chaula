@@ -1,3 +1,10 @@
+/**
+ * AdminPanel.js
+ * 
+ * Controlador de la interfaz del creador/administrador de la sala.
+ * Permite al creador iniciar la partida u otras acciones de administración,
+ * comunicándose con el servidor a través de WebSockets.
+ */
 const AdminPanel = {
 
     init(socket){

@@ -1,7 +1,16 @@
+/**
+ * server.js
+ * 
+ * Punto de entrada principal para el backend del juego.
+ * Configura el servidor Express para servir archivos estáticos (frontend),
+ * e inicializa Socket.IO para manejar la comunicación en tiempo real
+ * (creación de salas, sincronización de la física, jugadores y chat).
+ */
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
+const FisicaLocal = require("./public/js/local/fisica-local.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -205,66 +214,46 @@ function getMapConfig(index) {
 
 function createRoomGameState(room) {
     const map = getMapConfig(room.selectedMapIndex);
-    const centerX = map.width / 2;
-    const fieldLeft = 80;
-    const fieldRight = map.width - 80;
-    const fieldTop = 40;
-    const fieldBottom = map.height - 40;
-
-    const players = room.players.map((player, index) => {
+    const players = room.players.slice(0, 2).map(player => {
         const team = String(player.team || 'red').trim().toLowerCase() === 'blue' ? 'blue' : 'red';
-        const teamPlayersBefore = room.players
-            .slice(0, index)
-            .filter(previousPlayer => String(previousPlayer.team || 'red').trim().toLowerCase() === team)
-            .length;
-        const sideOffset = 150 + (teamPlayersBefore * 50);
-
         return {
-            id: player.id,
-            nickname: player.nickname,
-            team,
-            x: team === 'blue' ? centerX - sideOffset : centerX + sideOffset,
-            y: map.height / 2 + ((teamPlayersBefore % 3) - 1) * 45,
-            vx: 0,
-            vy: 0,
-            r: 20,
-            massa: 2.0,
-            activePower: null
+            id: player.nickname,
+            equipo: team,
+            rBase: 20
         };
     });
-
-    const goalTop = (map.height / 2) - (map.goalHeight / 2);
-    const goalBottom = (map.height / 2) + (map.goalHeight / 2);
+    const kickoffTeam = players.find(player => player.equipo === 'red') ? 'red' : 'blue';
+    const estadoFisica = FisicaLocal.crearEstado({
+        mapa: map,
+        ladoIzquierdo: 'blue',
+        kickoffTeam,
+        jugadores: players
+    });
+    estadoFisica.kickoffPlayerId = players.find(player => player.equipo === kickoffTeam)?.id || estadoFisica.players[0]?.id;
+    estadoFisica.players.forEach(player => {
+        player.nickname = player.id;
+        player.team = player.equipo;
+    });
 
     return {
         active: true,
         lastTick: Date.now(),
         map,
-        field: { left: fieldLeft, right: fieldRight, top: fieldTop, bottom: fieldBottom },
+        physicsState: estadoFisica,
+        field: estadoFisica.field,
         goalWidth: 45,
-        goalTop,
-        goalBottom,
-        players,
+        goalTop: estadoFisica.goalTop,
+        goalBottom: estadoFisica.goalBottom,
+        players: estadoFisica.players,
         inputStates: {},
-        activePowerUps: [],
-        powerUpSpawnTimer: 0,
-        timerStarted: false,
-        waitingForKickOff: true,
-        restrictMidForRed: true,
-        lastTouch: null,
-        secondLastTouch: null,
-        ball: {
-            x: map.width / 2,
-            y: map.height / 2,
-            vx: 0,
-            vy: 0,
-            r: 10
-        },
-        scores: {
-            blue: 0,
-            red: 0
-        },
+        scores: { blue: 0, red: 0 },
         remainingMs: (room.matchTime || 5) * 60 * 1000,
+        overtimeMs: 0,
+        overtime: false,
+        phase: 'SAQUE',
+        paused: false,
+        servingTeam: kickoffTeam,
+        goalLimit: Number(room.goalLimit) || null,
         intervalId: null
     };
 }
@@ -279,11 +268,12 @@ function stopRoomGameLoop(room) {
 
 function broadcastRoomGameState(room) {
     if (!room || !room.game) return;
+    const physicsState = room.game.physicsState;
     io.to(room.id).emit('game:state', {
         roomId: room.id,
-        players: room.game.players.map(p => ({
+        players: physicsState.players.map(p => ({
             nickname: p.nickname,
-            team: p.team,
+            team: p.equipo,
             x: p.x,
             y: p.y,
             vx: p.vx,
@@ -293,248 +283,88 @@ function broadcastRoomGameState(room) {
             powerTimer: p.powerTimer || 0
         })),
         ball: {
-            x: room.game.ball.x,
-            y: room.game.ball.y,
-            vx: room.game.ball.vx,
-            vy: room.game.ball.vy,
-            r: room.game.ball.r
+            x: physicsState.ball.x,
+            y: physicsState.ball.y,
+            vx: physicsState.ball.vx,
+            vy: physicsState.ball.vy,
+            r: physicsState.ball.r
         },
-        activePowerUps: room.game.activePowerUps || [],
+        activePowerUps: physicsState.activePowerUps || [],
         scores: room.game.scores,
         remainingMs: room.game.remainingMs,
-        timerStarted: !!room.game.timerStarted,
-        waitingForKickOff: !!room.game.waitingForKickOff,
-        restrictMidForRed: !!room.game.restrictMidForRed
+        timerStarted: !!room.game.physicsState.timerStarted,
+        waitingForKickOff: !!room.game.physicsState.waitingForKickOff,
+        paused: !!room.game.paused,
+        overtime: !!room.game.overtime,
+        overtimeMs: room.game.overtimeMs,
+        phase: room.game.phase,
+        servingTeam: room.game.servingTeam,
+        goalLimit: room.game.goalLimit
     });
 }
 
 function processRoomGameTick(room) {
     if (!room || !room.game || !room.game.active) return;
     const now = Date.now();
-    const deltaMs = now - room.game.lastTick;
-    room.game.lastTick = now;
-    const step = Math.min(deltaMs / 16.666, 2);
-
-    const ACCEL = 0.25;
-    const MAX_VEL = 3.4;
-    const FRICTION = 0.93;
-    const BALL_FRICTION = 0.985;
-    const RESTITUTION = -0.55;
-
-    function collidePlayerWithBackPost(player, postX) {
-        const closestY = Math.max(room.game.goalTop, Math.min(room.game.goalBottom, player.y));
-        let dx = player.x - postX;
-        let dy = player.y - closestY;
-        let distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance >= player.r) return;
-        if (!distance) {
-            dx = player.x <= postX ? -1 : 1;
-            dy = 0;
-            distance = 1;
-        }
-        const normalX = dx / distance;
-        const normalY = dy / distance;
-        const overlap = player.r - distance;
-        player.x += normalX * overlap;
-        player.y += normalY * overlap;
-        const velocityIntoPost = player.vx * normalX + player.vy * normalY;
-        if (velocityIntoPost < 0) {
-            player.vx -= normalX * velocityIntoPost;
-            player.vy -= normalY * velocityIntoPost;
-        }
-    }
-
-    room.game.players.forEach(player => {
-        const input = room.game.inputStates[player.nickname] || {};
-        let moveX = 0;
-        let moveY = 0;
-
-        if (input.up) moveY -= 1;
-        if (input.down) moveY += 1;
-        if (input.left) moveX -= 1;
-        if (input.right) moveX += 1;
-
-        if (moveX !== 0 && moveY !== 0) {
-            moveX *= 0.7071;
-            moveY *= 0.7071;
-        }
-
-        player.vx += moveX * ACCEL * step;
-        player.vy += moveY * ACCEL * step;
-
-        const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-        if (speed > MAX_VEL) {
-            player.vx = (player.vx / speed) * MAX_VEL;
-            player.vy = (player.vy / speed) * MAX_VEL;
-        }
-
-        player.vx *= FRICTION;
-        player.vy *= FRICTION;
-        player.x += player.vx * step;
-        player.y += player.vy * step;
-
-        if (room.game.waitingForKickOff) {
-            const centerX = room.game.map.width / 2;
-            if (player.team === 'blue') {
-                player.x = Math.min(player.x, centerX - player.r);
-            } else {
-                player.x = Math.max(player.x, centerX + player.r);
-            }
-        }
-
-        const r = player.r;
-        player.x = Math.max(r, Math.min(room.game.map.width - r, player.x));
-        player.y = Math.max(r, Math.min(room.game.map.height - r, player.y));
-        collidePlayerWithBackPost(player, room.game.field.left - room.game.goalWidth);
-        collidePlayerWithBackPost(player, room.game.field.right + room.game.goalWidth);
-    });
-
-    const ball = room.game.ball;
-    ball.x += ball.vx * step;
-    ball.y += ball.vy * step;
-    ball.vx *= BALL_FRICTION;
-    ball.vy *= BALL_FRICTION;
-
-    if (ball.y - ball.r < room.game.field.top) {
-        ball.y = room.game.field.top + ball.r;
-        ball.vy *= RESTITUTION;
-    }
-    if (ball.y + ball.r > room.game.field.bottom) {
-        ball.y = room.game.field.bottom - ball.r;
-        ball.vy *= RESTITUTION;
-    }
-
-    room.game.players.forEach(player => {
-        const dx = ball.x - player.x;
-        const dy = ball.y - player.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const minDist = player.r + ball.r;
-        if (dist < minDist) {
-            const angle = Math.atan2(dy, dx);
-            const overlap = minDist - dist;
-            ball.x += Math.cos(angle) * overlap;
-            ball.y += Math.sin(angle) * overlap;
-
-            const input = room.game.inputStates[player.nickname] || {};
-            const isKicking = !!input.kick;
-
-            // Update last touch info
-            room.game.secondLastTouch = room.game.lastTouch || null;
-            room.game.lastTouch = player.nickname || room.game.lastTouch;
-
-            // Start timer on first touch
-            if (!room.game.timerStarted) {
-                room.game.timerStarted = true;
-                room.game.waitingForKickOff = false;
-            }
-
-            // If blue touches, lift mid restriction
-            if (player.team === 'blue') room.game.restrictMidForRed = false;
-
-            const baseSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-
-            if (isKicking) {
-                const force = (player.activePower === 'SUPER_KICK') ? Math.max(10, baseSpeed * 2.0) : Math.max(6, baseSpeed * 1.6);
-                ball.vx = Math.cos(angle) * force + (player.vx * 0.5);
-                ball.vy = Math.sin(angle) * force + (player.vy * 0.5);
-            } else {
-                // Small influence when dribbling / moving near the ball
-                ball.vx += player.vx * 0.22;
-                ball.vy += player.vy * 0.22;
-            }
-        }
-    });
-
-    // POWER-UPS: spawn simple power-ups periodically and handle pickup
-    room.game.powerUpSpawnTimer = (room.game.powerUpSpawnTimer || 0) + 1;
-    if (room.game.powerUpSpawnTimer >= 480) {
-        room.game.powerUpSpawnTimer = 0;
-        if ((room.game.activePowerUps || []).length < 2) {
-            const types = ['SPEED', 'BIG', 'SUPER_KICK'];
-            const mapW = room.game.map.width;
-            const mapH = room.game.map.height;
-            const margin = 120;
-            const rx = Math.floor(Math.random() * (mapW - margin * 2)) + margin;
-            const ry = Math.floor(Math.random() * (mapH - margin * 2)) + margin;
-            const type = types[Math.floor(Math.random() * types.length)];
-            room.game.activePowerUps.push({ x: rx, y: ry, r: 15, type });
-        }
-    }
-
-    if (Array.isArray(room.game.activePowerUps) && room.game.activePowerUps.length > 0) {
-        for (let i = room.game.activePowerUps.length - 1; i >= 0; i--) {
-            const pup = room.game.activePowerUps[i];
-            let picked = false;
-            room.game.players.forEach(player => {
-                const dx = pup.x - player.x;
-                const dy = pup.y - player.y;
-                const d = Math.sqrt(dx*dx + dy*dy) || 1;
-                if (d < pup.r + player.r) {
-                    player.activePower = pup.type;
-                    player.powerTimer = 360; // ticks
-                    room.game.activePowerUps.splice(i, 1);
-                    picked = true;
-                }
-            });
-            if (!picked) {
-                // decay over time if needed
-            }
-        }
-    }
-
-    const insideLeftGoal = ball.x - ball.r < room.game.field.left && ball.y - ball.r >= room.game.goalTop && ball.y + ball.r <= room.game.goalBottom;
-    const insideRightGoal = ball.x + ball.r > room.game.field.right && ball.y - ball.r >= room.game.goalTop && ball.y + ball.r <= room.game.goalBottom;
-
-    if (insideLeftGoal) {
-        room.game.scores.red += 1;
-        const scorer = room.game.lastTouch || 'Jugador';
-        io.to(room.id).emit('game:goal', {
-            scorer: scorer,
-            team: 'red',
-            roomId: room.id
-        });
-        ball.x = room.game.map.width / 2;
-        ball.y = room.game.map.height / 2;
-        ball.vx = 0;
-        ball.vy = 0;
-        room.game.restrictMidForRed = true;
-    } else if (insideRightGoal) {
-        room.game.scores.blue += 1;
-        const scorer = room.game.lastTouch || 'Jugador';
-        io.to(room.id).emit('game:goal', {
-            scorer: scorer,
-            team: 'blue',
-            roomId: room.id
-        });
-        ball.x = room.game.map.width / 2;
-        ball.y = room.game.map.height / 2;
-        ball.vx = 0;
-        ball.vy = 0;
-        room.game.restrictMidForRed = true;
-    } else {
-        if (ball.x - ball.r < room.game.field.left) {
-            ball.x = room.game.field.left + ball.r;
-            ball.vx *= RESTITUTION;
-        }
-        if (ball.x + ball.r > room.game.field.right) {
-            ball.x = room.game.field.right - ball.r;
-            ball.vx *= RESTITUTION;
-        }
-    }
-
-    room.game.remainingMs = Math.max(0, room.game.remainingMs - deltaMs);
-
-    if (room.game.remainingMs <= 0) {
-        room.matchActive = false;
-        room.game.active = false;
-        stopRoomGameLoop(room);
-        io.to(room.id).emit('match:ended', {
-            roomId: room.id,
-            scores: room.game.scores
-        });
+    if (room.game.paused) {
+        room.game.lastTick = now;
         return;
     }
+    const deltaMs = now - room.game.lastTick;
+    room.game.lastTick = now;
+    const physicsState = room.game.physicsState;
+    const result = FisicaLocal.avanzar(physicsState, Math.min(Math.max(deltaMs, 0), 250), room.game.inputStates);
+    const goalEvent = result.eventos.includes('gol');
 
+    if (goalEvent) {
+        const goalTeam = physicsState.lastGoalTeam;
+        room.game.scores[goalTeam] += 1;
+        room.game.servingTeam = goalTeam === 'red' ? 'blue' : 'red';
+        room.game.phase = 'GOL';
+        physicsState.kickoffTeam = room.game.servingTeam;
+        physicsState.kickoffPlayerId = room.game.players.find(player => player.equipo === room.game.servingTeam)?.id;
+        io.to(room.id).emit('game:goal', {
+            scorer: physicsState.lastTouch || 'Jugador',
+            team: goalTeam,
+            roomId: room.id
+        });
+        const reachedGoalLimit = room.game.goalLimit != null && room.game.scores[goalTeam] >= room.game.goalLimit;
+        if (reachedGoalLimit || room.game.overtime) {
+            finishRoomGame(room);
+            return;
+        }
+        room.game.phase = 'SAQUE';
+    }
+
+    if (physicsState.timerStarted && !room.game.overtime) {
+        room.game.remainingMs = Math.max(0, room.game.remainingMs - deltaMs);
+    } else if (room.game.overtime) {
+        room.game.overtimeMs += deltaMs;
+    }
+
+    if (room.game.remainingMs <= 0 && !room.game.overtime && physicsState.timerStarted) {
+        if (room.game.scores.red === room.game.scores.blue) {
+            room.game.overtime = true;
+            room.game.phase = 'TIEMPO_EXTRA';
+        } else {
+            finishRoomGame(room);
+            return;
+        }
+    }
+
+    if (physicsState.timerStarted && room.game.phase === 'SAQUE') room.game.phase = 'JUGANDO';
+    broadcastRoomGameState(room);
+}
+
+function finishRoomGame(room) {
+    room.matchActive = false;
+    room.game.active = false;
+    room.game.phase = 'FIN';
+    stopRoomGameLoop(room);
+    io.to(room.id).emit('match:ended', {
+        roomId: room.id,
+        scores: room.game.scores
+    });
     broadcastRoomGameState(room);
 }
 
@@ -678,8 +508,8 @@ io.on("connection", (socket) => {
             return;
         }
 
-        if (room.players.length >= 12) {
-            socket.emit('room:error', 'La sala está llena');
+        if (room.players.length >= 2) {
+            socket.emit('room:error', 'El modo online es 1v1 y la sala está llena');
             console.log(`Error: Intento de unirse a sala llena ${data.roomId}`);
             return;
         }
@@ -740,8 +570,8 @@ io.on("connection", (socket) => {
         if (existingPlayer) {
             existingPlayer.id = socket.id;
         } else {
-            if (room.players.length >= 12) {
-                socket.emit('room:error', 'La sala está llena');
+            if (room.players.length >= 2) {
+                socket.emit('room:error', 'El modo online es 1v1 y la sala está llena');
                 return;
             }
             const newPlayer = {
@@ -784,9 +614,9 @@ io.on("connection", (socket) => {
             });
             socket.emit('game:state', {
                 roomId: room.id,
-                players: room.game.players.map(p => ({
+                players: room.game.physicsState.players.map(p => ({
                     nickname: p.nickname,
-                    team: p.team,
+                    team: p.equipo,
                     x: p.x,
                     y: p.y,
                     vx: p.vx,
@@ -794,14 +624,22 @@ io.on("connection", (socket) => {
                     r: p.r
                 })),
                 ball: {
-                    x: room.game.ball.x,
-                    y: room.game.ball.y,
-                    vx: room.game.ball.vx,
-                    vy: room.game.ball.vy,
-                    r: room.game.ball.r
+                    x: room.game.physicsState.ball.x,
+                    y: room.game.physicsState.ball.y,
+                    vx: room.game.physicsState.ball.vx,
+                    vy: room.game.physicsState.ball.vy,
+                    r: room.game.physicsState.ball.r
                 },
                 scores: room.game.scores,
-                remainingMs: room.game.remainingMs
+                remainingMs: room.game.remainingMs,
+                timerStarted: !!room.game.physicsState.timerStarted,
+                waitingForKickOff: !!room.game.physicsState.waitingForKickOff,
+                paused: !!room.game.paused,
+                overtime: !!room.game.overtime,
+                overtimeMs: room.game.overtimeMs,
+                phase: room.game.phase,
+                servingTeam: room.game.servingTeam,
+                goalLimit: room.game.goalLimit
             });
         }
     });
@@ -930,6 +768,17 @@ io.on("connection", (socket) => {
         };
     });
 
+    socket.on('game:pause', (data = {}) => {
+        const roomId = String(data.roomId || '').trim();
+        const room = getRoomInfo(roomId);
+        if (!room || !room.game || !room.game.active) return;
+        const player = room.players.find(p => p.id === socket.id && !p.disconnectedAt);
+        if (!player) return;
+        room.game.paused = data.paused == null ? !room.game.paused : !!data.paused;
+        room.game.lastTick = Date.now();
+        broadcastRoomGameState(room);
+    });
+
     // ========================= //
     // ADMIN SETTINGS //
     // ========================= //
@@ -956,6 +805,11 @@ io.on("connection", (socket) => {
 
         if (room.matchActive) {
             socket.emit('room:error', 'La partida ya está en curso');
+            return;
+        }
+
+        if (room.players.filter(player => !player.disconnectedAt).length !== 2) {
+            socket.emit('room:error', 'El modo online requiere exactamente 2 jugadores');
             return;
         }
 

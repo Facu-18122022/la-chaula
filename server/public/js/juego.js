@@ -1,3 +1,11 @@
+/**
+ * juego.js
+ * 
+ * Lógica principal del lado del cliente para el modo multijugador online.
+ * Se encarga de renderizar la partida, procesar los inputs del jugador,
+ * sincronizar el estado del juego (posición de jugadores y pelota)
+ * recibido desde el servidor mediante Socket.IO y mostrar efectos visuales (Ej: explosiones de goles).
+ */
 // Cargar la imagen de Momo para el centro de la cancha
 const streetLogo = new Image();
 streetLogo.src = "../img/MomoCancha.jpg"
@@ -18,11 +26,11 @@ let redScore = 0;
 // CONFIGURACIÓN DE LOS 5 MAPAS CON DETALLES
 // ==========================================
 const MAPS = [
-    { name: "Classic Arena (1v1)", width: 800, height: 400, fieldColor: "#333b42", lineColor: "#ffffff", goalHeight: 110, bg: "#121212", goalBg: "#22272b", theme: "classic" },
-    { name: "Street Arena (1v1)", width: 820, height: 390, fieldColor: "#2c3e50", lineColor: "#ff9f43", goalHeight: 95, bg: "#1e293b", goalBg: "#111827", theme: "street" },
-    { name: "Frozen Arena (3v3)", width: 1020, height: 510, fieldColor: "#a5d8ff", lineColor: "#ffffff", goalHeight: 140, bg: "#4dabf7", goalBg: "#74c0fc", theme: "frozen" },
-    { name: "Desert Arena (3v3)", width: 1000, height: 500, fieldColor: "#f4d03f", lineColor: "#784212", goalHeight: 135, bg: "#5e35b1", goalBg: "#7e57c2", theme: "desert" },
-    { name: "Champions Arena (6v6)", width: 1300, height: 640, fieldColor: "#228be6", lineColor: "#ffffff", goalHeight: 180, bg: "#1a252f", goalBg: "#2c3e50", theme: "champions" }
+    { name: "Classic Arena (1v1)", width: 800, height: 400, fieldColor: "#333b42", lineColor: "#ffffff", goalHeight: 100, bg: "#121212", goalBg: "#22272b", theme: "classic" },
+    { name: "Street Arena (1v1)", width: 820, height: 390, fieldColor: "#2c3e50", lineColor: "#ff9f43", goalHeight: 90, bg: "#1e293b", goalBg: "#111827", theme: "street" },
+    { name: "Frozen Arena (1v1)", width: 1020, height: 510, fieldColor: "#a5d8ff", lineColor: "#ffffff", goalHeight: 110, bg: "#4dabf7", goalBg: "#74c0fc", theme: "frozen" },
+    { name: "Desert Arena (1v1)", width: 1000, height: 500, fieldColor: "#f4d03f", lineColor: "#784212", goalHeight: 105, bg: "#5e35b1", goalBg: "#7e57c2", theme: "desert" },
+    { name: "Champions Arena (1v1)", width: 1300, height: 640, fieldColor: "#228be6", lineColor: "#ffffff", goalHeight: 130, bg: "#1a252f", goalBg: "#2c3e50", theme: "champions" }
 ];
 // Leer el mapa seleccionado desde crear-sala
 const storedMapIndex = parseInt(localStorage.getItem("selectedMapIndex"), 10);
@@ -67,6 +75,8 @@ let lastTick = 0;
 const matchTimeMinutes = parseInt(localStorage.getItem('matchTime'), 10) || 5; 
 let totalMatchMs = matchTimeMinutes * 60 * 1000;
 let remainingMs = totalMatchMs;
+let overtime = false;
+let overtimeMs = 0;
 
 // SISTEMA DE CELEBRACIÓN Y SAQUES
 let isCelebration = false;
@@ -75,7 +85,6 @@ let goalScorerColor = "";
 let goalScorerName = "";
 let kickOffTeam = "red"; 
 let waitingForKickOff = true; 
-let restrictMidForRed = true;
 const selectedTeam = localStorage.getItem('equipoSeleccionado') || 'red';
 const roomId = localStorage.getItem('roomId');
 const nickname = localStorage.getItem('jugador') || 'Jugador';
@@ -196,6 +205,8 @@ if (typeof io !== 'undefined') {
         visiblePlayers = [];
         remainingMs = (data.matchTime || 5) * 60 * 1000;
         totalMatchMs = remainingMs;
+        overtime = false;
+        overtimeMs = 0;
         resetGameStateFromServer();
         if (data.players && Array.isArray(data.players)) {
             const local = data.players.find(p => p.nickname.trim().toLowerCase() === localPlayerNickname.trim().toLowerCase());
@@ -256,8 +267,25 @@ if (typeof io !== 'undefined') {
             startTimer();
         }
 
-        if (typeof data.restrictMidForRed === 'boolean') {
-            restrictMidForRed = data.restrictMidForRed;
+        if (typeof data.servingTeam === 'string') {
+            kickOffTeam = data.servingTeam;
+        }
+
+        if (typeof data.paused === 'boolean') {
+            setPausedFromServer(data.paused);
+        }
+
+        if (typeof data.overtime === 'boolean') {
+            overtime = data.overtime;
+            if (!overtime) overtimeMs = 0;
+            if (data.overtime) {
+                goalScorerName = 'TIEMPO EXTRA';
+                goalScorerColor = '#facc15';
+            }
+        }
+
+        if (typeof data.overtimeMs === 'number') {
+            overtimeMs = data.overtimeMs;
         }
 
         if (typeof data.waitingForKickOff === 'boolean') {
@@ -358,6 +386,13 @@ function getPowerEmoji(type) {
     return "";
 }
 
+function getMovementMultiplier(player) {
+    if (!player) return 1;
+    if (player.activePower === "BIG") return 0.65;
+    if (player.activePower === "SPEED") return 1.55;
+    return 1;
+}
+
 function updateRoomPlayers(room) {
     remoteRoom = room;
     // assign local player names/teams using room members
@@ -410,7 +445,7 @@ function stopTimer() {
 }
 
 function updateTimerDisplay() {
-    const ms = Math.max(0, remainingMs);
+    const ms = Math.max(0, overtime ? overtimeMs : remainingMs);
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -671,14 +706,14 @@ function movePlayers() {
     const p1Chuta = keys["space"];
     const p2Chuta = keys["space"];
 
-    const p1HasSpeed = player1.activePower === "SPEED";
-    const p2HasSpeed = player2.activePower === "SPEED";
+    const p1Multiplier = getMovementMultiplier(player1);
+    const p2Multiplier = getMovementMultiplier(player2);
 
-    const maxVelP1 = p1Chuta ? 1.6 : (p1HasSpeed ? JUGADOR_MAX_VEL * 1.55 : JUGADOR_MAX_VEL);
-    const accelP1 = p1Chuta ? 0.09 : (p1HasSpeed ? JUGADOR_ACCEL * 1.55 : JUGADOR_ACCEL);
+    const maxVelP1 = p1Chuta ? 1.6 * p1Multiplier : JUGADOR_MAX_VEL * p1Multiplier;
+    const accelP1 = p1Chuta ? 0.09 * p1Multiplier : JUGADOR_ACCEL * p1Multiplier;
 
-    const maxVelP2 = p2Chuta ? 1.6 : (p2HasSpeed ? JUGADOR_MAX_VEL * 1.55 : JUGADOR_MAX_VEL);
-    const accelP2 = p2Chuta ? 0.09 : (p2HasSpeed ? JUGADOR_ACCEL * 1.55 : JUGADOR_ACCEL);
+    const maxVelP2 = p2Chuta ? 1.6 * p2Multiplier : JUGADOR_MAX_VEL * p2Multiplier;
+    const accelP2 = p2Chuta ? 0.09 * p2Multiplier : JUGADOR_ACCEL * p2Multiplier;
 
     let moveX1 = 0; let moveY1 = 0;
     if (keys["w"]) moveY1 -= 1;
@@ -804,7 +839,12 @@ function handleBallCollisions() {
 }
 
 function processCollision(player, dx, dy, dist, isKicking) {
-    const angle = Math.atan2(dy, dx);
+    const safeDist = dist > 0 ? dist : 0.0001;
+    const rawAngle = Math.atan2(dy, dx);
+    const fallbackAngle = dist === 0
+        ? Math.atan2((player.y - ball.y) || 1, (player.x - ball.x) || 1)
+        : rawAngle;
+    const angle = Number.isFinite(fallbackAngle) ? fallbackAngle : rawAngle;
 
     try {
         secondLastTouch = lastTouch || null;
@@ -821,10 +861,12 @@ function processCollision(player, dx, dy, dist, isKicking) {
             const overlap = minDistCuerpo - dist;
             ball.x += Math.cos(angle) * overlap;
             ball.y += Math.sin(angle) * overlap;
+            player.x -= Math.cos(angle) * overlap * 0.6;
+            player.y -= Math.sin(angle) * overlap * 0.6;
         }
 
-        const nx = dx / dist;
-        const ny = dy / dist;
+        const nx = dx / safeDist;
+        const ny = dy / safeDist;
         const kx = player.vx - ball.vx;
         const ky = player.vy - ball.vy;
         
@@ -870,12 +912,6 @@ function updatePositionsAndLimits() {
     const midY = canvas.height / 2;
 
     visiblePlayers.forEach(p => {
-        // Restricción de zona media para el equipo rojo
-        if (gameStarted && restrictMidForRed && p.team === "red" && p.x < midX) {
-            p.x = midX;
-            if (p.vx < 0) p.vx = 0;
-        }
-
         if (waitingForKickOff) {
             if (p.team === "blue" && p.x + p.r > midX) {
                 p.x = midX - p.r;
@@ -927,6 +963,17 @@ function updatePositionsAndLimits() {
             }
         });
 
+        const inGoalMouth = p.y + p.r > goalTop && p.y - p.r < goalBottom;
+        const leftGoalBack = fieldLeft - goalWidth;
+        const rightGoalBack = fieldRight + goalWidth;
+        const inLeftGoalDepth = p.x > leftGoalBack && p.x < fieldLeft;
+        const inRightGoalDepth = p.x > fieldRight && p.x < rightGoalBack;
+        if ((inLeftGoalDepth || inRightGoalDepth) && p.y - p.r < goalTop) {
+            if (p.vy < 0) p.vy = 0;
+        } else if ((inLeftGoalDepth || inRightGoalDepth) && p.y + p.r > goalBottom) {
+            if (p.vy > 0) p.vy = 0;
+        }
+
         p.x = Math.max(p.r, Math.min(canvas.width - p.r, p.x));
         p.y = Math.max(p.r, Math.min(canvas.height - p.r, p.y));
     });
@@ -938,14 +985,301 @@ function updatePositionsAndLimits() {
 }
 
 // DIBUJADO DE LA CANCHA ADAPTADO AL MAPA ACTUAL
+function drawThemeBackground(theme, timestamp) {
+    const time = timestamp * 0.001;
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.save();
+    const baseGradient = ctx.createRadialGradient(width / 2, height / 2, 40, width / 2, height / 2, Math.max(width, height));
+    switch (theme) {
+        case 'frozen':
+            baseGradient.addColorStop(0, '#99d9ff');
+            baseGradient.addColorStop(1, '#1d4ed8');
+            break;
+        case 'desert':
+            baseGradient.addColorStop(0, '#f6c76b');
+            baseGradient.addColorStop(1, '#7c2d12');
+            break;
+        case 'street':
+            baseGradient.addColorStop(0, '#2f3542');
+            baseGradient.addColorStop(1, '#0f172a');
+            break;
+        case 'champions':
+            baseGradient.addColorStop(0, '#1d3557');
+            baseGradient.addColorStop(1, '#0b1120');
+            break;
+        case 'cyberpunk':
+            baseGradient.addColorStop(0, '#240b40');
+            baseGradient.addColorStop(1, '#050816');
+            break;
+        case 'micro':
+            baseGradient.addColorStop(0, '#7c3d15');
+            baseGradient.addColorStop(1, '#2b1207');
+            break;
+        case 'titan':
+            baseGradient.addColorStop(0, '#4b2058');
+            baseGradient.addColorStop(1, '#1b1024');
+            break;
+        case 'tunnel':
+            baseGradient.addColorStop(0, '#0f5132');
+            baseGradient.addColorStop(1, '#061b11');
+            break;
+        case 'volcanic':
+            baseGradient.addColorStop(0, '#7b2d18');
+            baseGradient.addColorStop(1, '#160b0b');
+            break;
+        default:
+            baseGradient.addColorStop(0, '#1f2937');
+            baseGradient.addColorStop(1, '#04070d');
+            break;
+    }
+
+    ctx.fillStyle = baseGradient;
+    ctx.fillRect(0, 0, width, height);
+
+    if (theme === 'classic') {
+        for (let i = 0; i < 18; i++) {
+            const x = ((i * 97 + time * 18) % (width + 80)) - 40;
+            const y = ((i * 67 + time * (12 + i % 5)) % (height + 80)) - 40;
+            ctx.fillStyle = `rgba(255,255,255,${0.06 + (i % 4) * 0.03})`;
+            ctx.fillRect(x, y, 4, 4);
+        }
+    }
+
+    if (theme === 'street') {
+        for (let i = -2; i < 12; i++) {
+            const offset = (time * 140 + i * 120) % (width + 200);
+            ctx.fillStyle = `rgba(255, 165, 0, ${0.08 + (i % 4) * 0.04})`;
+            ctx.fillRect(offset - 100, 0, 22, height);
+        }
+    }
+
+    if (theme === 'frozen') {
+        for (let i = 0; i < 36; i++) {
+            const x = ((i * 131 + time * 30) % (width + 40)) - 20;
+            const y = ((i * 73 + time * (26 + (i % 3) * 6)) % (height + 40)) - 20;
+            ctx.fillStyle = `rgba(255,255,255,${0.55 + (i % 5) * 0.08})`;
+            ctx.beginPath();
+            ctx.arc(x, y, 2 + (i % 3), 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    if (theme === 'desert') {
+        for (let i = 0; i < 12; i++) {
+            const y = (height * 0.18) + i * (height / 11);
+            ctx.beginPath();
+            ctx.moveTo(-20, y + 18);
+            for (let x = -20; x <= width + 20; x += 28) {
+                const wave = Math.sin((x * 0.04) + time * 1.3 + i) * 18;
+                ctx.lineTo(x, y + wave);
+            }
+            ctx.strokeStyle = `rgba(245, 158, 11, ${0.18 + i * 0.03})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    }
+
+    if (theme === 'champions') {
+        for (let i = 0; i < 10; i++) {
+            const x = ((i * 180 + time * 90) % (width + 200)) - 100;
+            ctx.fillStyle = `rgba(255,255,255,${0.04 + (i % 3) * 0.02})`;
+            ctx.fillRect(x, 0, 36, height);
+        }
+        for (let i = 0; i < 6; i++) {
+            const y = 20 + i * 22;
+            ctx.fillStyle = `rgba(255,255,255,${0.06 + i * 0.02})`;
+            ctx.fillRect(0, y + Math.sin(time + i) * 8, width, 2);
+        }
+    }
+
+    if (theme === 'cyberpunk') {
+        for (let i = 0; i < 14; i++) {
+            const y = (i * 58 + time * 40) % (height + 40);
+            ctx.strokeStyle = `rgba(0,255,204,${0.15 + i * 0.03})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y + Math.sin(time + i) * 12);
+            ctx.stroke();
+        }
+        for (let i = 0; i < 18; i++) {
+            const x = ((i * 99 + time * 140) % (width + 40)) - 20;
+            ctx.fillStyle = `rgba(34, 211, 238, ${0.12 + (i % 4) * 0.04})`;
+            ctx.fillRect(x, 0, 6, height);
+        }
+    }
+
+    if (theme === 'micro') {
+        for (let i = 0; i < 30; i++) {
+            const x = ((i * 61 + time * 32) % (width + 20)) - 10;
+            const y = ((i * 47 + time * 18) % (height + 20)) - 10;
+            ctx.fillStyle = `rgba(251, 191, 36, ${0.18 + (i % 4) * 0.06})`;
+            ctx.beginPath();
+            ctx.arc(x, y, 2 + (i % 3), 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    if (theme === 'titan') {
+        for (let i = 0; i < 8; i++) {
+            const radius = 130 + i * 45 + Math.sin(time + i) * 25;
+            const x = (width * 0.5) + Math.sin(time * 0.7 + i) * (width * 0.28);
+            const y = (height * 0.5) + Math.cos(time * 0.9 + i) * (height * 0.2);
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(245, 158, 11, ${0.08 + i * 0.02})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    }
+
+    if (theme === 'tunnel') {
+        for (let i = 0; i < 10; i++) {
+            const offset = ((time * 80 + i * 90) % (width + 90)) - 45;
+            ctx.strokeStyle = `rgba(186, 230, 253, ${0.14 + i * 0.03})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(offset, height * 0.2);
+            ctx.lineTo(offset + 80, height * 0.8);
+            ctx.stroke();
+        }
+    }
+
+    if (theme === 'volcanic') {
+        for (let i = 0; i < 28; i++) {
+            const x = ((i * 89 + time * 40) % (width + 40)) - 20;
+            const y = ((i * 53 + time * (30 + (i % 2) * 12)) % (height + 50)) - 25;
+            ctx.fillStyle = `rgba(251, 146, 60, ${0.15 + (i % 3) * 0.1})`;
+            ctx.beginPath();
+            ctx.arc(x, y, 2 + (i % 4), 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    ctx.restore();
+}
+
+function drawFieldEffects() {
+    const time = performance.now() * 0.001;
+    const width = fieldRight - fieldLeft;
+    const height = fieldBottom - fieldTop;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(fieldLeft, fieldTop, width, height);
+    ctx.clip();
+
+    switch (currentMap.theme) {
+        case 'frozen':
+            for (let i = 0; i < 55; i++) {
+                const x = fieldLeft + ((i * 97 + time * 35) % width);
+                const y = fieldTop + ((i * 71 + time * (28 + (i % 4) * 8)) % height);
+                ctx.fillStyle = `rgba(255,255,255,${0.35 + (i % 5) * 0.12})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 2 + (i % 3), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            break;
+        case 'desert':
+            for (let i = 0; i < 18; i++) {
+                const y = fieldTop + (i / 18) * height;
+                ctx.beginPath();
+                ctx.moveTo(fieldLeft, y);
+                for (let x = fieldLeft; x <= fieldRight; x += 22) {
+                    const wave = Math.sin((x * 0.045) + time * 1.8 + i) * 10;
+                    ctx.lineTo(x, y + wave);
+                }
+                ctx.strokeStyle = `rgba(255,255,255,${0.22 + i * 0.02})`;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+            break;
+        case 'street':
+            for (let i = 0; i < 20; i++) {
+                const y = fieldTop + ((i * 63 + time * 40) % height);
+                ctx.fillStyle = `rgba(255,255,255,${0.08 + (i % 5) * 0.04})`;
+                ctx.fillRect(fieldLeft, y, width, 2);
+            }
+            break;
+        case 'champions':
+            for (let i = 0; i < 11; i++) {
+                const x = fieldLeft + ((i * 180 + time * 80) % width);
+                ctx.fillStyle = `rgba(255,255,255,${0.06 + (i % 4) * 0.02})`;
+                ctx.fillRect(x, fieldTop, 18, height);
+            }
+            break;
+        case 'cyberpunk':
+            for (let i = 0; i < 26; i++) {
+                const x = fieldLeft + ((i * 77 + time * 180) % width);
+                const y = fieldTop + (i % 2) * 18 + Math.sin(time + i) * 10;
+                ctx.fillStyle = `rgba(0,255,204,${0.18 + (i % 4) * 0.08})`;
+                ctx.fillRect(x, y, 8, height * 0.2);
+            }
+            break;
+        case 'micro':
+            for (let i = 0; i < 30; i++) {
+                const x = fieldLeft + ((i * 31 + time * 60) % width);
+                const y = fieldTop + ((i * 41 + time * 30) % height);
+                ctx.fillStyle = `rgba(255,255,255,${0.22 + (i % 4) * 0.08})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 2 + (i % 3), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            break;
+        case 'titan':
+            for (let i = 0; i < 8; i++) {
+                const radius = 40 + i * 18 + Math.sin(time * 1.2 + i) * 12;
+                const x = fieldLeft + width * 0.5 + Math.sin(time * 0.8 + i) * (width * 0.2);
+                const y = fieldTop + height * 0.5 + Math.cos(time * 0.9 + i) * (height * 0.22);
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255,255,255,${0.06 + i * 0.02})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            break;
+        case 'tunnel':
+            for (let i = 0; i < 14; i++) {
+                const x = fieldLeft + ((i * 92 + time * 120) % width);
+                ctx.strokeStyle = `rgba(186,230,253,${0.15 + (i % 5) * 0.04})`;
+                ctx.beginPath();
+                ctx.moveTo(x, fieldTop);
+                ctx.lineTo(x + 40, fieldBottom);
+                ctx.stroke();
+            }
+            break;
+        case 'volcanic':
+            for (let i = 0; i < 40; i++) {
+                const x = fieldLeft + ((i * 51 + time * 50) % width);
+                const y = fieldTop + ((i * 27 + time * 34) % height);
+                ctx.fillStyle = `rgba(251, 146, 60, ${0.15 + (i % 4) * 0.08})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 2 + (i % 4), 0, Math.PI * 2);
+                ctx.fill();
+            }
+            break;
+        default:
+            for (let i = 0; i < 20; i++) {
+                const x = fieldLeft + ((i * 69 + time * 25) % width);
+                const y = fieldTop + ((i * 57 + time * 18) % height);
+                ctx.fillStyle = `rgba(255,255,255,${0.12 + (i % 4) * 0.04})`;
+                ctx.fillRect(x, y, 6, 6);
+            }
+    }
+
+    ctx.restore();
+}
+
 function drawField() {
-    // 1. FONDO EXTERIOR BASE (El color oscuro de afuera)
-    ctx.fillStyle = currentMap.bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const backgroundTimestamp = performance.now();
+    drawThemeBackground(currentMap.theme, backgroundTimestamp);
 
     // 2. TERRENO DE JUEGO PRINCIPAL (El color de la cancha)
     ctx.fillStyle = currentMap.fieldColor;
     ctx.fillRect(fieldLeft, fieldTop, fieldRight - fieldLeft, fieldBottom - fieldTop);
+    drawFieldEffects();
 
     // 3. DETALLES ESTÉTICOS ESTÁTICOS SEGÚN EL TEMA (Los de anoche sin animar)
     ctx.font = "16px Arial";
@@ -1095,7 +1429,7 @@ function drawCelebrationOverlay() {
 let isPaused = false;
 let timerWasRunningBeforePause = false;
 
-function setPaused(p) {
+function renderPauseState(p) {
     const overlay = document.getElementById('pauseOverlay');
     isPaused = !!p;
     if (overlay) {
@@ -1111,8 +1445,21 @@ function setPaused(p) {
     }
 }
 
+function setPausedFromServer(p) {
+    renderPauseState(p);
+}
+
+function requestPause(p) {
+    if (!socket || !socket.connected || !gameStarted || !gameRoomId) return;
+    socket.emit('game:pause', { roomId: gameRoomId, paused: !!p });
+}
+
+function setPaused(p) {
+    requestPause(!!p);
+}
+
 function togglePause() {
-    setPaused(!isPaused);
+    requestPause(!isPaused);
 }
 
 function resetMatch() {
@@ -1131,7 +1478,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resumeBtn = document.getElementById('resumeButton');
     const restartBtn = document.getElementById('restartButton');
     const exitBtn = document.getElementById('exitButton');
-    if (resumeBtn) resumeBtn.addEventListener('click', () => setPaused(false));
+    if (resumeBtn) resumeBtn.addEventListener('click', () => requestPause(false));
     if (restartBtn) restartBtn.addEventListener('click', () => { setPaused(false); resetMatch(); });
     if (exitBtn) exitBtn.addEventListener('click', () => { window.location.href = 'menu.html'; });
 });

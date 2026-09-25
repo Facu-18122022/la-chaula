@@ -1,3 +1,10 @@
+/**
+ * configuracion.js
+ * 
+ * Maneja la lógica de la página de ajustes del juego.
+ * Se encarga de cargar, mostrar y guardar las preferencias del usuario 
+ * (como volumen, controles o video) utilizando localStorage para persistencia.
+ */
 const saveButton =
 document.getElementById("saveButton");
 loadSettings();

@@ -1,3 +1,10 @@
+/**
+ * lobby.js
+ * 
+ * Controlador de la sala de espera (Lobby) en el modo multijugador online.
+ * Maneja la lista de jugadores conectados, la asignación de equipos,
+ * los ajustes de la partida (tiempo, límite de goles, mapa) y el chat de texto.
+ */
 const serverURL = `${window.location.protocol}//${window.location.hostname}:${window.location.port || 3000}`;
 const socket = io(serverURL);
 
@@ -22,9 +29,9 @@ let currentRoom = null;
 const MAP_NAMES = [
     'Classic Arena (1v1)',
     'Street Arena (1v1)',
-    'Frozen Arena (3v3)',
-    'Desert Arena (3v3)',
-    'Champions Arena (6v6)'
+    'Frozen Arena (1v1)',
+    'Desert Arena (1v1)',
+    'Champions Arena (1v1)'
 ];
 
 function formatRoomInfo(room) {

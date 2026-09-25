@@ -1,3 +1,9 @@
+/**
+ * menu.js
+ * 
+ * Archivo de scripts auxiliares para los botones del menú principal.
+ * Contiene referencias y manejadores de eventos (Ej: jugar local, opciones).
+ */
 const btnPlayLocal =
 document.getElementById("btnPlayLocal");
 

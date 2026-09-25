@@ -1,3 +1,10 @@
+/**
+ * jugar.js
+ * 
+ * Script de interfaz que maneja la pantalla de selección de modo de juego,
+ * donde el usuario decide si crear una sala, unirse a una existente o jugar local.
+ */
+
 /* ========================= */
 /* BOTONES */
 /* ========================= */
