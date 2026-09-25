@@ -253,7 +253,7 @@
         let moveX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
         let moveY = (input.down ? 1 : 0) - (input.up ? 1 : 0);
         if (moveX && moveY) { moveX *= 0.7071; moveY *= 0.7071; }
-        const speedMultiplier = player.activePower === 'SPEED' ? 1.55 : 1;
+        const speedMultiplier = player.activePower === 'SPEED' ? 1.55 : player.activePower === 'BIG' ? 0.7 : 1;
         let vx = body.velocity.x + moveX * ACCEL * speedMultiplier * step;
         let vy = body.velocity.y + moveY * ACCEL * speedMultiplier * step;
         const speed = Math.hypot(vx, vy);
@@ -270,11 +270,35 @@
         });
         let x = body.position.x + vx * step;
         let y = body.position.y + vy * step;
+        const inGoalMouth = y + player.r > state.goalTop && y - player.r < state.goalBottom;
         const centerX = state.mapa.width / 2;
+        const isLeftTeam = player.equipo === state.ladoIzquierdo;
+        const leftGoalBack = state.field.left - GOAL_WIDTH;
+        const rightGoalBack = state.field.right + GOAL_WIDTH;
+        const enteringLeftBack = inGoalMouth
+            && body.position.x - player.r >= leftGoalBack && x - player.r < leftGoalBack;
+        const enteringRightBack = inGoalMouth
+            && body.position.x + player.r <= rightGoalBack && x + player.r > rightGoalBack;
+        if (enteringLeftBack || enteringRightBack) {
+            x = body.position.x;
+            vx = 0;
+        }
+        const inLeftGoalDepth = x > leftGoalBack && x < state.field.left;
+        const inRightGoalDepth = x > state.field.right && x < rightGoalBack;
+        const enteringTopRail = (inLeftGoalDepth || inRightGoalDepth)
+            && body.position.y - player.r >= state.goalTop && y - player.r < state.goalTop;
+        const enteringBottomRail = (inLeftGoalDepth || inRightGoalDepth)
+            && body.position.y + player.r <= state.goalBottom && y + player.r > state.goalBottom;
+        if (enteringTopRail) {
+            y = body.position.y;
+            if (vy < 0) vy = 0;
+        } else if (enteringBottomRail) {
+            y = body.position.y;
+            if (vy > 0) vy = 0;
+        }
         if (state.waitingForKickOff) {
             const centerCircleRadius = state.mapa.width * 0.085;
             const servingTeam = isServingTeam(player, state);
-            const isLeftTeam = player.equipo === state.ladoIzquierdo;
             const halfLimit = isLeftTeam ? centerX - player.r : centerX + player.r;
             const restrictedLimit = isLeftTeam
                 ? centerX - centerCircleRadius - player.r
@@ -374,9 +398,14 @@
             : playerSpeed > 0 ? playerBody.velocity.y / playerSpeed : 0;
         const correctedDistance = normalRadius + 0.01;
         if (distance < correctedDistance) {
+            const overlap = correctedDistance - distance;
             MatterApi.Body.setPosition(ballBody, {
                 x: playerBody.position.x + normalX * correctedDistance,
                 y: playerBody.position.y + normalY * correctedDistance
+            });
+            MatterApi.Body.setPosition(playerBody, {
+                x: playerBody.position.x - normalX * overlap * 0.7,
+                y: playerBody.position.y - normalY * overlap * 0.7
             });
         }
         if (inputKick) {
