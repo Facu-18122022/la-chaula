@@ -249,7 +249,7 @@ body {
     line-height: 42px;
     text-align: center;
     filter: drop-shadow(0 0 6px var(--intro-ball-glow));
-    animation: footballTricks 8.4s cubic-bezier(.45, .05, .55, .95) infinite;
+    animation: footballTricks 6.6s cubic-bezier(.45, .05, .55, .95) infinite;
     will-change: left, top, transform;
 }
 
@@ -257,11 +257,11 @@ body {
     /* Tres jueguitos: X permanece exactamente fija en el extremo izquierdo. */
     0%, 3% { left: 2%; top: 30px; transform: rotate(0deg) scaleY(1); }
     6% { left: 2%; top: -8px; transform: rotate(110deg) scaleY(1.08); }
-    9% { left: 2%; top: 30px; transform: rotate(220deg) scaleY(.66) scaleX(1.2); }
+    9% { left: 2%; top: 30px; transform: rotate(220deg) scale(1); }
     12% { left: 2%; top: -11px; transform: rotate(330deg) scaleY(1.08); }
-    15% { left: 2%; top: 30px; transform: rotate(440deg) scaleY(.66) scaleX(1.2); }
+    15% { left: 2%; top: 30px; transform: rotate(440deg) scale(1); }
     18% { left: 2%; top: -8px; transform: rotate(550deg) scaleY(1.08); }
-    21% { left: 2%; top: 30px; transform: rotate(660deg) scaleY(.66) scaleX(1.2); }
+    21% { left: 2%; top: 30px; transform: rotate(660deg) scale(1); }
 
     /* Único tramo con movimiento X: sombrerito sobre el título. */
     26% { left: 12%; top: -44px; transform: rotate(760deg) scaleY(1); }
@@ -272,11 +272,11 @@ body {
 
     /* Tres jueguitos: X permanece exactamente fija en el extremo derecho. */
     53%, 56% { left: 86%; top: -8px; transform: rotate(1350deg) scaleY(1.08); }
-    59% { left: 86%; top: 30px; transform: rotate(1460deg) scaleY(.66) scaleX(1.2); }
+    59% { left: 86%; top: 30px; transform: rotate(1460deg) scale(1); }
     62% { left: 86%; top: -11px; transform: rotate(1570deg) scaleY(1.08); }
-    65% { left: 86%; top: 30px; transform: rotate(1680deg) scaleY(.66) scaleX(1.2); }
+    65% { left: 86%; top: 30px; transform: rotate(1680deg) scale(1); }
     68% { left: 86%; top: -8px; transform: rotate(1790deg) scaleY(1.08); }
-    71% { left: 86%; top: 30px; transform: rotate(1900deg) scaleY(.66) scaleX(1.2); }
+    71% { left: 86%; top: 30px; transform: rotate(1900deg) scale(1); }
 
     /* Único tramo con movimiento X de regreso al extremo izquierdo. */
     76% { left: 72%; top: -44px; transform: rotate(2020deg) scaleY(1); }
