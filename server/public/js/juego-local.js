@@ -27,8 +27,21 @@
     let celebracionGol = null;
     let ultimoGolMostrado = null;
     const kickEffects = [];
-    const duracionEfectoPatadaMs = 120;
+    const duracionEfectoPatadaMs = 160;
     const duracionCelebracionGolMs = 1400;
+    const duracionEstelaRapidezMs = 280;
+    const duracionGrietasMs = 560;
+    const duracionExplosionMs = 320;
+    let efectosVisuales = crearEfectosVisuales();
+
+    function crearEfectosVisuales() {
+        return {
+            estelas: { j1: [], j2: [] },
+            posiciones: {},
+            explosiones: [],
+            ultimoImpactoId: 0
+        };
+    }
 
     function leerConfiguracion() {
         const matchTime = Number.parseInt(localStorage.getItem('localMatchTime'), 10);
@@ -64,6 +77,7 @@
         });
         canvas.width = mapa.width;
         canvas.height = mapa.height;
+        efectosVisuales = crearEfectosVisuales();
     }
 
     function formatearTiempo(remainingMs) {
@@ -400,6 +414,150 @@
         });
     }
 
+    function actualizarEfectosVisuales(estado, deltaMs) {
+        const tiempo = Math.max(0, deltaMs || 0);
+        const impacto = estado.lastPowerImpact;
+        if (impacto && impacto.id !== efectosVisuales.ultimoImpactoId) {
+            efectosVisuales.ultimoImpactoId = impacto.id;
+            efectosVisuales.explosiones.push({ x: impacto.x, y: impacto.y, edad: 0 });
+        }
+
+        estado.players.forEach(player => {
+            const anterior = efectosVisuales.posiciones[player.id];
+            const seMovio = anterior && Math.hypot(player.x - anterior.x, player.y - anterior.y) > 0.5;
+            const estela = efectosVisuales.estelas[player.id];
+            const ultimoRastro = estela[estela.length - 1];
+            const distanciaDesdeRastro = ultimoRastro
+                ? Math.hypot(player.x - ultimoRastro.x, player.y - ultimoRastro.y)
+                : Infinity;
+            const debeDejarMarca = player.activePower === 'SPEED'
+                || (player.activePower === 'BIG' && distanciaDesdeRastro > player.r * 1.8);
+            if (seMovio && debeDejarMarca) {
+                estela.push({
+                    x: anterior.x,
+                    y: anterior.y,
+                    radio: player.r,
+                    tipo: player.activePower,
+                    edad: 0,
+                    variante: efectosVisuales.estelas[player.id].length % 3
+                });
+            }
+            efectosVisuales.posiciones[player.id] = { x: player.x, y: player.y };
+        });
+
+        Object.values(efectosVisuales.estelas).forEach(estela => {
+            estela.forEach(rastro => { rastro.edad += tiempo; });
+            estela.splice(0, estela.length, ...estela.filter(rastro => rastro.edad < (
+                rastro.tipo === 'BIG' ? duracionGrietasMs : duracionEstelaRapidezMs
+            )));
+        });
+        efectosVisuales.explosiones.forEach(explosion => { explosion.edad += tiempo; });
+        efectosVisuales.explosiones = efectosVisuales.explosiones.filter(
+            explosion => explosion.edad < duracionExplosionMs
+        );
+    }
+
+    function dibujarEstela(estela) {
+        estela.forEach(rastro => {
+            const duracion = rastro.tipo === 'BIG' ? duracionGrietasMs : duracionEstelaRapidezMs;
+            const alphaBase = rastro.tipo === 'BIG' ? 0.72 : 0.42;
+            const alpha = alphaBase * (1 - rastro.edad / duracion);
+            context.save();
+            context.globalAlpha = alpha;
+            if (rastro.tipo === 'SPEED') {
+                context.beginPath();
+                context.arc(rastro.x, rastro.y, Math.max(8, rastro.radio * .72), 0, Math.PI * 2);
+                context.fillStyle = '#ffe066';
+                context.fill();
+            } else {
+                const radio = rastro.radio * (.62 + rastro.variante * .1);
+                context.fillStyle = '#4a3528';
+                context.strokeStyle = '#d8a879';
+                context.lineWidth = 2.8;
+                context.beginPath();
+                for (let indice = 0; indice < 10; indice += 1) {
+                    const angulo = indice / 10 * Math.PI * 2;
+                    const variacion = 1 + ((indice + rastro.variante) % 3 - 1) * .16;
+                    const x = rastro.x + Math.cos(angulo) * radio * variacion;
+                    const y = rastro.y + Math.sin(angulo) * radio * variacion * .72;
+                    if (indice === 0) context.moveTo(x, y);
+                    else context.lineTo(x, y);
+                }
+                context.closePath();
+                context.fill();
+                context.stroke();
+                context.fillStyle = 'rgba(20, 13, 10, .62)';
+                context.beginPath();
+                context.ellipse(rastro.x, rastro.y + radio * .14, radio * .62, radio * .34, 0, 0, Math.PI * 2);
+                context.fill();
+                context.strokeStyle = '#e5bd8c';
+                context.lineWidth = 2.2;
+                context.lineCap = 'round';
+                for (let indice = 0; indice < 7; indice += 1) {
+                    const angulo = indice / 7 * Math.PI * 2 + rastro.variante * .22;
+                    const inicio = radio * .42;
+                    const medio = radio * (.78 + (indice % 2) * .12);
+                    const final = radio * (1.35 + (indice % 3) * .1);
+                    context.beginPath();
+                    context.moveTo(
+                        rastro.x + Math.cos(angulo) * inicio,
+                        rastro.y + Math.sin(angulo) * inicio * .72
+                    );
+                    context.lineTo(
+                        rastro.x + Math.cos(angulo + .12) * medio,
+                        rastro.y + Math.sin(angulo + .12) * medio * .72
+                    );
+                    context.lineTo(
+                        rastro.x + Math.cos(angulo - .08) * final,
+                        rastro.y + Math.sin(angulo - .08) * final * .72
+                    );
+                    context.stroke();
+                }
+            }
+            context.restore();
+        });
+    }
+
+    function dibujarEstelas() {
+        dibujarEstela(efectosVisuales.estelas.j1);
+        dibujarEstela(efectosVisuales.estelas.j2);
+    }
+
+    function dibujarExplosiones() {
+        efectosVisuales.explosiones.forEach(explosion => {
+            const progreso = explosion.edad / duracionExplosionMs;
+            const alpha = 1 - progreso;
+            const radio = 6 + progreso * 17;
+            context.save();
+            context.globalAlpha = alpha;
+            context.strokeStyle = '#ff477e';
+            context.lineWidth = 3 - progreso * 1.5;
+            context.beginPath();
+            context.arc(explosion.x, explosion.y, radio, 0, Math.PI * 2);
+            context.stroke();
+            context.strokeStyle = '#ffd166';
+            context.lineWidth = 2.5;
+            for (let indice = 0; indice < 6; indice += 1) {
+                const angulo = indice / 8 * Math.PI * 2;
+                context.beginPath();
+                context.moveTo(
+                    explosion.x + Math.cos(angulo) * radio * .7,
+                    explosion.y + Math.sin(angulo) * radio * .7
+                );
+                context.lineTo(
+                    explosion.x + Math.cos(angulo) * (radio + 5),
+                    explosion.y + Math.sin(angulo) * (radio + 5)
+                );
+                context.stroke();
+            }
+            context.fillStyle = '#fff3bf';
+            context.beginPath();
+            context.arc(explosion.x, explosion.y, Math.max(2, 4 * (1 - progreso)), 0, Math.PI * 2);
+            context.fill();
+            context.restore();
+        });
+    }
+
     function dibujarJugador(player) {
         const estaPateando = kickEffects.some(efecto => efecto.player === player);
         context.beginPath();
@@ -427,6 +585,11 @@
                 player: evento.player,
                 startTime: timestamp
             });
+        });
+        estado.kickImpactEvents.splice(0).forEach(evento => {
+            for (let index = kickEffects.length - 1; index >= 0; index -= 1) {
+                if (kickEffects[index].player === evento.player) kickEffects.splice(index, 1);
+            }
         });
     }
 
@@ -508,13 +671,15 @@
         return { ...ball, x, y };
     }
 
-    function renderizar(snapshot) {
+    function renderizar(snapshot, deltaMs) {
         const estado = snapshot.estadoFisica;
+        actualizarEfectosVisuales(estado, deltaMs);
         dibujarCancha(estado);
+        dibujarEstelas();
         dibujarPelota(obtenerPelotaDuranteGol(snapshot));
         dibujarPowerUps(estado);
         estado.players.forEach(dibujarJugador);
-        actualizarEfectosPatada(ultimoTimestamp);
+        dibujarExplosiones();
         dibujarCelebracionGol();
         actualizarHud(snapshot);
     }
@@ -581,8 +746,9 @@
         }
         const snapshot = partido.obtenerSnapshot();
         registrarEfectosPatada(snapshot.estadoFisica, timestamp);
+        actualizarEfectosPatada(timestamp);
         if (snapshot.fase === 'GOL') iniciarCelebracionGol(snapshot);
-        renderizar(snapshot);
+        renderizar(snapshot, deltaMs);
         if (snapshot.fase === 'FIN' && finishOverlay.hidden) {
             mostrarFin(snapshot);
             loopActivo = false;
