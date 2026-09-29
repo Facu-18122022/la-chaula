@@ -11,6 +11,7 @@
 - **Mapas Dinámicos y Gamificados**: Una variedad de mapas con distintos tamaños (desde 1v1 hasta 8v8), temáticas y colores (Cyberpunk, Volcánico, Micro Arena, etc.).
 - **Salas de Espera (Lobby)**: Sistema de salas de espera online con chat de texto en tiempo real.
 - **Configuración Personalizada**: Ajustes de música y temas que persisten gracias al uso de `localStorage`.
+- **Música automática**: todo archivo de audio que copies en `server/public/musica/` rota al azar en los menús; los de `server/public/musica/partido/` suenan solo en el partido. No hace falta tocar código.
 - **Sistema de Audio**: Banda sonora integrada que cambia dinámicamente dependiendo si te encuentras en un menú o dentro de una partida.
 
 ## Tecnologías Utilizadas 🛠️
@@ -93,7 +94,9 @@ chromium --kiosk --autoplay-policy=no-user-gesture-required http://localhost:300
 
 ### Jugabilidad estilo HaxBall
 
-El modo local usa `js/local/fisica-haxball.js`, que copia los valores y reglas de HaxBall: aceleración 0.1 y amortiguación 0.96 del jugador, pelota con amortiguación 0.99, patada de fuerza 5 que sale al mantener el botón cuando la pelota está a menos de 4 px (y mientras se mantiene el jugador va más lento, con borde blanco), postes redondos, redes que casi no rebotan, barreras de saque (el equipo que no saca no entra al círculo), saque para el equipo que recibió el gol, reloj que solo corre con la pelota en juego y tiempo extra con gol de oro. El mapa **HaxBall Classic** replica el estadio original; los power-ups quedaron como opción en la configuración de la partida.
+El modo local usa `js/local/fisica-haxball.js`, que copia las reglas de HaxBall con los valores de los estadios **Futsal**: aceleración 0.11 (0.083 pateando) y amortiguación 0.96 del jugador, que no rebota (bCoef 0); jugador de radio 16 (un toque más grande que el 15 de HaxBall); pelota de radio 8 (entre la del futsal, 6.25, y la del Classic, 10) con invMass 1.2, bCoef 0.4 y amortiguación 0.99; patada de fuerza 5 (sale a 6 px/tick; el súper tiro ×1.8) que se arma al mantener el botón cuando la pelota está a menos de 4 px (y mientras se mantiene el jugador va más lento, con borde blanco), postes finitos redondos, redes que casi no rebotan, barreras de saque (el equipo que no saca no entra al círculo), saque para el equipo que recibió el gol, reloj que solo corre con la pelota en juego y tiempo extra con gol de oro. Esos valores son los del mapa de referencia (840x400). Como el canvas se estira a toda la pantalla, cada mapa tiene una **escala** por área, `raíz(ancho × alto / (840 × 400))` entre 1 y 2 (Frozen ×1.24, Champions ×1.57, Volcanic ×1.34, The Tunnel ×1.12, Titan ×1.95; un mapa puede fijar la suya con `escala`), que multiplica los radios de jugadores, pelota, postes y power-ups, el alcance de la patada, las distancias entre discos y también la aceleración y la patada: así en cualquier cancha el jugador ocupa en pantalla lo mismo que en HaxBall y se tarda lo mismo en cruzarla. La pelota choca contra paredes y postes con barrido, así ni el súper tiro en el mapa más grande los atraviesa. El mapa **HaxBall Classic** conserva las medidas del estadio original.
+
+Los power-ups (velocidad, grande y súper patada) aparecen cada 4 a 9 segundos al azar, en un lugar libre de la cancha, y salen de una "bolsa" mezclada: aparecen los tres antes de repetir y nunca el mismo dos veces seguidas. Vienen activados por defecto y se pueden apagar en la configuración de la partida.
 
 ## Estructura del Proyecto 📂
 

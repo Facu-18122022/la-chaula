@@ -68,8 +68,14 @@ html::after {
 }
 
 .menu-card__content h2 {
-    font-size: clamp(1.1rem, 2.4vw, 1.8rem) !important;
+    font-size: clamp(.8rem, 1.5vw, 1.3rem) !important;
     text-shadow: 3px 3px 0 var(--fichin-tinta) !important;
+}
+
+/* JUGAR LOCAL es la opción principal: título más grande. */
+.menu-card--play .menu-card__content h2 {
+    font-size: clamp(1.2rem, 3.2vw, 2.6rem) !important;
+    text-shadow: 3px 3px 0 var(--fichin-rosa), 6px 6px 0 var(--fichin-tinta) !important;
 }
 
 .menu-card__subtitle,
@@ -136,23 +142,38 @@ html::after {
     animation: fichinCursor .6s steps(1) infinite;
 }
 
-/* Tarjetas del menú principal (tienen clip-path: se resaltan por dentro). */
+/* Tarjetas del menú principal (tienen clip-path: se resaltan por dentro).
+   Sin transform: la tarjeta no se mueve, así la grilla queda alineada.
+   El marco grueso lo dibuja .smash-panel::before (menu.css) con la forma inclinada. */
+@keyframes fichinMarco {
+    0%, 100% { background-color: var(--fichin-amarillo); }
+    50% { background-color: var(--fichin-rosa); }
+}
+
 .smash-panel.seleccionado {
-    z-index: 3;
-    border-color: var(--fichin-amarillo) !important;
-    transform: scale(1.03) translateY(-6px);
+    --marco: 6px;
+    --marco-color: var(--fichin-amarillo);
     filter: brightness(1.2) saturate(1.3);
-    box-shadow: 0 12px 0 var(--menu-panel-shadow), 0 0 30px 12px rgba(255, 230, 0, .45);
+}
+
+.smash-panel.seleccionado::before {
+    animation: fichinMarco .8s steps(1) infinite;
 }
 
 .smash-panel.seleccionado .menu-card__image {
     background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .16) 0 6px, rgba(255, 255, 255, .06) 6px 12px);
 }
 
+/* La flecha va en absoluto a la izquierda del título: parpadea sin correr el texto. */
 .smash-panel.seleccionado .menu-card__content h2::before {
-    margin-right: .5em;
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    margin-right: .4em;
     color: var(--fichin-amarillo);
     content: "▶";
+    font-size: .8em;
+    transform: translateY(-50%);
     animation: fichinCursor .6s steps(1) infinite;
 }
 
@@ -160,9 +181,17 @@ html::after {
 .form-group[data-nav],
 .setting-group[data-nav],
 .map-preview[data-nav] {
+    position: relative;
     padding: 8px 10px;
     border: 3px solid transparent;
     transition: border-color .1s steps(1), background .1s steps(1);
+}
+
+/* El padding izquierdo deja lugar fijo para la flechita: así el texto */
+/* no se corre cuando la fila pasa a estar seleccionada.               */
+.form-group[data-nav],
+.setting-group[data-nav] {
+    padding-left: 26px;
 }
 
 .form-group.seleccionado,
@@ -174,18 +203,53 @@ html::after {
     animation: fichinPulso .8s steps(2, jump-none) infinite;
 }
 
+/* La flecha va absoluta dentro del padding de la fila (no empuja el label). */
 .form-group.seleccionado > label::before,
-.setting-group.seleccionado > label::before,
-.map-preview.seleccionado h3::before {
-    margin-right: .6em;
+.setting-group.seleccionado > label::before {
+    position: absolute;
+    top: 8px;
+    left: 7px;
     color: var(--fichin-amarillo);
+    font-family: var(--fichin-fuente);
+    font-size: .62rem;
+    line-height: 1.5;
+    content: "▶";
+    animation: fichinCursor .6s steps(1) infinite;
+}
+
+/* En el interruptor (label ancho tipo botón) la flecha va centrada en alto. */
+.setting-group.checkbox-group.seleccionado > label::before {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Nombre de la cancha: centrado, con las flechas colgando a los costados. */
+.map-preview[data-nav] h3 {
+    position: relative;
+    width: fit-content;
+    max-width: calc(100% - 7em);
+    margin-inline: auto;
+}
+
+.map-preview.seleccionado h3::before,
+.map-preview.seleccionado h3::after {
+    position: absolute;
+    top: 50%;
+    color: var(--fichin-amarillo);
+    white-space: nowrap;
+    transform: translateY(-50%);
+}
+
+.map-preview.seleccionado h3::before {
+    right: 100%;
+    margin-right: .6em;
     content: "▶";
     animation: fichinCursor .6s steps(1) infinite;
 }
 
 .map-preview.seleccionado h3::after {
+    left: 100%;
     margin-left: .6em;
-    color: var(--fichin-amarillo);
     content: "◀ ▶";
     font-size: .7em;
 }
@@ -254,11 +318,11 @@ html::after {
     animation: fichinParpadeo 2.2s steps(1) infinite;
 }
 
+/* En el menú el pie es la última fila de la grilla de #main-menu (menu.css):
+   ya no va en absoluto encima de las tarjetas de abajo. */
 #main-menu .arcade-pie {
-    position: absolute;
-    right: 0;
-    bottom: 8px;
-    left: 0;
+    position: relative;
+    margin: 0;
 }
 
 .arcade-aviso {

@@ -1,9 +1,9 @@
 /**
  * fisica-haxball.js
  *
- * Motor de física del modo local, calcado de HaxBall (estadio "Classic").
- * Usa los mismos valores por defecto de HaxBall y el mismo orden de cálculo
- * por tick (60 ticks por segundo):
+ * Motor de física del modo local, calcado de HaxBall con los valores de los
+ * estadios FUTSAL (jugadores rápidos que no rebotan) y el mismo
+ * orden de cálculo por tick (60 ticks por segundo):
  *
  *   1. Input de cada jugador: aceleración (más lenta si mantiene "patear")
  *      y patada si la pelota está a menos de 4 px del borde del jugador.
@@ -16,22 +16,46 @@
  * match-manager.js pueda usar cualquiera de los dos.
  */
 (function (global) {
-    // Valores por defecto de HaxBall (playerPhysics / ballPhysics / estadio Classic).
+    // Valores de los estadios Futsal de HaxBall ("Futsal x3/x4 by Bazinga", "Futsal 1v1"):
+    // playerPhysics / ballPhysics. Comparados con el Classic: el jugador acelera más
+    // (0.11 vs 0.1 → velocidad máxima 2.64 px/tick en vez de 2.4).
+    // Todos los tamaños y velocidades de acá son los del mapa de referencia
+    // (840x400, como el Classic); en mapas más grandes se multiplican por
+    // `mapa.escala` (ver normalizarMapa). El jugador es radio 16, un toque más grande que en
+    // HaxBall (15), y con la escala ocupa en pantalla lo mismo en cualquier mapa.
     const JUGADOR = {
-        radio: 15,
-        bCoef: 0.5,
+        radio: 16,
+        bCoef: 0, // En futsal el jugador no rebota: la pelota se "pega" al conducir.
         invMass: 0.5,
         damping: 0.96,
-        aceleracion: 0.1,
-        aceleracionPateando: 0.07,
+        aceleracion: 0.11,
+        aceleracionPateando: 0.083,
         dampingPateando: 0.96,
         fuerzaPatada: 5,
         retroceso: 0
     };
-    const PELOTA = { radio: 10, bCoef: 0.5, invMass: 1, damping: 0.99 };
-    const POSTE = { radio: 8, bCoef: 0.5 };
+    // Pelota entre la del futsal (6.25) y la del Classic (10), bien proporcionada con
+    // el jugador. invMass 1.2 (futsal 1.5, Classic 1): la patada de fuerza 5 sale a
+    // 6 px/tick, más tranquila que los 7.5 del futsal y un poco más viva que el Classic (5).
+    const PELOTA = { radio: 8, bCoef: 0.4, invMass: 1.2, damping: 0.99 };
+    // Postes de futsal: más finitos que los del Classic (radio 8).
+    const POSTE = { radio: 5, bCoef: 0.5 };
+    // Borde con bCoef 1 como en el ballArea del futsal: el rebote final es
+    // bCoef pelota × bCoef borde = 0.4, o sea rebota menos que en el Classic (0.5).
     const BCOEF_BORDE = 1;
     const BCOEF_RED = 0.1;
+    // El canvas mide lo mismo que el mapa y se estira por CSS a toda la pantalla,
+    // así que en los mapas grandes todo se ve achicado. Para que se vea y se
+    // sienta como HaxBall en cualquier cancha, cada mapa tiene una `escala` única
+    // (por área respecto del estadio de referencia 840x400, para que un mapa
+    // largo y finito como The Tunnel no crezca de más) que multiplica radios de
+    // jugadores, pelota, postes y power-ups, distancias en px entre discos,
+    // aceleración y patada. Nunca achica (mínimo 1) y tiene tope 2:
+    // Frozen ×1.24, Champions ×1.57, Volcanic ×1.34, Tunnel ×1.12, Titan ×1.95.
+    // Un mapa puede fijar la suya con la propiedad `escala`.
+    const ANCHO_REFERENCIA = 840;
+    const ALTO_REFERENCIA = 400;
+    const ESCALA_MAX = 2;
     const BCOEF_LIMITE_JUGADOR = 0.1;
     const DISTANCIA_PATADA = 4;
     const MS_POR_TICK = 1000 / 60;
@@ -43,8 +67,19 @@
     const PROFUNDIDAD_ARCO = 45;
 
     // Power-ups opcionales (no existen en HaxBall; se activan desde la configuración local).
+    // Aparecen de una "bolsa" mezclada (salen los tres tipos antes de repetir y
+    // nunca el mismo dos veces seguidas) cada un intervalo al azar.
     const DURACION_POWER_TICKS = 360;
-    const TICKS_ENTRE_POWERUPS = 480;
+    const TIPOS_POWERUP = ['SPEED', 'BIG', 'SUPER_KICK'];
+    const MAX_POWERUPS_EN_CANCHA = 2;
+    const RADIO_POWERUP = 15;
+    const TICKS_ENTRE_POWERUPS_MIN = 240; // 4 s
+    const TICKS_ENTRE_POWERUPS_MAX = 540; // 9 s
+    const TICKS_PRIMER_POWERUP_MIN = 90; // 1.5 s después del saque
+    const TICKS_PRIMER_POWERUP_MAX = 240; // 4 s
+    const INTENTOS_POSICION_POWERUP = 25;
+    const DISTANCIA_LIBRE_POWERUP = 30; // aire mínimo entre el power-up y jugadores/pelota/otros
+    const MARGEN_LINEAS_POWERUP = 25; // aire mínimo con las líneas de la cancha
 
     function normalizarMapa(mapa) {
         const width = Number(mapa && mapa.width) || 800;
@@ -61,6 +96,9 @@
             margenY,
             profundidadArco: Number.isFinite(mapa && mapa.profundidadArco) ? mapa.profundidadArco : PROFUNDIDAD_ARCO,
             radioSaque: Number.isFinite(mapa && mapa.radioSaque) ? mapa.radioSaque : width * 0.085,
+            escala: Number.isFinite(mapa && mapa.escala) && mapa.escala > 0
+                ? mapa.escala
+                : Math.min(ESCALA_MAX, Math.max(1, Math.sqrt((width * height) / (ANCHO_REFERENCIA * ALTO_REFERENCIA)))),
             field: { left: margenX, right: width - margenX, top: margenY, bottom: height - margenY },
             goalTop: height / 2 - goalHeight / 2,
             goalBottom: height / 2 + goalHeight / 2
@@ -71,23 +109,27 @@
         const jugador = jugadores[indice];
         const equipo = jugador.equipo === 'blue' ? 'blue' : 'red';
         const companeros = jugadores.slice(0, indice).filter(item => (item.equipo === 'blue' ? 'blue' : 'red') === equipo).length;
-        const distancia = Math.min(170, (mapa.field.right - mapa.field.left) * 0.23) + companeros * 40;
+        const escala = mapa.escala;
+        const distancia = Math.min(170 * escala, (mapa.field.right - mapa.field.left) * 0.23) + companeros * 40 * escala;
         const centroX = mapa.width / 2;
         const esIzquierdo = equipo === ladoIzquierdo;
-        const desplazamientoY = companeros === 0 ? 0 : (companeros % 2 ? -1 : 1) * Math.ceil(companeros / 2) * 55;
+        const desplazamientoY = companeros === 0 ? 0 : (companeros % 2 ? -1 : 1) * Math.ceil(companeros / 2) * 55 * escala;
         return {
             x: esIzquierdo ? centroX - distancia : centroX + distancia,
             y: mapa.height / 2 + desplazamientoY
         };
     }
 
-    function crearEstado({ mapa, ladoIzquierdo = 'red', kickoffTeam = null, jugadores = [], powerUps = false } = {}) {
+    // `aleatorio` se puede inyectar (devuelve [0, 1) como Math.random) para tests deterministas.
+    function crearEstado({ mapa, ladoIzquierdo = 'red', kickoffTeam = null, jugadores = [], powerUps = false, aleatorio = Math.random } = {}) {
         const map = normalizarMapa(mapa);
         const centroX = map.width / 2;
         const players = jugadores.map((jugador, indice) => {
             const id = jugador.id == null ? `j${indice + 1}` : String(jugador.id);
             const equipo = jugador.equipo === 'blue' ? 'blue' : 'red';
-            const rBase = Number.isFinite(jugador.rBase) ? jugador.rBase : (Number.isFinite(jugador.r) ? jugador.r : JUGADOR.radio);
+            // Un radio propio (rBase o r) también se toma como medida del mapa de referencia.
+            const radioReferencia = Number.isFinite(jugador.rBase) ? jugador.rBase : (Number.isFinite(jugador.r) ? jugador.r : JUGADOR.radio);
+            const rBase = radioReferencia * map.escala;
             const posicion = posicionInicial(map, ladoIzquierdo, jugadores, indice);
             return {
                 id,
@@ -106,7 +148,7 @@
             };
         });
 
-        return {
+        const estado = {
             motor: 'haxball',
             mapa: map,
             ladoIzquierdo,
@@ -115,10 +157,13 @@
             goalBottom: map.goalBottom,
             postes: crearPostes(map),
             players,
-            ball: { x: centroX, y: map.height / 2, vx: 0, vy: 0, r: PELOTA.radio, invMass: PELOTA.invMass },
+            ball: { x: centroX, y: map.height / 2, vx: 0, vy: 0, r: PELOTA.radio * map.escala, invMass: PELOTA.invMass },
             powerUpsHabilitados: !!powerUps,
             activePowerUps: [],
-            powerUpSpawnTimer: 0,
+            aleatorio: typeof aleatorio === 'function' ? aleatorio : Math.random,
+            bolsaPowerUps: [],
+            ultimoPowerUp: null,
+            proximoPowerUpTicks: 0,
             waitingForKickOff: true,
             kickoffPlayerId: players[0] ? players[0].id : 'j1',
             kickoffTeam: kickoffTeam === 'blue' || kickoffTeam === 'red' ? kickoffTeam : null,
@@ -136,15 +181,18 @@
             powerImpactId: 0,
             lastPowerImpact: null
         };
+        estado.proximoPowerUpTicks = sortearTicks(estado, TICKS_PRIMER_POWERUP_MIN, TICKS_PRIMER_POWERUP_MAX);
+        return estado;
     }
 
     function crearPostes(mapa) {
         const { field, goalTop, goalBottom } = mapa;
+        const r = POSTE.radio * mapa.escala;
         return [
-            { x: field.left, y: goalTop, r: POSTE.radio, lado: 'izquierdo' },
-            { x: field.left, y: goalBottom, r: POSTE.radio, lado: 'izquierdo' },
-            { x: field.right, y: goalTop, r: POSTE.radio, lado: 'derecho' },
-            { x: field.right, y: goalBottom, r: POSTE.radio, lado: 'derecho' }
+            { x: field.left, y: goalTop, r, lado: 'izquierdo' },
+            { x: field.left, y: goalBottom, r, lado: 'izquierdo' },
+            { x: field.right, y: goalTop, r, lado: 'derecho' },
+            { x: field.right, y: goalBottom, r, lado: 'derecho' }
         ];
     }
 
@@ -185,7 +233,8 @@
             dx *= Math.SQRT1_2;
             dy *= Math.SQRT1_2;
         }
-        const aceleracion = (jugador.pateando ? JUGADOR.aceleracionPateando : JUGADOR.aceleracion) * multiplicadorVelocidad(jugador);
+        const aceleracion = (jugador.pateando ? JUGADOR.aceleracionPateando : JUGADOR.aceleracion)
+            * multiplicadorVelocidad(jugador) * estado.mapa.escala;
         jugador.vx += dx * aceleracion;
         jugador.vy += dy * aceleracion;
     }
@@ -196,10 +245,10 @@
         const dx = pelota.x - jugador.x;
         const dy = pelota.y - jugador.y;
         const distancia = Math.hypot(dx, dy);
-        if (distancia - jugador.r - pelota.r >= DISTANCIA_PATADA) return;
+        if (distancia - jugador.r - pelota.r >= DISTANCIA_PATADA * estado.mapa.escala) return;
         const nx = distancia > 0 ? dx / distancia : 1;
         const ny = distancia > 0 ? dy / distancia : 0;
-        const fuerza = JUGADOR.fuerzaPatada * (jugador.activePower === 'SUPER_KICK' ? 1.8 : 1);
+        const fuerza = JUGADOR.fuerzaPatada * (jugador.activePower === 'SUPER_KICK' ? 1.8 : 1) * estado.mapa.escala;
         pelota.vx += nx * fuerza * pelota.invMass;
         pelota.vy += ny * fuerza * pelota.invMass;
         jugador.vx -= nx * JUGADOR.retroceso * jugador.invMass;
@@ -293,17 +342,68 @@
     }
 
     /**
+     * Choque de la pelota contra un poste con barrido: si en este tick la pelota
+     * venía de afuera y su recorrido toca el poste, se la deja en el punto de
+     * contacto y rebota ahí. Sin esto, un tiro muy rápido podía quedar pasado del
+     * centro del poste (y se la empujaba para el otro lado) o saltarlo entero.
+     * Si el recorrido no lo toca, choque normal.
+     */
+    function chocarPosteBarrido(disco, poste, bCoefDisco, bCoefPoste, anterior) {
+        if (anterior) {
+            const minima = disco.r + poste.r;
+            const mx = disco.x - anterior.x;
+            const my = disco.y - anterior.y;
+            const fx = anterior.x - poste.x;
+            const fy = anterior.y - poste.y;
+            // |anterior + t·m − poste| = minima → a·t² + b·t + c = 0
+            const a = mx * mx + my * my;
+            const b = 2 * (fx * mx + fy * my);
+            const c = fx * fx + fy * fy - minima * minima;
+            const discriminante = b * b - 4 * a * c;
+            if (a > 0 && c > 0 && discriminante >= 0) {
+                const t = (-b - Math.sqrt(discriminante)) / (2 * a);
+                if (t >= 0 && t <= 1) {
+                    disco.x = anterior.x + mx * t;
+                    disco.y = anterior.y + my * t;
+                    const nx = (disco.x - poste.x) / minima;
+                    const ny = (disco.y - poste.y) / minima;
+                    const velocidadNormal = disco.vx * nx + disco.vy * ny;
+                    if (velocidadNormal < 0) {
+                        const rebote = 1 + bCoefDisco * bCoefPoste;
+                        disco.vx -= nx * velocidadNormal * rebote;
+                        disco.vy -= ny * velocidadNormal * rebote;
+                    }
+                    return;
+                }
+            }
+        }
+        chocarDiscoFijo(disco, poste, bCoefDisco, bCoefPoste);
+    }
+
+    /**
      * Choque contra un segmento recto de un solo lado. `normal` apunta hacia la
      * zona donde puede estar el disco; desde..hasta es la extensión del segmento
      * sobre el eje paralelo. Las puntas las cubren los postes o la pared vecina.
+     * `anterior` ({x, y} antes de integrar, opcional) evita que un disco muy
+     * rápido atraviese la línea en un solo tick: una súper patada puede avanzar
+     * más que el diámetro de la pelota y se escapaba.
      */
-    function chocarSegmento(disco, segmento, bCoefDisco) {
+    function chocarSegmento(disco, segmento, bCoefDisco, anterior = null) {
         const { eje, valor, desde, hasta, normal, bCoef } = segmento;
-        const paralelo = eje === 'x' ? disco.y : disco.x;
-        if (paralelo < desde || paralelo > hasta) return;
         const posicion = eje === 'x' ? disco.x : disco.y;
         const distancia = (posicion - valor) * normal;
-        if (distancia >= disco.r || distancia < -disco.r) return;
+        let paralelo = eje === 'x' ? disco.y : disco.x;
+        if (distancia < -disco.r) {
+            if (!anterior) return;
+            const distanciaAnterior = ((eje === 'x' ? anterior.x : anterior.y) - valor) * normal;
+            if (distanciaAnterior < 0) return;
+            // Cruzó la línea en este tick: se mira el punto donde la cruzó.
+            const t = distanciaAnterior / (distanciaAnterior - distancia);
+            const paraleloAnterior = eje === 'x' ? anterior.y : anterior.x;
+            paralelo = paraleloAnterior + (paralelo - paraleloAnterior) * t;
+        }
+        if (paralelo < desde || paralelo > hasta) return;
+        if (distancia >= disco.r) return;
         const corregida = valor + normal * disco.r;
         const velocidad = eje === 'x' ? disco.vx : disco.vy;
         const velocidadNormal = velocidad * normal;
@@ -322,21 +422,27 @@
         const { field, goalTop, goalBottom, mapa } = estado;
         const fondoIzq = field.left - mapa.profundidadArco;
         const fondoDer = field.right + mapa.profundidadArco;
+        // Las puntas que dan a una esquina hacia adentro (esquinas de la cancha y
+        // fondo de la red) se estiran sin límite: del otro lado ya está la pared
+        // vecina, y así un tiro rápido que cruza justo por la esquina no se escapa
+        // por el hueco entre los dos segmentos (pasaba con escala grande + súper
+        // tiro). Las puntas de la boca del arco no se estiran: esas son los postes.
+        const I = Infinity;
         estado.segmentosPelota = [
             // Bordes de la cancha (la pelota solo sale por la boca del arco).
-            { eje: 'y', valor: field.top, desde: field.left, hasta: field.right, normal: 1, bCoef: BCOEF_BORDE },
-            { eje: 'y', valor: field.bottom, desde: field.left, hasta: field.right, normal: -1, bCoef: BCOEF_BORDE },
-            { eje: 'x', valor: field.left, desde: field.top, hasta: goalTop, normal: 1, bCoef: BCOEF_BORDE },
-            { eje: 'x', valor: field.left, desde: goalBottom, hasta: field.bottom, normal: 1, bCoef: BCOEF_BORDE },
-            { eje: 'x', valor: field.right, desde: field.top, hasta: goalTop, normal: -1, bCoef: BCOEF_BORDE },
-            { eje: 'x', valor: field.right, desde: goalBottom, hasta: field.bottom, normal: -1, bCoef: BCOEF_BORDE },
+            { eje: 'y', valor: field.top, desde: -I, hasta: I, normal: 1, bCoef: BCOEF_BORDE },
+            { eje: 'y', valor: field.bottom, desde: -I, hasta: I, normal: -1, bCoef: BCOEF_BORDE },
+            { eje: 'x', valor: field.left, desde: -I, hasta: goalTop, normal: 1, bCoef: BCOEF_BORDE },
+            { eje: 'x', valor: field.left, desde: goalBottom, hasta: I, normal: 1, bCoef: BCOEF_BORDE },
+            { eje: 'x', valor: field.right, desde: -I, hasta: goalTop, normal: -1, bCoef: BCOEF_BORDE },
+            { eje: 'x', valor: field.right, desde: goalBottom, hasta: I, normal: -1, bCoef: BCOEF_BORDE },
             // Redes: casi no rebotan.
-            { eje: 'y', valor: goalTop, desde: fondoIzq, hasta: field.left, normal: 1, bCoef: BCOEF_RED },
-            { eje: 'y', valor: goalBottom, desde: fondoIzq, hasta: field.left, normal: -1, bCoef: BCOEF_RED },
-            { eje: 'x', valor: fondoIzq, desde: goalTop, hasta: goalBottom, normal: 1, bCoef: BCOEF_RED },
-            { eje: 'y', valor: goalTop, desde: field.right, hasta: fondoDer, normal: 1, bCoef: BCOEF_RED },
-            { eje: 'y', valor: goalBottom, desde: field.right, hasta: fondoDer, normal: -1, bCoef: BCOEF_RED },
-            { eje: 'x', valor: fondoDer, desde: goalTop, hasta: goalBottom, normal: -1, bCoef: BCOEF_RED }
+            { eje: 'y', valor: goalTop, desde: -I, hasta: field.left, normal: 1, bCoef: BCOEF_RED },
+            { eje: 'y', valor: goalBottom, desde: -I, hasta: field.left, normal: -1, bCoef: BCOEF_RED },
+            { eje: 'x', valor: fondoIzq, desde: -I, hasta: I, normal: 1, bCoef: BCOEF_RED },
+            { eje: 'y', valor: goalTop, desde: field.right, hasta: I, normal: 1, bCoef: BCOEF_RED },
+            { eje: 'y', valor: goalBottom, desde: field.right, hasta: I, normal: -1, bCoef: BCOEF_RED },
+            { eje: 'x', valor: fondoDer, desde: -I, hasta: I, normal: -1, bCoef: BCOEF_RED }
         ];
         return estado.segmentosPelota;
     }
@@ -413,7 +519,7 @@
         jugador.vy *= 0.5;
     }
 
-    function resolverColisiones(estado) {
+    function resolverColisiones(estado, pelotaAnterior = null) {
         const { players, ball, postes } = estado;
         for (let i = 0; i < players.length; i += 1) {
             for (let j = i + 1; j < players.length; j += 1) {
@@ -424,8 +530,8 @@
             if (chocarDiscos(jugador, ball, JUGADOR.bCoef, PELOTA.bCoef)) registrarToque(jugador, estado);
         });
         players.forEach(jugador => postes.forEach(poste => chocarDiscoFijo(jugador, poste, JUGADOR.bCoef, POSTE.bCoef)));
-        postes.forEach(poste => chocarDiscoFijo(ball, poste, PELOTA.bCoef, POSTE.bCoef));
-        segmentosPelota(estado).forEach(segmento => chocarSegmento(ball, segmento, PELOTA.bCoef));
+        postes.forEach(poste => chocarPosteBarrido(ball, poste, PELOTA.bCoef, POSTE.bCoef, pelotaAnterior));
+        segmentosPelota(estado).forEach(segmento => chocarSegmento(ball, segmento, PELOTA.bCoef, pelotaAnterior));
         players.forEach(jugador => {
             limitarAlEstadio(jugador, estado.mapa);
             if (estado.waitingForKickOff && !estado.golEnCurso) aplicarBarrerasSaque(jugador, estado);
@@ -456,19 +562,73 @@
     /* POWER-UPS (OPCIONALES) */
     /* ========================= */
 
+    // Entero al azar en [min, max] con el generador del estado.
+    function sortearTicks(estado, min, max) {
+        return min + Math.floor(estado.aleatorio() * (max - min + 1));
+    }
+
+    /**
+     * Saca el próximo tipo de la bolsa. La bolsa tiene los tres tipos mezclados
+     * (Fisher-Yates) y se rellena al vaciarse; si la nueva empezaría con el mismo
+     * tipo que salió último, se lo cambia de lugar para no repetir.
+     */
+    function sacarTipoPowerUp(estado) {
+        if (!estado.bolsaPowerUps.length) {
+            const bolsa = TIPOS_POWERUP.slice();
+            for (let i = bolsa.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(estado.aleatorio() * (i + 1));
+                [bolsa[i], bolsa[j]] = [bolsa[j], bolsa[i]];
+            }
+            if (bolsa.length > 1 && bolsa[0] === estado.ultimoPowerUp) {
+                const j = 1 + Math.floor(estado.aleatorio() * (bolsa.length - 1));
+                [bolsa[0], bolsa[j]] = [bolsa[j], bolsa[0]];
+            }
+            estado.bolsaPowerUps = bolsa;
+        }
+        const tipo = estado.bolsaPowerUps.shift();
+        estado.ultimoPowerUp = tipo;
+        return tipo;
+    }
+
+    /**
+     * Busca un lugar al azar dentro de la cancha (lejos de las líneas) que no
+     * quede encima de un jugador, de la pelota ni de otro power-up. Si en todos
+     * los intentos hay algo cerca, se queda con el lugar más despejado.
+     */
+    function buscarLugarPowerUp(estado) {
+        const { field, players, ball, activePowerUps } = estado;
+        const escala = estado.mapa.escala;
+        const radio = RADIO_POWERUP * escala;
+        const margen = (RADIO_POWERUP + MARGEN_LINEAS_POWERUP) * escala;
+        const ancho = Math.max(0, field.right - field.left - margen * 2);
+        const alto = Math.max(0, field.bottom - field.top - margen * 2);
+        const obstaculos = [...players, ball, ...activePowerUps];
+        let mejor = null;
+        for (let intento = 0; intento < INTENTOS_POSICION_POWERUP; intento += 1) {
+            const x = field.left + margen + estado.aleatorio() * ancho;
+            const y = field.top + margen + estado.aleatorio() * alto;
+            // Aire libre contra el obstáculo más cercano (negativo = se pisan).
+            const holgura = obstaculos.reduce((minima, disco) => Math.min(minima,
+                Math.hypot(x - disco.x, y - disco.y) - disco.r - radio), Infinity);
+            if (!mejor || holgura > mejor.holgura) mejor = { x, y, holgura };
+            if (holgura >= DISTANCIA_LIBRE_POWERUP * escala) break;
+        }
+        return mejor;
+    }
+
+    function aparecerPowerUp(estado) {
+        const lugar = buscarLugarPowerUp(estado);
+        estado.activePowerUps.push({ x: lugar.x, y: lugar.y, r: RADIO_POWERUP * estado.mapa.escala, type: sacarTipoPowerUp(estado) });
+        estado.eventosTick.push('powerUpAparece');
+    }
+
     function avanzarPowerUps(estado) {
         if (!estado.powerUpsHabilitados || estado.golEnCurso) return;
-        estado.powerUpSpawnTimer += 1;
-        const { field } = estado;
-        if (estado.powerUpSpawnTimer >= TICKS_ENTRE_POWERUPS && estado.activePowerUps.length < 2) {
-            estado.powerUpSpawnTimer = 0;
-            const tipos = ['SPEED', 'BIG', 'SUPER_KICK'];
-            estado.activePowerUps.push({
-                x: field.left + 30 + Math.random() * (field.right - field.left - 60),
-                y: field.top + 30 + Math.random() * (field.bottom - field.top - 60),
-                r: 15,
-                type: tipos[Math.floor(Math.random() * tipos.length)]
-            });
+        estado.proximoPowerUpTicks -= 1;
+        if (estado.proximoPowerUpTicks <= 0) {
+            // Con la cancha llena no se acumula: se sortea otra espera.
+            if (estado.activePowerUps.length < MAX_POWERUPS_EN_CANCHA) aparecerPowerUp(estado);
+            estado.proximoPowerUpTicks = sortearTicks(estado, TICKS_ENTRE_POWERUPS_MIN, TICKS_ENTRE_POWERUPS_MAX);
         }
         for (let i = estado.activePowerUps.length - 1; i >= 0; i -= 1) {
             const powerUp = estado.activePowerUps[i];
@@ -489,9 +649,11 @@
         });
     }
 
+    // En cada saque se limpian los power-ups, pero la bolsa sigue (no se repite
+    // el último) y el próximo sale enseguida, no después de un intervalo entero.
     function quitarPowerUps(estado) {
         estado.activePowerUps.length = 0;
-        estado.powerUpSpawnTimer = 0;
+        estado.proximoPowerUpTicks = sortearTicks(estado, TICKS_PRIMER_POWERUP_MIN, TICKS_PRIMER_POWERUP_MAX);
         estado.players.forEach(jugador => {
             jugador.r = jugador.rBase;
             jugador.activePower = null;
@@ -534,16 +696,17 @@
 
     function tick(estado, inputs) {
         estado.players.forEach(jugador => aplicarInput(jugador, inputDe(inputs, jugador), estado));
-        const xAnterior = estado.ball.x;
+        const pelotaAnterior = { x: estado.ball.x, y: estado.ball.y };
         integrar(estado);
-        resolverColisiones(estado);
-        detectarGol(estado, xAnterior);
+        resolverColisiones(estado, pelotaAnterior);
+        detectarGol(estado, pelotaAnterior.x);
         avanzarPowerUps(estado);
     }
 
     /**
      * Avanza la simulación `deltaMs` milisegundos en ticks fijos de 1/60 s.
-     * Devuelve { pasos, eventos } con 'primerToque', 'gol' y 'powerUp'.
+     * Devuelve { pasos, eventos } con 'primerToque', 'gol', 'powerUp' (lo agarró
+     * un jugador) y 'powerUpAparece'.
      */
     function avanzar(estado, deltaMs, inputs = {}) {
         if (!estado || !estado.ball) return { pasos: 0, eventos: [] };
@@ -568,7 +731,11 @@
         avanzar,
         reiniciarSaque,
         normalizarMapa,
-        constantes: { JUGADOR, PELOTA, POSTE, DISTANCIA_PATADA, MS_POR_TICK }
+        constantes: {
+            JUGADOR, PELOTA, POSTE, DISTANCIA_PATADA, MS_POR_TICK, ANCHO_REFERENCIA, ALTO_REFERENCIA, ESCALA_MAX,
+            TIPOS_POWERUP, RADIO_POWERUP, MAX_POWERUPS_EN_CANCHA, DISTANCIA_LIBRE_POWERUP,
+            TICKS_ENTRE_POWERUPS_MIN, TICKS_ENTRE_POWERUPS_MAX, TICKS_PRIMER_POWERUP_MIN, TICKS_PRIMER_POWERUP_MAX
+        }
     };
     global.FisicaHaxball = FisicaHaxball;
     if (typeof module !== 'undefined' && module.exports) module.exports = FisicaHaxball;

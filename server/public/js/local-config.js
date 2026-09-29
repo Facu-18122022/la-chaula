@@ -29,7 +29,8 @@
         };
         guardarSiExiste(matchTimeSelect, localStorage.getItem('localMatchTime'));
         guardarSiExiste(goalLimitSelect, localStorage.getItem('localGoalLimit'));
-        guardarSiExiste(powerUpsSelect, localStorage.getItem('localPowerUps'));
+        // Power-ups NO se restaura: siempre arranca en "Sí" (el modo por defecto) y un "0"
+        // viejo guardado no lo pisa. Si alguien los apaga, vale solo para esa partida.
         const indiceGuardado = Number.parseInt(localStorage.getItem('localMapIndex'), 10);
         if (Number.isInteger(indiceGuardado) && indiceGuardado >= 0 && indiceGuardado < mapas.length) mapaIndex = indiceGuardado;
     }
@@ -40,9 +41,9 @@
         mapCard.style.gridColumn = 'auto';
     }
 
-    function dibujarFondoPreviewTematico(mapa, time) {
-        const width = mapa.width;
-        const height = mapa.height;
+    // Pinta el fondo temático sobre toda la caja de la vista previa (no solo el mapa),
+    // así no quedan franjas vacías a los costados cuando la cancha no llena el ancho.
+    function dibujarFondoPreviewTematico(mapa, time, width, height) {
         const gradient = mapPreviewContext.createRadialGradient(width / 2, height / 2, 30, width / 2, height / 2, Math.max(width, height));
 
         switch (mapa.theme) {
@@ -171,11 +172,36 @@
         }
     }
 
+    // Ajusta la resolución del canvas al tamaño de su caja (× devicePixelRatio para que
+    // se vea nítido). Solo toca canvas.width/height cuando cambia algo, porque
+    // reasignarlos borra el lienzo y resetea el contexto: hacerlo en cada frame es caro.
+    function ajustarResolucionPreview() {
+        const dpr = window.devicePixelRatio || 1;
+        const anchoCss = Math.max(1, mapInfo.clientWidth);
+        const altoCss = Math.max(1, mapInfo.clientHeight);
+        const ancho = Math.round(anchoCss * dpr);
+        const alto = Math.round(altoCss * dpr);
+        if (mapPreviewCanvas.width !== ancho) mapPreviewCanvas.width = ancho;
+        if (mapPreviewCanvas.height !== alto) mapPreviewCanvas.height = alto;
+        return { dpr, anchoCss, altoCss };
+    }
+
     function dibujarPreviewMapa(mapa) {
-        mapPreviewCanvas.width = mapa.width;
-        mapPreviewCanvas.height = mapa.height;
-        mapPreviewCanvas.style.width = '100%';
-        mapPreviewCanvas.style.height = 'auto';
+        const { dpr, anchoCss, altoCss } = ajustarResolucionPreview();
+        const tiempo = performance.now() * 0.001;
+
+        // Fondo temático en píxeles CSS de la caja entera.
+        mapPreviewContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+        mapPreviewContext.clearRect(0, 0, anchoCss, altoCss);
+        dibujarFondoPreviewTematico(mapa, tiempo, anchoCss, altoCss);
+
+        // La cancha entra entera y centrada (tipo object-fit: contain), sin deformarse.
+        const margen = 8;
+        const escala = Math.max(0.01, Math.min((anchoCss - margen * 2) / mapa.width, (altoCss - margen * 2) / mapa.height));
+        mapPreviewContext.translate((anchoCss - mapa.width * escala) / 2, (altoCss - mapa.height * escala) / 2);
+        mapPreviewContext.scale(escala, escala);
+        // Grosor mínimo de ~1.5px en pantalla aunque el mapa se achique mucho.
+        const lineaCancha = Math.max(3, 1.5 / escala);
 
         // Mismas medidas que usa el motor de física (márgenes, arco y círculo por mapa).
         const medidas = window.FisicaHaxball.normalizarMapa(mapa);
@@ -189,9 +215,6 @@
         const centerX = mapa.width / 2;
         const centerY = mapa.height / 2;
 
-        const tiempo = performance.now() * 0.001;
-        mapPreviewContext.clearRect(0, 0, mapa.width, mapa.height);
-        dibujarFondoPreviewTematico(mapa, tiempo);
         mapPreviewContext.fillStyle = mapa.goalBg || mapa.bg;
         mapPreviewContext.fillRect(fieldLeft - goalWidth, goalTop, goalWidth, goalBottom - goalTop);
         mapPreviewContext.fillRect(fieldRight, goalTop, goalWidth, goalBottom - goalTop);
@@ -199,7 +222,7 @@
         mapPreviewContext.fillRect(fieldLeft, fieldTop, fieldRight - fieldLeft, fieldBottom - fieldTop);
 
         mapPreviewContext.strokeStyle = mapa.lineColor || '#ffffff';
-        mapPreviewContext.lineWidth = 3;
+        mapPreviewContext.lineWidth = lineaCancha;
         mapPreviewContext.strokeRect(fieldLeft, fieldTop, fieldRight - fieldLeft, fieldBottom - fieldTop);
         mapPreviewContext.beginPath();
         mapPreviewContext.moveTo(centerX, fieldTop);
@@ -212,18 +235,21 @@
         mapPreviewContext.strokeRect(fieldRight, goalTop, goalWidth, goalBottom - goalTop);
         [[fieldLeft, goalTop], [fieldLeft, goalBottom], [fieldRight, goalTop], [fieldRight, goalBottom]].forEach(([x, y]) => {
             mapPreviewContext.beginPath();
-            mapPreviewContext.arc(x, y, 8, 0, Math.PI * 2);
+            mapPreviewContext.arc(x, y, window.FisicaHaxball.constantes.POSTE.radio * medidas.escala, 0, Math.PI * 2); // mismo radio (escalado) que en el juego
             mapPreviewContext.fillStyle = x === fieldLeft ? '#ffcccc' : '#ccccff';
             mapPreviewContext.fill();
             mapPreviewContext.strokeStyle = '#000';
-            mapPreviewContext.lineWidth = 2;
+            mapPreviewContext.lineWidth = 2 * medidas.escala;
             mapPreviewContext.stroke();
         });
     }
 
+    // Cambia el nombre solo al cambiar de mapa (antes se reescribía en cada frame,
+    // trabajo de más); el dibujo continuo lo hace animarPreview.
     function actualizarMapa() {
         if (!mapas.length) {
             mapName.textContent = 'No hay mapas disponibles';
+            mapPreviewContext.setTransform(1, 0, 0, 1, 0, 0);
             mapPreviewContext.clearRect(0, 0, mapPreviewCanvas.width, mapPreviewCanvas.height);
             return;
         }
@@ -234,7 +260,7 @@
     }
 
     function animarPreview() {
-        actualizarMapa();
+        if (mapas.length) dibujarPreviewMapa(mapas[mapaIndex]);
         requestAnimationFrame(animarPreview);
     }
 
@@ -300,5 +326,6 @@
 
     window.addEventListener('resize', ajustarLayoutPreview);
     ajustarLayoutPreview();
+    actualizarMapa();
     animarPreview();
 })();

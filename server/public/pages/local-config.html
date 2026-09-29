@@ -12,19 +12,19 @@
     <link rel="stylesheet" href="../css/arcade.css">
 </head>
 <body>
-    <main class="admin-page">
+    <main class="admin-page local-config">
         <header class="admin-header">
             <div class="logo-placeholder"></div>
         </header>
 
         <div class="header-info">
             <h1 class="ssf-title">PARTIDA LOCAL</h1>
-            <p class="ssf-subtitle">Configurá la partida antes de comenzar</p>
+            <p class="ssf-subtitle" title="Configurá la partida antes de comenzar">Configura la partida antes de comenzar</p>
         </div>
 
         <section class="admin-content">
             <article class="panel-card ssf-card-primary">
-                <h2 class="ssf-subtitle">Configuración del partido</h2>
+                <h2 class="ssf-subtitle" title="Configuración del partido">Configuracion del partido</h2>
 
                 <div class="form-group" data-nav>
                     <label for="localMatchTime">Tiempo del partido</label>
@@ -48,8 +48,8 @@
                 <div class="form-group" data-nav>
                     <label for="localPowerUps">Power-ups</label>
                     <select id="localPowerUps">
-                        <option value="0" selected>No (HaxBall puro)</option>
-                        <option value="1">Sí</option>
+                        <option value="1" selected>Sí</option>
+                        <option value="0">No (Futsal puro)</option>
                     </select>
                 </div>
 
@@ -78,7 +78,8 @@
             <button id="backButton" class="btn-secondary ssf-button ssf-button-danger" type="button" data-nav>Volver</button>
             <button id="startLocalMatch" class="btn-primary ssf-button" type="button" data-nav data-nav-inicial data-nav-sonido="elegir">Iniciar partido</button>
         </footer>
-        <p class="arcade-pie">▲▼ ELEGIR OPCIÓN · ◀▶ CAMBIAR · PATEAR ACEPTA · ATRÁS VUELVE</p>
+        <!-- Mayúsculas sin tilde: la fuente pixel dibuja mal Ó/Á (el texto correcto va en aria-label). -->
+        <p class="arcade-pie" aria-label="Arriba y abajo: elegir opción. Izquierda y derecha: cambiar. Patear acepta. Atrás vuelve.">▲▼ ELEGIR OPCION · ◀▶ CAMBIAR · PATEAR ACEPTA · ATRAS VUELVE</p>
     </main>
 
     <script src="/js/music.js"></script>

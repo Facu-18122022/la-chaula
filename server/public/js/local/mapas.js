@@ -20,7 +20,7 @@
      * - bg: Color principal del fondo exterior a la cancha.
      * - goalBg: Color de fondo dentro del área del arco.
      * - theme: Identificador temático usado para lógica de renderizado adicional.
-     * - margenX, margenY, profundidadArco, radioSaque (opcionales): ver fisica-haxball.js.
+     * - margenX, margenY, profundidadArco, radioSaque, escala (opcionales): ver fisica-haxball.js.
      */
     const MAPAS = [
         // --- Réplica del estadio "Classic" de HaxBall (medidas y colores originales) ---

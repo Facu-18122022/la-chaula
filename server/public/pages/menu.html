@@ -20,6 +20,12 @@
 
     <main id="main-menu" class="view active smash-ui-container">
 
+        <!-- El logo va arriba, en el cielo oscuro entre los reflectores de la foto de fondo. -->
+        <h1 class="logo-container">
+            <img src="../img/logo.png" alt="La Chaula">
+        </h1>
+
+        <!-- JUGAR LOCAL ocupa toda la fila de arriba; CONFIGURACION y SALIR van abajo, lado a lado. -->
         <div class="menu-grid">
 
            <button id="btnPlayLocal" class="menu-card smash-panel menu-card--play" type="button" data-nav data-nav-inicial data-nav-sonido="elegir">
@@ -35,11 +41,7 @@
 
             </button>
 
-            <div class="menu-card menu-card--art" aria-hidden="true">
-                <div class="menu-card__image"></div>
-            </div>
-
-           <button id="btnSettings" class="menu-card smash-panel menu-card--settings" type="button" data-nav>
+           <button id="btnSettings" class="menu-card smash-panel menu-card--settings" type="button" data-nav aria-label="Configuración" title="Configuración">
 
                 <div class="menu-card__image"></div>
 
@@ -48,7 +50,8 @@
                         AJUSTES
                     </span>
 
-                    <h2>CONFIGURACIÓN</h2>
+                    <!-- Sin tilde a propósito: la fuente pixel dibuja mal las mayúsculas acentuadas (el nombre correcto va en aria-label). -->
+                    <h2>CONFIGURACION</h2>
                 </div>
 
             </button>

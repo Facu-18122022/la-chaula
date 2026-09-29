@@ -322,3 +322,149 @@ body{
     background:var(--border-color);
     color:var(--text-color);
 }
+
+/* ========================= */
+/* PARTIDA LOCAL             */
+/* (solo local-config.html)  */
+/* ========================= */
+
+/* La grilla ocupa el alto que sobra y no se desborda: las tarjetas */
+/* se achican en vez de empujar el pie fuera de la pantalla.        */
+.local-config .admin-content{
+
+    min-height:0;
+
+    grid-template-rows:minmax(0, 1fr);
+
+}
+
+.local-config .panel-card{
+
+    display:flex;
+    flex-direction:column;
+
+    min-height:0;
+
+}
+
+/* Cancha: título arriba, carrusel con todo el espacio restante. */
+.local-config .map-carousel{
+
+    flex:1;
+
+    min-height:0;
+    height:auto;
+
+}
+
+.local-config .map-arrow{
+
+    flex:none;
+
+}
+
+.local-config .map-preview{
+
+    align-self:stretch;
+
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+
+    min-width:0;
+    min-height:0;
+
+}
+
+/* La caja de la vista previa crece; el canvas la llena y el JS */
+/* dibuja la cancha centrada respetando la proporción del mapa. */
+.local-config .map-image{
+
+    position:relative;
+
+    flex:1;
+
+    min-height:160px;
+    height:auto;
+
+    margin-bottom:0;
+
+    overflow:hidden;
+
+}
+
+.local-config #mapPreviewCanvas{
+
+    position:absolute;
+    inset:0;
+
+    width:100%;
+    height:100%;
+
+    display:block;
+
+}
+
+.local-config #mapName{
+
+    flex:none;
+
+    line-height:1.3;
+
+}
+
+@media (max-width:700px){
+
+    .local-config .admin-content{
+        grid-template-rows:none;
+    }
+
+    .local-config .map-image{
+        min-height:180px;
+    }
+
+}
+
+
+/* Si igual no entra (pantallas bajas), la tarjeta de opciones scrollea */
+/* en vez de cortar la fila de Power-ups; la palanca la trae a la vista */
+/* con scrollIntoView (navegacion.js).                                  */
+.local-config .ssf-card-primary{
+
+    overflow-y:auto;
+
+}
+
+/* Pantallas bajas (cabina 1110x643, notebooks): logo y filas más     */
+/* compactos para que las tres opciones entren sin scrollear.         */
+@media (max-height:760px){
+
+    .local-config .admin-header{
+        height:72px;
+        margin-bottom:8px;
+    }
+
+    .local-config .logo-placeholder{
+        top:10px;
+        width:210px !important;
+        height:72px !important;
+    }
+
+    .local-config .form-group{
+        gap:6px;
+        margin-bottom:8px;
+    }
+
+    .local-config .form-group select{
+        padding:10px 14px;
+    }
+
+    .local-config .admin-footer{
+        height:70px;
+    }
+
+    .local-config .panel-card{
+        padding:18px 22px;
+    }
+
+}

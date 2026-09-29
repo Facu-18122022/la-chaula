@@ -54,7 +54,8 @@
             matchTime: [3, 5, 7].includes(matchTime) ? matchTime : 5,
             goalLimit: goalLimit === null || [3, 5, 10].includes(goalLimit) ? goalLimit : 5,
             mapIndex: Number.isInteger(mapIndex) && mapIndex >= 0 && mapIndex < mapas.length ? mapIndex : 0,
-            powerUps: localStorage.getItem('localPowerUps') === '1'
+            // Por defecto hay power-ups: solo un '0' guardado explícitamente los apaga.
+            powerUps: localStorage.getItem('localPowerUps') !== '0'
         };
     }
 
@@ -357,8 +358,16 @@
         context.restore();
     }
 
+    // Escala del mapa (ver fisica-haxball.js): el canvas mide lo mismo que el mapa
+    // y se achica por CSS, así que los grosores fijos en px se multiplican por
+    // esto para que en mapas grandes se vean como en el de referencia.
+    function escalaDe(estado) {
+        return (estado && estado.mapa && estado.mapa.escala) || 1;
+    }
+
     function dibujarCancha(estado) {
         const mapa = estado.mapa;
+        const escala = escalaDe(estado);
         const field = estado.field;
         const profundidad = mapa.profundidadArco;
         const centerX = mapa.width / 2;
@@ -375,7 +384,7 @@
         dibujarEfectosCancha(estado);
 
         context.strokeStyle = mapa.lineColor || '#fff';
-        context.lineWidth = 3;
+        context.lineWidth = 3 * escala;
         context.strokeRect(field.left, field.top, field.right - field.left, field.bottom - field.top);
         context.beginPath();
         context.moveTo(centerX, field.top);
@@ -385,7 +394,7 @@
         context.arc(centerX, centerY, mapa.radioSaque, 0, Math.PI * 2);
         context.stroke();
         context.beginPath();
-        context.arc(centerX, centerY, 3, 0, Math.PI * 2);
+        context.arc(centerX, centerY, 3 * escala, 0, Math.PI * 2);
         context.fillStyle = mapa.lineColor || '#fff';
         context.fill();
         dibujarRedes(estado);
@@ -396,7 +405,7 @@
         const profundidad = mapa.profundidadArco;
         context.save();
         context.strokeStyle = '#000';
-        context.lineWidth = 2;
+        context.lineWidth = 2 * escalaDe(estado);
         [
             [field.left, field.left - profundidad],
             [field.right, field.right + profundidad]
@@ -412,24 +421,25 @@
     }
 
     function dibujarPostes(estado) {
+        const escala = escalaDe(estado);
         estado.postes.forEach(poste => {
             context.beginPath();
             context.arc(poste.x, poste.y, poste.r, 0, Math.PI * 2);
             context.fillStyle = poste.lado === 'izquierdo' ? '#ffcccc' : '#ccccff';
             context.fill();
             context.strokeStyle = '#000';
-            context.lineWidth = 2;
+            context.lineWidth = 2 * escala;
             context.stroke();
         });
     }
 
-    function dibujarPelota(ball) {
+    function dibujarPelota(ball, escala = 1) {
         context.beginPath();
         context.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
         context.fillStyle = '#f8fafc';
         context.fill();
         context.strokeStyle = '#0f172a';
-        context.lineWidth = 2;
+        context.lineWidth = 2 * escala;
         context.stroke();
     }
 
@@ -447,6 +457,7 @@
     }
 
     function dibujarPowerUps(estado) {
+        const escala = escalaDe(estado);
         estado.activePowerUps.forEach(powerUp => {
             context.beginPath();
             context.arc(powerUp.x, powerUp.y, powerUp.r, 0, Math.PI * 2);
@@ -455,10 +466,11 @@
             context.fill();
             context.globalAlpha = 1;
             context.strokeStyle = '#fff';
-            context.lineWidth = 3;
+            context.lineWidth = 3 * escala;
             context.stroke();
             context.fillStyle = '#fff';
-            context.font = '700 16px Arial';
+            // Ícono proporcional al power-up (16 px con el radio 15 de referencia).
+            context.font = `700 ${Math.round(powerUp.r * 16 / 15)}px Arial`;
             context.textAlign = 'center';
             context.textBaseline = 'middle';
             context.fillText(obtenerIconoPower(powerUp.type), powerUp.x, powerUp.y);
@@ -470,7 +482,7 @@
         const impacto = estado.lastPowerImpact;
         if (impacto && impacto.id !== efectosVisuales.ultimoImpactoId) {
             efectosVisuales.ultimoImpactoId = impacto.id;
-            efectosVisuales.explosiones.push({ x: impacto.x, y: impacto.y, edad: 0 });
+            efectosVisuales.explosiones.push({ x: impacto.x, y: impacto.y, edad: 0, escala: escalaDe(estado) });
         }
 
         estado.players.forEach(player => {
@@ -488,6 +500,7 @@
                     x: anterior.x,
                     y: anterior.y,
                     radio: player.r,
+                    escala: escalaDe(estado),
                     tipo: player.activePower,
                     edad: 0,
                     variante: efectosVisuales.estelas[player.id].length % 3
@@ -513,18 +526,19 @@
             const duracion = rastro.tipo === 'BIG' ? duracionGrietasMs : duracionEstelaRapidezMs;
             const alphaBase = rastro.tipo === 'BIG' ? 0.72 : 0.42;
             const alpha = alphaBase * (1 - rastro.edad / duracion);
+            const escala = rastro.escala || 1;
             context.save();
             context.globalAlpha = alpha;
             if (rastro.tipo === 'SPEED') {
                 context.beginPath();
-                context.arc(rastro.x, rastro.y, Math.max(8, rastro.radio * .72), 0, Math.PI * 2);
+                context.arc(rastro.x, rastro.y, Math.max(8 * escala, rastro.radio * .72), 0, Math.PI * 2);
                 context.fillStyle = '#ffe066';
                 context.fill();
             } else {
                 const radio = rastro.radio * (.62 + rastro.variante * .1);
                 context.fillStyle = '#4a3528';
                 context.strokeStyle = '#d8a879';
-                context.lineWidth = 2.8;
+                context.lineWidth = 2.8 * escala;
                 context.beginPath();
                 for (let indice = 0; indice < 10; indice += 1) {
                     const angulo = indice / 10 * Math.PI * 2;
@@ -542,7 +556,7 @@
                 context.ellipse(rastro.x, rastro.y + radio * .14, radio * .62, radio * .34, 0, 0, Math.PI * 2);
                 context.fill();
                 context.strokeStyle = '#e5bd8c';
-                context.lineWidth = 2.2;
+                context.lineWidth = 2.2 * escala;
                 context.lineCap = 'round';
                 for (let indice = 0; indice < 7; indice += 1) {
                     const angulo = indice / 7 * Math.PI * 2 + rastro.variante * .22;
@@ -578,16 +592,17 @@
         efectosVisuales.explosiones.forEach(explosion => {
             const progreso = explosion.edad / duracionExplosionMs;
             const alpha = 1 - progreso;
-            const radio = 6 + progreso * 17;
+            const escala = explosion.escala || 1;
+            const radio = (6 + progreso * 17) * escala;
             context.save();
             context.globalAlpha = alpha;
             context.strokeStyle = '#ff477e';
-            context.lineWidth = 3 - progreso * 1.5;
+            context.lineWidth = (3 - progreso * 1.5) * escala;
             context.beginPath();
             context.arc(explosion.x, explosion.y, radio, 0, Math.PI * 2);
             context.stroke();
             context.strokeStyle = '#ffd166';
-            context.lineWidth = 2.5;
+            context.lineWidth = 2.5 * escala;
             for (let indice = 0; indice < 6; indice += 1) {
                 const angulo = indice / 8 * Math.PI * 2;
                 context.beginPath();
@@ -596,20 +611,20 @@
                     explosion.y + Math.sin(angulo) * radio * .7
                 );
                 context.lineTo(
-                    explosion.x + Math.cos(angulo) * (radio + 5),
-                    explosion.y + Math.sin(angulo) * (radio + 5)
+                    explosion.x + Math.cos(angulo) * (radio + 5 * escala),
+                    explosion.y + Math.sin(angulo) * (radio + 5 * escala)
                 );
                 context.stroke();
             }
             context.fillStyle = '#fff3bf';
             context.beginPath();
-            context.arc(explosion.x, explosion.y, Math.max(2, 4 * (1 - progreso)), 0, Math.PI * 2);
+            context.arc(explosion.x, explosion.y, Math.max(2, 4 * (1 - progreso)) * escala, 0, Math.PI * 2);
             context.fill();
             context.restore();
         });
     }
 
-    function dibujarJugador(player) {
+    function dibujarJugador(player, escala = 1) {
         const acabaDePatear = kickEffects.some(efecto => efecto.player === player);
         context.beginPath();
         context.arc(player.x, player.y, player.r, 0, Math.PI * 2);
@@ -617,12 +632,12 @@
         context.fill();
         if (player.activePower) {
             context.strokeStyle = obtenerColorPower(player.activePower);
-            context.lineWidth = 6;
+            context.lineWidth = 6 * escala;
             context.stroke();
         }
         // Como en HaxBall: borde blanco mientras se mantiene "patear".
         context.strokeStyle = player.pateando || acabaDePatear ? '#fff' : '#000';
-        context.lineWidth = player.pateando || acabaDePatear ? 3 : 2;
+        context.lineWidth = (player.pateando || acabaDePatear ? 3 : 2) * escala;
         context.stroke();
         context.fillStyle = '#fff';
         context.font = `700 ${Math.round(player.r * 0.8)}px "Press Start 2P", Arial, sans-serif`;
@@ -666,6 +681,10 @@
         const equipo = gol.equipo === 'red' ? 'ROJO' : 'AZUL';
         const jugador = gol.jugadorId ? ` · ${gol.jugadorId.toUpperCase()}${gol.enContra ? ' (EN CONTRA)' : ''}` : '';
 
+        // Las fuentes crecen con el ancho del canvas: las separaciones también
+        // (medidas pensadas para 840 px), así en Titan no se pisan los textos.
+        const tamanoTexto = Math.max(1, canvas.width / 840);
+
         context.save();
         context.fillStyle = `rgba(2, 6, 23, ${.28 * alpha})`;
         context.fillRect(0, 0, canvas.width, canvas.height);
@@ -677,14 +696,14 @@
         context.font = `${Math.max(36, canvas.width * .08)}px "Press Start 2P", "Arial Black", Arial`;
         context.lineWidth = Math.max(6, canvas.width * .01);
         context.strokeStyle = '#020617';
-        context.strokeText('¡GOL!', 0, -18);
+        context.strokeText('¡GOL!', 0, -18 * tamanoTexto);
         context.fillStyle = gol.equipo === 'red' ? COLOR_ROJO : COLOR_AZUL;
-        context.fillText('¡GOL!', 0, -18);
+        context.fillText('¡GOL!', 0, -18 * tamanoTexto);
         context.font = `${Math.max(12, canvas.width * .018)}px "Press Start 2P", Arial`;
         context.fillStyle = '#fff';
-        context.lineWidth = 4;
-        context.strokeText(`${equipo}${jugador}`, 0, 46);
-        context.fillText(`${equipo}${jugador}`, 0, 46);
+        context.lineWidth = 4 * tamanoTexto;
+        context.strokeText(`${equipo}${jugador}`, 0, 46 * tamanoTexto);
+        context.fillText(`${equipo}${jugador}`, 0, 46 * tamanoTexto);
         context.restore();
     }
 
@@ -694,8 +713,9 @@
         dibujarCancha(estado);
         dibujarEstelas();
         dibujarPowerUps(estado);
-        estado.players.forEach(dibujarJugador);
-        dibujarPelota(estado.ball);
+        const escala = escalaDe(estado);
+        estado.players.forEach(player => dibujarJugador(player, escala));
+        dibujarPelota(estado.ball, escala);
         dibujarPostes(estado);
         dibujarExplosiones();
         dibujarCelebracionGol(snapshot);
