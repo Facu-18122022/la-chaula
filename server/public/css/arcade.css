@@ -1,0 +1,328 @@
+/* ========================================================= */
+/* ESTÉTICA "FICHÍN"                                          */
+/* Capa arcade que va arriba de los estilos de cada página:   */
+/* fuente pixel, colores vibrantes, parpadeos con @keyframes  */
+/* y la clase .seleccionado que mueve la palanca.             */
+/* ========================================================= */
+
+@font-face {
+    font-family: "Press Start 2P";
+    src: url("../fonts/press-start-2p/press-start-2p.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    --fichin-fuente: "Press Start 2P", "Courier New", monospace;
+    --fichin-amarillo: #ffe600;
+    --fichin-rosa: #ff2e88;
+    --fichin-cian: #00f0ff;
+    --fichin-verde: #39ff14;
+    --fichin-naranja: #ff8a00;
+    --fichin-tinta: #0b0620;
+}
+
+/* Líneas de monitor CRT muy suaves sobre toda la pantalla. */
+html::after {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    content: "";
+    background: repeating-linear-gradient(180deg, transparent 0 2px, rgba(0, 0, 0, .14) 2px 3px);
+}
+
+/* Sin mouse en la cabina: el cursor se esconde cuando se usa la palanca. */
+.arcade-sin-mouse,
+.arcade-sin-mouse * {
+    cursor: none !important;
+}
+
+/* ========================= */
+/* TIPOGRAFÍA PIXEL          */
+/* ========================= */
+
+.ssf-title,
+.overlay h1,
+.header-info h1,
+.menu-card__content h2,
+.settings-card h2,
+.panel-card h2,
+.local-dialog h2 {
+    font-family: var(--fichin-fuente) !important;
+    font-weight: 400 !important;
+    letter-spacing: .02em !important;
+    line-height: 1.25;
+}
+
+.header-info h1 {
+    font-size: clamp(1.3rem, 3vw, 2.2rem) !important;
+    text-shadow: 3px 3px 0 var(--fichin-rosa), 6px 6px 0 var(--fichin-tinta) !important;
+}
+
+.settings-card h2,
+.panel-card h2 {
+    font-size: clamp(.8rem, 1.4vw, 1rem) !important;
+    color: var(--fichin-amarillo) !important;
+}
+
+.menu-card__content h2 {
+    font-size: clamp(1.1rem, 2.4vw, 1.8rem) !important;
+    text-shadow: 3px 3px 0 var(--fichin-tinta) !important;
+}
+
+.menu-card__subtitle,
+.ssf-subtitle,
+.header-info p {
+    font-family: var(--fichin-fuente) !important;
+    font-size: .62rem !important;
+    letter-spacing: .08em !important;
+    line-height: 1.6;
+}
+
+.ssf-button,
+.btn-primary,
+.btn-secondary,
+.local-button {
+    font-family: var(--fichin-fuente) !important;
+    font-size: .68rem !important;
+    font-weight: 400 !important;
+    letter-spacing: .04em !important;
+    line-height: 1.4;
+}
+
+.form-group label,
+.setting-group > label {
+    font-family: var(--fichin-fuente);
+    font-size: .62rem;
+    letter-spacing: .04em;
+    line-height: 1.5;
+}
+
+/* ========================= */
+/* SELECCIÓN CON PALANCA     */
+/* ========================= */
+
+@keyframes fichinPulso {
+    0%, 100% { box-shadow: 0 0 0 3px var(--fichin-amarillo), 0 0 18px 4px rgba(255, 230, 0, .55); }
+    50% { box-shadow: 0 0 0 3px var(--fichin-rosa), 0 0 26px 8px rgba(255, 46, 136, .55); }
+}
+
+@keyframes fichinCursor {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+.ssf-button.seleccionado,
+.local-button.seleccionado,
+.btn-primary.seleccionado,
+.btn-secondary.seleccionado {
+    z-index: 2;
+    outline: 3px solid var(--fichin-amarillo) !important;
+    outline-offset: 4px;
+    transform: translate(-2px, -2px) scale(1.06) !important;
+    filter: brightness(1.18) saturate(1.3);
+    animation: fichinPulso .8s steps(2, jump-none) infinite;
+}
+
+.ssf-button.seleccionado::before,
+.local-button.seleccionado::before,
+.btn-primary.seleccionado::before,
+.btn-secondary.seleccionado::before {
+    margin-right: .7em;
+    color: var(--fichin-amarillo);
+    content: "▶";
+    animation: fichinCursor .6s steps(1) infinite;
+}
+
+/* Tarjetas del menú principal (tienen clip-path: se resaltan por dentro). */
+.smash-panel.seleccionado {
+    z-index: 3;
+    border-color: var(--fichin-amarillo) !important;
+    transform: scale(1.03) translateY(-6px);
+    filter: brightness(1.2) saturate(1.3);
+    box-shadow: 0 12px 0 var(--menu-panel-shadow), 0 0 30px 12px rgba(255, 230, 0, .45);
+}
+
+.smash-panel.seleccionado .menu-card__image {
+    background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .16) 0 6px, rgba(255, 255, 255, .06) 6px 12px);
+}
+
+.smash-panel.seleccionado .menu-card__content h2::before {
+    margin-right: .5em;
+    color: var(--fichin-amarillo);
+    content: "▶";
+    animation: fichinCursor .6s steps(1) infinite;
+}
+
+/* Filas de formularios (selects, sliders, interruptores). */
+.form-group[data-nav],
+.setting-group[data-nav],
+.map-preview[data-nav] {
+    padding: 8px 10px;
+    border: 3px solid transparent;
+    transition: border-color .1s steps(1), background .1s steps(1);
+}
+
+.form-group.seleccionado,
+.setting-group.seleccionado,
+.map-preview.seleccionado,
+.controles-fila.seleccionado {
+    border-color: var(--fichin-amarillo) !important;
+    background: rgba(255, 230, 0, .12);
+    animation: fichinPulso .8s steps(2, jump-none) infinite;
+}
+
+.form-group.seleccionado > label::before,
+.setting-group.seleccionado > label::before,
+.map-preview.seleccionado h3::before {
+    margin-right: .6em;
+    color: var(--fichin-amarillo);
+    content: "▶";
+    animation: fichinCursor .6s steps(1) infinite;
+}
+
+.map-preview.seleccionado h3::after {
+    margin-left: .6em;
+    color: var(--fichin-amarillo);
+    content: "◀ ▶";
+    font-size: .7em;
+}
+
+/* ========================= */
+/* TEXTOS QUE PARPADEAN      */
+/* ========================= */
+
+@keyframes fichinParpadeo {
+    0%, 59% { opacity: 1; }
+    60%, 100% { opacity: 0; }
+}
+
+@keyframes fichinColores {
+    0% { color: var(--fichin-amarillo); }
+    33% { color: var(--fichin-cian); }
+    66% { color: var(--fichin-rosa); }
+    100% { color: var(--fichin-amarillo); }
+}
+
+.arcade-parpadeo {
+    animation: fichinParpadeo 1.1s steps(1) infinite;
+}
+
+.arcade-marquesina {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    gap: 14px;
+    justify-items: center;
+    font-family: var(--fichin-fuente);
+    text-transform: uppercase;
+}
+
+.arcade-insert-coin {
+    color: var(--fichin-amarillo);
+    font-size: clamp(.9rem, 2.4vw, 1.4rem);
+    text-shadow: 3px 3px 0 var(--fichin-tinta), 0 0 16px rgba(255, 230, 0, .6);
+    animation: fichinParpadeo 1.1s steps(1) infinite .55s, fichinColores 3.3s steps(3) infinite;
+}
+
+.arcade-creditos {
+    color: #fff;
+    font-size: clamp(.6rem, 1.4vw, .8rem);
+    letter-spacing: .12em;
+    text-shadow: 2px 2px 0 var(--fichin-tinta);
+}
+
+#btnJugar {
+    font-family: var(--fichin-fuente) !important;
+    font-size: clamp(.8rem, 2.2vw, 1.1rem) !important;
+    font-weight: 400 !important;
+}
+
+.arcade-pie {
+    position: relative;
+    z-index: 5;
+    margin: 18px auto 0;
+    color: var(--fichin-cian);
+    font-family: var(--fichin-fuente);
+    font-size: .55rem;
+    letter-spacing: .08em;
+    line-height: 1.8;
+    text-align: center;
+    text-shadow: 2px 2px 0 var(--fichin-tinta);
+    animation: fichinParpadeo 2.2s steps(1) infinite;
+}
+
+#main-menu .arcade-pie {
+    position: absolute;
+    right: 0;
+    bottom: 8px;
+    left: 0;
+}
+
+.arcade-aviso {
+    min-height: 1.8em;
+    margin-top: 14px;
+    color: var(--fichin-verde);
+    font-family: var(--fichin-fuente);
+    font-size: .62rem;
+    line-height: 1.7;
+    text-align: center;
+    text-shadow: 2px 2px 0 var(--fichin-tinta);
+}
+
+.arcade-ayuda {
+    display: block;
+    margin-top: 10px;
+    color: var(--fichin-amarillo);
+    font-family: var(--fichin-fuente);
+    font-size: .55rem;
+    animation: fichinParpadeo 1.2s steps(1) infinite;
+}
+
+.settings-note {
+    margin-bottom: 18px;
+    line-height: 1.5;
+}
+
+/* ========================= */
+/* PARTIDO                   */
+/* ========================= */
+
+body.local-game .local-team span,
+body.local-game .local-phase-panel,
+body.local-game #extraTimeBanner {
+    font-family: var(--fichin-fuente);
+    font-size: .6rem;
+    font-weight: 400;
+    letter-spacing: .06em;
+}
+
+body.local-game .local-team strong,
+body.local-game #localClock {
+    font-family: var(--fichin-fuente);
+    font-weight: 400;
+}
+
+body.local-game #localClock {
+    color: var(--fichin-amarillo);
+    text-shadow: 3px 3px 0 var(--fichin-tinta);
+}
+
+body.local-game #extraTimeBanner {
+    animation: fichinParpadeo .8s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .arcade-parpadeo,
+    .arcade-insert-coin,
+    .arcade-pie,
+    .arcade-ayuda,
+    .seleccionado,
+    .seleccionado::before,
+    .seleccionado h2::before,
+    .seleccionado > label::before {
+        animation: none !important;
+    }
+}

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="../css/crear-sala.css">
     <link rel="stylesheet" href="../css/ssf-theme.css">
     <link rel="stylesheet" href="../css/retro-ui.css">
+    <link rel="stylesheet" href="../css/arcade.css">
 </head>
 <body>
     <main class="admin-page">
@@ -25,7 +26,7 @@
             <article class="panel-card ssf-card-primary">
                 <h2 class="ssf-subtitle">Configuración del partido</h2>
 
-                <div class="form-group">
+                <div class="form-group" data-nav>
                     <label for="localMatchTime">Tiempo del partido</label>
                     <select id="localMatchTime">
                         <option value="3">3 minutos</option>
@@ -34,13 +35,21 @@
                     </select>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" data-nav>
                     <label for="localGoalLimit">Límite de goles</label>
                     <select id="localGoalLimit">
                         <option value="3">3 goles</option>
                         <option value="5" selected>5 goles</option>
                         <option value="10">10 goles</option>
                         <option value="null">Sin límite</option>
+                    </select>
+                </div>
+
+                <div class="form-group" data-nav>
+                    <label for="localPowerUps">Power-ups</label>
+                    <select id="localPowerUps">
+                        <option value="0" selected>No (HaxBall puro)</option>
+                        <option value="1">Sí</option>
                     </select>
                 </div>
 
@@ -53,7 +62,7 @@
                 <div class="map-carousel">
                     <button id="prevMap" class="map-arrow ssf-button" type="button" aria-label="Mapa anterior">◀</button>
 
-                    <div class="map-preview">
+                    <div class="map-preview" data-nav data-nav-izquierda="#prevMap" data-nav-derecha="#nextMap" data-nav-sonido="elegir">
                         <div class="map-image" id="mapInfo" aria-live="polite">
                             <canvas id="mapPreviewCanvas"></canvas>
                         </div>
@@ -66,13 +75,18 @@
         </section>
 
         <footer class="admin-footer">
-            <button id="backButton" class="btn-secondary ssf-button ssf-button-danger" type="button">Volver</button>
-            <button id="startLocalMatch" class="btn-primary ssf-button" type="button">Iniciar partido</button>
+            <button id="backButton" class="btn-secondary ssf-button ssf-button-danger" type="button" data-nav>Volver</button>
+            <button id="startLocalMatch" class="btn-primary ssf-button" type="button" data-nav data-nav-inicial data-nav-sonido="elegir">Iniciar partido</button>
         </footer>
+        <p class="arcade-pie">▲▼ ELEGIR OPCIÓN · ◀▶ CAMBIAR · PATEAR ACEPTA · ATRÁS VUELVE</p>
     </main>
 
     <script src="/js/music.js"></script>
+    <script src="../js/arcade/controles.js"></script>
+    <script src="../js/arcade/sonidos.js"></script>
+    <script src="../js/arcade/navegacion.js"></script>
     <script src="../js/local/mapas.js"></script>
+    <script src="../js/local/fisica-haxball.js"></script>
     <script src="../js/local-config.js"></script>
 </body>
 </html>

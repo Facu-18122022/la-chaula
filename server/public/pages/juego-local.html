@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/juego.css">
     <link rel="stylesheet" href="../css/ssf-theme.css">
+    <link rel="stylesheet" href="../css/arcade.css">
     <style>
         :root {
             --local-red: #ef4444;
@@ -174,11 +175,11 @@
     <div id="pauseOverlay" class="local-overlay" hidden>
         <section class="local-dialog ssf-card" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
             <h2 id="pauseTitle" class="ssf-title">PAUSA</h2>
-            <p class="ssf-text">El partido está detenido.</p>
+            <p class="ssf-text">El partido está detenido. <span class="arcade-ayuda">START o ESC para seguir</span></p>
             <div class="local-dialog__actions">
-                <button id="resumeButton" class="local-button local-button--primary ssf-button" type="button">Reanudar</button>
-                <button id="restartButton" class="local-button ssf-button" type="button">Reiniciar</button>
-                <button id="pauseExitButton" class="local-button local-button--danger ssf-button ssf-button-danger" type="button">Salir al menú</button>
+                <button id="resumeButton" class="local-button local-button--primary ssf-button" type="button" data-nav data-nav-inicial>Reanudar</button>
+                <button id="restartButton" class="local-button ssf-button" type="button" data-nav>Reiniciar</button>
+                <button id="pauseExitButton" class="local-button local-button--danger ssf-button ssf-button-danger" type="button" data-nav>Salir al menú</button>
             </div>
         </section>
     </div>
@@ -188,14 +189,18 @@
             <h2 id="finishTitle" class="ssf-title">FIN DEL PARTIDO</h2>
             <p id="finishResult" class="ssf-text"></p>
             <div class="local-dialog__actions">
-                <button id="finishExitButton" class="local-button local-button--primary ssf-button" type="button">Volver al menú</button>
+                <button id="finishRestartButton" class="local-button local-button--primary ssf-button" type="button" data-nav data-nav-inicial data-nav-sonido="elegir">Revancha</button>
+                <button id="finishExitButton" class="local-button ssf-button" type="button" data-nav>Volver al menú</button>
             </div>
         </section>
     </div>
 
     <script src="/js/music.js"></script>
+    <script src="../js/arcade/controles.js"></script>
+    <script src="../js/arcade/sonidos.js"></script>
+    <script src="../js/arcade/navegacion.js"></script>
     <script src="../js/local/mapas.js"></script>
-    <script src="../js/local/fisica-local.js"></script>
+    <script src="../js/local/fisica-haxball.js"></script>
     <script src="../js/local/match-manager.js"></script>
     <script src="../js/local/input-local.js"></script>
     <script src="../js/juego-local.js"></script>

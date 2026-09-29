@@ -24,10 +24,13 @@ document.getElementById("muteAll").addEventListener("change", () => {
 });
 
 function syncAudioSettings() {
-    if (!window.Music) return;
-
     const muteAll = document.getElementById("muteAll").checked;
     const musicVolume = Number(document.getElementById("musicVolume").value) / 100;
+    const effectsVolume = Number(document.getElementById("effectsVolume").value) / 100;
+
+    // Mientras se edita, los efectos suenan con el volumen elegido (aunque no esté guardado).
+    if (window.Sonidos) window.Sonidos.setVolumenTemporal(muteAll ? 0 : effectsVolume);
+    if (!window.Music) return;
 
     window.Music.setVolume(muteAll ? 0 : musicVolume);
 }
@@ -73,9 +76,26 @@ saveButton.addEventListener("click", () => {
     localStorage.setItem("lachaula_settings", JSON.stringify(settings));
     syncAudioSettings();
     saveButton.disabled = true;
-    alert("Configuración guardada");
+    // Sin alert(): en la cabina no hay mouse para cerrarlo.
+    const status = document.getElementById("saveStatus");
+    status.textContent = "¡Configuración guardada!";
+    setTimeout(() => { status.textContent = ""; }, 2500);
+    if (window.NavegacionArcade) window.NavegacionArcade.seleccionar(document.getElementById("backButton"));
 });
 
 document.getElementById("backButton").addEventListener("click", () => {
-    window.location.href = "../pages/menu.html";
+    irA("../pages/menu.html");
 });
+
+document.getElementById("controlsButton").addEventListener("click", () => {
+    irA("../pages/controles.html");
+});
+
+function irA(url) {
+    if (window.NavegacionArcade) window.NavegacionArcade.irA(url);
+    else window.location.href = url;
+}
+
+if (window.NavegacionArcade) {
+    window.NavegacionArcade.iniciar({ botonVolver: "#backButton" });
+}

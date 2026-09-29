@@ -1,0 +1,238 @@
+/* ========================= */
+/* PANTALLA DE CONTROLES     */
+/* ========================= */
+
+.controles-page {
+    padding: 28px clamp(14px, 3vw, 40px) 40px;
+}
+
+.controles-page .header-info {
+    margin-bottom: 20px;
+}
+
+.controles-prueba,
+.controles-asignar {
+    display: grid;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.controles-prueba {
+    grid-template-columns: 1fr 1fr 1.3fr;
+}
+
+.controles-asignar {
+    grid-template-columns: 1fr 1fr;
+}
+
+.controles-page .panel-card {
+    padding: 18px;
+}
+
+.controles-page .panel-card h2 {
+    margin-bottom: 14px;
+}
+
+.controles-jugador--j1 {
+    border-color: #e56e56 !important;
+}
+
+.controles-jugador--j2 {
+    border-color: #5689e5 !important;
+}
+
+.controles-pad {
+    color: #fff;
+    font-size: .55rem;
+}
+
+.controles-visor {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    justify-content: center;
+}
+
+.controles-palanca {
+    display: grid;
+    grid-template-columns: repeat(3, 38px);
+    grid-template-rows: repeat(3, 38px);
+    gap: 4px;
+}
+
+.controles-palanca span,
+.controles-botones span {
+    display: grid;
+    place-items: center;
+    border: 2px solid rgba(255, 255, 255, .35);
+    background: rgba(0, 0, 0, .35);
+    color: rgba(255, 255, 255, .55);
+    font-family: var(--fichin-fuente);
+    font-size: .7rem;
+}
+
+.controles-palanca__centro {
+    border-radius: 50%;
+}
+
+.controles-botones {
+    display: grid;
+    gap: 8px;
+}
+
+.controles-botones span {
+    min-width: 96px;
+    padding: 10px 8px;
+    border-radius: 999px;
+    font-size: .5rem;
+}
+
+.controles-palanca span.activo,
+.controles-botones span.activo {
+    border-color: var(--fichin-amarillo);
+    background: var(--fichin-amarillo);
+    color: var(--fichin-tinta);
+    box-shadow: 0 0 14px rgba(255, 230, 0, .8);
+}
+
+.controles-ghosting p {
+    margin-bottom: 10px;
+    font-size: .85rem;
+    line-height: 1.45;
+}
+
+.controles-checks {
+    display: grid;
+    gap: 6px;
+    margin: 12px 0;
+    list-style: none;
+    font-family: var(--fichin-fuente);
+    font-size: .55rem;
+    line-height: 1.6;
+}
+
+.controles-checks li::before {
+    margin-right: .6em;
+    content: "□";
+}
+
+.controles-checks li.ok {
+    color: var(--fichin-verde);
+}
+
+.controles-checks li.ok::before {
+    content: "■";
+}
+
+.controles-teclas {
+    font-size: .8rem !important;
+    word-break: break-word;
+}
+
+.controles-ghosting .ssf-button {
+    margin-top: 6px;
+}
+
+.controles-banner {
+    margin-top: 12px;
+    padding: 8px;
+    border: 2px solid var(--fichin-rosa);
+    background: rgba(255, 46, 136, .2);
+    color: var(--fichin-amarillo);
+    font-family: var(--fichin-fuente);
+    font-size: .5rem !important;
+    line-height: 1.7;
+    animation: fichinParpadeo 1.2s steps(1) infinite;
+}
+
+.controles-banner[hidden] {
+    display: none;
+}
+
+.controles-lista {
+    display: grid;
+    gap: 6px;
+    list-style: none;
+}
+
+.controles-fila {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) 2fr;
+    gap: 10px;
+    align-items: center;
+    min-height: 44px;
+    padding: 6px 10px;
+    border: 3px solid rgba(255, 255, 255, .16);
+    background: rgba(0, 0, 0, .25);
+    cursor: pointer;
+}
+
+.controles-fila__nombre {
+    font-family: var(--fichin-fuente);
+    font-size: .55rem;
+    line-height: 1.5;
+}
+
+.controles-fila__entradas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    font-size: .8rem;
+}
+
+.controles-fila__extra {
+    color: rgba(255, 255, 255, .6);
+    font-size: .7rem;
+}
+
+.controles-chip {
+    padding: 5px 8px;
+    border: 2px solid #fff;
+    background: #fff;
+    color: var(--fichin-tinta);
+    box-shadow: 2px 2px 0 var(--fichin-tinta);
+    font-family: var(--fichin-fuente);
+    font-size: .55rem;
+}
+
+.controles-chip--pad {
+    border-color: var(--fichin-cian);
+    background: var(--fichin-cian);
+}
+
+.controles-fila--esperando {
+    border-color: var(--fichin-rosa) !important;
+    background: rgba(255, 46, 136, .2) !important;
+}
+
+.controles-fila--esperando .controles-fila__entradas {
+    color: var(--fichin-amarillo);
+    font-family: var(--fichin-fuente);
+    font-size: .55rem;
+    animation: fichinParpadeo .8s steps(1) infinite;
+}
+
+.controles-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+@media (max-width: 1100px) {
+    .controles-prueba {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .controles-ghosting {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 760px) {
+    .controles-prueba,
+    .controles-asignar {
+        grid-template-columns: 1fr;
+    }
+}

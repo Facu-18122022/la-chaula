@@ -24,11 +24,12 @@
     let partido = null;
     let ultimoTimestamp = null;
     let loopActivo = true;
-    let celebracionGol = null;
-    let ultimoGolMostrado = null;
+    let faseAnterior = null;
+    let startAnterior = false;
     const kickEffects = [];
     const duracionEfectoPatadaMs = 160;
-    const duracionCelebracionGolMs = 1400;
+    const COLOR_ROJO = '#e56e56';
+    const COLOR_AZUL = '#5689e5';
     const duracionEstelaRapidezMs = 280;
     const duracionGrietasMs = 560;
     const duracionExplosionMs = 320;
@@ -52,7 +53,8 @@
         return {
             matchTime: [3, 5, 7].includes(matchTime) ? matchTime : 5,
             goalLimit: goalLimit === null || [3, 5, 10].includes(goalLimit) ? goalLimit : 5,
-            mapIndex: Number.isInteger(mapIndex) && mapIndex >= 0 && mapIndex < mapas.length ? mapIndex : 0
+            mapIndex: Number.isInteger(mapIndex) && mapIndex >= 0 && mapIndex < mapas.length ? mapIndex : 0,
+            powerUps: localStorage.getItem('localPowerUps') === '1'
         };
     }
 
@@ -62,9 +64,11 @@
 
     function crearPartido() {
         const mapa = obtenerMapa();
-        const estadoFisica = global.FisicaLocal.crearEstado({
+        const estadoFisica = global.FisicaHaxball.crearEstado({
             mapa,
             ladoIzquierdo: 'red',
+            kickoffTeam: 'red',
+            powerUps: configuracion.powerUps,
             jugadores: [
                 { id: 'j1', equipo: 'red' },
                 { id: 'j2', equipo: 'blue' }
@@ -78,6 +82,7 @@
         canvas.width = mapa.width;
         canvas.height = mapa.height;
         efectosVisuales = crearEfectosVisuales();
+        faseAnterior = null;
     }
 
     function formatearTiempo(remainingMs) {
@@ -93,8 +98,8 @@
         localClock.textContent = formatearTiempo(snapshot.remainingMs);
         extraTimeBanner.hidden = !snapshot.tiempoExtra;
         matchPhase.textContent = snapshot.fase === 'SAQUE' && snapshot.sacadorId
-            ? `SAQUE · HABILITADO: ${snapshot.sacadorId.toUpperCase()}`
-            : snapshot.fase;
+            ? `SAQUE · ${snapshot.sacadorId.toUpperCase()}`
+            : snapshot.fase.replace('_', ' ');
         pauseButton.textContent = snapshot.fase === 'PAUSA' ? 'Reanudar' : 'Pausar';
     }
 
@@ -105,6 +110,7 @@
 
         const gradient = context.createRadialGradient(width / 2, height / 2, 30, width / 2, height / 2, Math.max(width, height));
         switch (mapa.theme) {
+            case 'haxball': gradient.addColorStop(0, mapa.bg); gradient.addColorStop(1, mapa.bg); break;
             case 'frozen': gradient.addColorStop(0, '#bfe8ff'); gradient.addColorStop(1, '#1d4ed8'); break;
             case 'desert': gradient.addColorStop(0, '#f7d28d'); gradient.addColorStop(1, '#7c2d12'); break;
             case 'street': gradient.addColorStop(0, '#3b4252'); gradient.addColorStop(1, '#111827'); break;
@@ -242,6 +248,15 @@
         context.clip();
 
         switch (mapa.theme) {
+            case 'haxball': {
+                // Césped a franjas como el fondo "grass" de HaxBall.
+                const franja = 64;
+                context.fillStyle = 'rgba(0, 0, 0, .045)';
+                for (let x = field.left; x < field.right; x += franja * 2) {
+                    context.fillRect(x, field.top, Math.min(franja, field.right - x), height);
+                }
+                break;
+            }
             case 'frozen':
                 for (let i = 0; i < 45; i++) {
                     const x = field.left + ((i * 89 + time * 32) % width);
@@ -345,15 +360,16 @@
     function dibujarCancha(estado) {
         const mapa = estado.mapa;
         const field = estado.field;
-        const goalWidth = 45;
+        const profundidad = mapa.profundidadArco;
         const centerX = mapa.width / 2;
         const centerY = mapa.height / 2;
+        const altoArco = estado.goalBottom - estado.goalTop;
 
         context.clearRect(0, 0, mapa.width, mapa.height);
         dibujarFondoTematico(mapa, performance.now());
         context.fillStyle = mapa.goalBg || '#0b1220';
-        context.fillRect(field.left - goalWidth, estado.goalTop, goalWidth, estado.goalBottom - estado.goalTop);
-        context.fillRect(field.right, estado.goalTop, goalWidth, estado.goalBottom - estado.goalTop);
+        context.fillRect(field.left - profundidad, estado.goalTop, profundidad, altoArco);
+        context.fillRect(field.right, estado.goalTop, profundidad, altoArco);
         context.fillStyle = mapa.fieldColor || '#273444';
         context.fillRect(field.left, field.top, field.right - field.left, field.bottom - field.top);
         dibujarEfectosCancha(estado);
@@ -366,10 +382,45 @@
         context.lineTo(centerX, field.bottom);
         context.stroke();
         context.beginPath();
-        context.arc(centerX, centerY, mapa.width * .085, 0, Math.PI * 2);
+        context.arc(centerX, centerY, mapa.radioSaque, 0, Math.PI * 2);
         context.stroke();
-        context.strokeRect(field.left - goalWidth, estado.goalTop, goalWidth, estado.goalBottom - estado.goalTop);
-        context.strokeRect(field.right, estado.goalTop, goalWidth, estado.goalBottom - estado.goalTop);
+        context.beginPath();
+        context.arc(centerX, centerY, 3, 0, Math.PI * 2);
+        context.fillStyle = mapa.lineColor || '#fff';
+        context.fill();
+        dibujarRedes(estado);
+    }
+
+    function dibujarRedes(estado) {
+        const { field, goalTop, goalBottom, mapa } = estado;
+        const profundidad = mapa.profundidadArco;
+        context.save();
+        context.strokeStyle = '#000';
+        context.lineWidth = 2;
+        [
+            [field.left, field.left - profundidad],
+            [field.right, field.right + profundidad]
+        ].forEach(([boca, fondo]) => {
+            context.beginPath();
+            context.moveTo(boca, goalTop);
+            context.lineTo(fondo, goalTop);
+            context.lineTo(fondo, goalBottom);
+            context.lineTo(boca, goalBottom);
+            context.stroke();
+        });
+        context.restore();
+    }
+
+    function dibujarPostes(estado) {
+        estado.postes.forEach(poste => {
+            context.beginPath();
+            context.arc(poste.x, poste.y, poste.r, 0, Math.PI * 2);
+            context.fillStyle = poste.lado === 'izquierdo' ? '#ffcccc' : '#ccccff';
+            context.fill();
+            context.strokeStyle = '#000';
+            context.lineWidth = 2;
+            context.stroke();
+        });
     }
 
     function dibujarPelota(ball) {
@@ -559,38 +610,40 @@
     }
 
     function dibujarJugador(player) {
-        const estaPateando = kickEffects.some(efecto => efecto.player === player);
+        const acabaDePatear = kickEffects.some(efecto => efecto.player === player);
         context.beginPath();
         context.arc(player.x, player.y, player.r, 0, Math.PI * 2);
-        context.fillStyle = player.equipo === 'red' ? '#dc2626' : '#2563eb';
+        context.fillStyle = player.equipo === 'red' ? COLOR_ROJO : COLOR_AZUL;
         context.fill();
         if (player.activePower) {
             context.strokeStyle = obtenerColorPower(player.activePower);
-            context.lineWidth = 4;
+            context.lineWidth = 6;
             context.stroke();
         }
-        context.strokeStyle = estaPateando ? '#fff' : '#000';
-        context.lineWidth = 2;
+        // Como en HaxBall: borde blanco mientras se mantiene "patear".
+        context.strokeStyle = player.pateando || acabaDePatear ? '#fff' : '#000';
+        context.lineWidth = player.pateando || acabaDePatear ? 3 : 2;
         context.stroke();
         context.fillStyle = '#fff';
-        context.font = '700 14px Arial';
+        context.font = `700 ${Math.round(player.r * 0.8)}px "Press Start 2P", Arial, sans-serif`;
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        context.fillText(player.id.toUpperCase(), player.x, player.y);
+        context.fillText(player.id.slice(1), player.x, player.y + 1);
     }
 
     function registrarEfectosPatada(estado, timestamp) {
-        estado.kickEvents.splice(0).forEach(evento => {
+        estado.kickEvents.length = 0;
+        estado.kickImpactEvents.splice(0).forEach(evento => {
             kickEffects.push({
                 player: evento.player,
                 startTime: timestamp
             });
+            sonar('patada');
         });
-        estado.kickImpactEvents.splice(0).forEach(evento => {
-            for (let index = kickEffects.length - 1; index >= 0; index -= 1) {
-                if (kickEffects[index].player === evento.player) kickEffects.splice(index, 1);
-            }
-        });
+    }
+
+    function sonar(nombre) {
+        if (global.Sonidos) global.Sonidos.reproducir(nombre);
     }
 
     function actualizarEfectosPatada(timestamp) {
@@ -602,33 +655,16 @@
         }
     }
 
-    function obtenerClaveGol(snapshot) {
-        if (!snapshot.ultimoGol) return null;
-        return `${snapshot.marcador.red}:${snapshot.marcador.azul}:${snapshot.ultimoGol.equipo}:${snapshot.ultimoGol.jugadorId || ''}`;
-    }
-
-    function iniciarCelebracionGol(snapshot) {
-        const claveGol = obtenerClaveGol(snapshot);
-        if (!claveGol || claveGol === ultimoGolMostrado) return;
-        ultimoGolMostrado = claveGol;
-        celebracionGol = {
-            transcurridoMs: 0,
-            snapshot,
-            claveGol
-        };
-        global.InputLocal.limpiar();
-    }
-
-    function dibujarCelebracionGol() {
-        if (!celebracionGol) return;
-        const progreso = Math.min(celebracionGol.transcurridoMs / duracionCelebracionGolMs, 1);
-        const entrada = Math.min(progreso / .25, 1);
-        const salida = progreso > .72 ? (1 - progreso) / .28 : 1;
+    function dibujarCelebracionGol(snapshot) {
+        if (snapshot.fase !== 'GOL' || !snapshot.ultimoGol) return;
+        const progreso = Math.min(snapshot.golTranscurridoMs / snapshot.duracionGolMs, 1);
+        const entrada = Math.min(progreso / .15, 1);
+        const salida = progreso > .8 ? (1 - progreso) / .2 : 1;
         const alpha = Math.max(0, Math.min(entrada, salida));
-        const escala = 0.72 + Math.sin(Math.min(progreso, .72) / .72 * Math.PI) * .28;
-        const gol = celebracionGol.snapshot.ultimoGol;
-        const equipo = gol.equipo === 'red' ? 'RED' : 'AZUL';
-        const jugador = gol.jugadorId ? ` · ${gol.jugadorId.toUpperCase()}` : '';
+        const escala = 0.72 + Math.sin(Math.min(progreso, .5) / .5 * Math.PI / 2) * .28;
+        const gol = snapshot.ultimoGol;
+        const equipo = gol.equipo === 'red' ? 'ROJO' : 'AZUL';
+        const jugador = gol.jugadorId ? ` · ${gol.jugadorId.toUpperCase()}${gol.enContra ? ' (EN CONTRA)' : ''}` : '';
 
         context.save();
         context.fillStyle = `rgba(2, 6, 23, ${.28 * alpha})`;
@@ -638,37 +674,18 @@
         context.scale(escala, escala);
         context.textAlign = 'center';
         context.textBaseline = 'middle';
-        context.font = `900 ${Math.max(42, canvas.width * .105)}px Arial Black, Arial`;
-        context.lineWidth = Math.max(4, canvas.width * .008);
+        context.font = `${Math.max(36, canvas.width * .08)}px "Press Start 2P", "Arial Black", Arial`;
+        context.lineWidth = Math.max(6, canvas.width * .01);
         context.strokeStyle = '#020617';
         context.strokeText('¡GOL!', 0, -18);
-        context.fillStyle = equipo === 'RED' ? '#f87171' : '#38bdf8';
+        context.fillStyle = gol.equipo === 'red' ? COLOR_ROJO : COLOR_AZUL;
         context.fillText('¡GOL!', 0, -18);
-        context.font = `800 ${Math.max(18, canvas.width * .032)}px Arial`;
+        context.font = `${Math.max(12, canvas.width * .018)}px "Press Start 2P", Arial`;
         context.fillStyle = '#fff';
-        context.fillText(`${equipo}${jugador}`, 0, 42);
+        context.lineWidth = 4;
+        context.strokeText(`${equipo}${jugador}`, 0, 46);
+        context.fillText(`${equipo}${jugador}`, 0, 46);
         context.restore();
-    }
-
-    function obtenerPelotaDuranteGol(snapshot) {
-        if (!celebracionGol || snapshot.fase !== 'GOL') return snapshot.estadoFisica.ball;
-        const estado = snapshot.estadoFisica;
-        const ball = celebracionGol.snapshot.estadoFisica.ball;
-        const frames = celebracionGol.transcurridoMs / 16.666;
-        const friction = 0.985;
-        const displacementFactor = friction === 1
-            ? frames
-            : (1 - Math.pow(friction, frames)) / (1 - friction);
-        let x = ball.x + ball.vx * displacementFactor;
-        let y = ball.y + ball.vy * displacementFactor;
-        const goalBackLeft = estado.field.left - 45 + ball.r;
-        const goalBackRight = estado.field.right + 45 - ball.r;
-        const goalTop = estado.goalTop + ball.r;
-        const goalBottom = estado.goalBottom - ball.r;
-        y = Math.max(goalTop, Math.min(goalBottom, y));
-        if (ball.vx < 0) x = Math.max(goalBackLeft, Math.min(estado.field.left - ball.r, x));
-        else x = Math.min(goalBackRight, Math.max(estado.field.right + ball.r, x));
-        return { ...ball, x, y };
     }
 
     function renderizar(snapshot, deltaMs) {
@@ -676,42 +693,52 @@
         actualizarEfectosVisuales(estado, deltaMs);
         dibujarCancha(estado);
         dibujarEstelas();
-        dibujarPelota(obtenerPelotaDuranteGol(snapshot));
         dibujarPowerUps(estado);
         estado.players.forEach(dibujarJugador);
+        dibujarPelota(estado.ball);
+        dibujarPostes(estado);
         dibujarExplosiones();
-        dibujarCelebracionGol();
+        dibujarCelebracionGol(snapshot);
         actualizarHud(snapshot);
     }
 
     function mostrarPausa(visible) {
+        const estabaVisible = !pauseOverlay.hidden;
         pauseOverlay.hidden = !visible;
+        if (!global.NavegacionArcade || visible === estabaVisible) return;
+        // En la pausa Start lo maneja el loop (así ambos jugadores pueden reanudar).
+        if (visible) global.NavegacionArcade.abrirAmbito(pauseOverlay, { alVolver: alternarPausa, alStart: () => {} });
+        else global.NavegacionArcade.cerrarAmbito();
     }
 
     function alternarPausa() {
         const fase = partido.obtenerSnapshot().fase;
         if (fase === 'FIN') return;
-        global.InputLocal.limpiar();
         if (fase === 'PAUSA') {
             partido.reanudar();
             mostrarPausa(false);
+            sonar('atras');
         } else {
             partido.pausar();
             mostrarPausa(true);
+            sonar('start');
         }
     }
 
     function reiniciarPartido() {
-        global.InputLocal.limpiar();
         configuracion = leerConfiguracion();
         crearPartido();
-        celebracionGol = null;
-        ultimoGolMostrado = null;
         kickEffects.length = 0;
-        finishOverlay.hidden = true;
+        if (!finishOverlay.hidden) {
+            finishOverlay.hidden = true;
+            if (global.NavegacionArcade) global.NavegacionArcade.cerrarAmbito();
+        }
         mostrarPausa(false);
         ultimoTimestamp = null;
-        loopActivo = true;
+        if (!loopActivo) {
+            loopActivo = true;
+            global.requestAnimationFrame(loop);
+        }
     }
 
     function mostrarFin(snapshot) {
@@ -719,36 +746,44 @@
         const resultado = red === azul ? 'Empate' : red > azul ? 'Ganó el equipo rojo' : 'Ganó el equipo azul';
         finishResult.textContent = `${resultado} · Rojo ${red} - ${azul} Azul`;
         finishOverlay.hidden = false;
-        global.InputLocal.limpiar();
+        sonar('silbato');
+        if (global.NavegacionArcade) global.NavegacionArcade.abrirAmbito(finishOverlay, { alVolver: volverAlMenu });
     }
 
     function volverAlMenu() {
-        global.location.href = 'menu.html';
+        if (global.NavegacionArcade) global.NavegacionArcade.irA('menu.html');
+        else global.location.href = 'menu.html';
+    }
+
+    // Start de cualquiera de los dos jugadores (o Escape) pausa el partido.
+    function revisarStart(inputs) {
+        const presionado = !!(inputs.j1.start || inputs.j2.start);
+        const flanco = presionado && !startAnterior;
+        startAnterior = presionado;
+        return flanco;
+    }
+
+    function reaccionarACambioDeFase(snapshot) {
+        if (snapshot.fase === faseAnterior) return;
+        if (snapshot.fase === 'GOL') sonar('gol');
+        if (snapshot.fase === 'SAQUE' && (faseAnterior === null || faseAnterior === 'GOL')) sonar('silbato');
+        faseAnterior = snapshot.fase;
     }
 
     function loop(timestamp) {
         if (!loopActivo) return;
         const deltaMs = ultimoTimestamp === null ? 0 : Math.max(0, timestamp - ultimoTimestamp);
         ultimoTimestamp = timestamp;
-        const snapshotAntes = partido.obtenerSnapshot();
-        if (snapshotAntes.fase === 'GOL') {
-            iniciarCelebracionGol(snapshotAntes);
-        }
+        const inputs = global.InputLocal.obtenerInputs();
+        const faseActual = partido.obtenerSnapshot().fase;
+        if (revisarStart(inputs) && faseActual !== 'FIN') alternarPausa();
+        else if (faseActual !== 'PAUSA' && faseActual !== 'FIN') partido.actualizar(deltaMs, inputs);
 
-        if (celebracionGol) {
-            if (snapshotAntes.fase !== 'PAUSA') celebracionGol.transcurridoMs += deltaMs;
-            if (celebracionGol.transcurridoMs >= duracionCelebracionGolMs && snapshotAntes.fase === 'GOL') {
-                celebracionGol = null;
-                partido.actualizar(0, {});
-            }
-        } else if (snapshotAntes.fase !== 'PAUSA' && snapshotAntes.fase !== 'FIN') {
-            partido.actualizar(deltaMs, global.InputLocal.obtenerInputs());
-        }
         const snapshot = partido.obtenerSnapshot();
         registrarEfectosPatada(snapshot.estadoFisica, timestamp);
         actualizarEfectosPatada(timestamp);
-        if (snapshot.fase === 'GOL') iniciarCelebracionGol(snapshot);
-        renderizar(snapshot, deltaMs);
+        reaccionarACambioDeFase(snapshot);
+        renderizar(snapshot, snapshot.fase === 'PAUSA' ? 0 : deltaMs);
         if (snapshot.fase === 'FIN' && finishOverlay.hidden) {
             mostrarFin(snapshot);
             loopActivo = false;
@@ -761,11 +796,19 @@
     document.getElementById('resumeButton').addEventListener('click', alternarPausa);
     document.getElementById('restartButton').addEventListener('click', reiniciarPartido);
     document.getElementById('pauseExitButton').addEventListener('click', volverAlMenu);
+    document.getElementById('finishRestartButton').addEventListener('click', reiniciarPartido);
     document.getElementById('finishExitButton').addEventListener('click', volverAlMenu);
-    document.addEventListener('keydown', event => {
-        if (partido.obtenerSnapshot().fase === 'PAUSA') global.InputLocal.limpiar();
-        if (event.key === 'Escape' && !event.repeat) alternarPausa();
-    });
+
+    if (global.NavegacionArcade) {
+        // Durante el partido la palanca mueve al jugador; los menús solo se usan en la pausa y el final.
+        // Escape (tecla del sistema) también pausa; el botón "atrás" de J1 no, para no pausar sin querer.
+        global.NavegacionArcade.iniciar({
+            alPausado: evento => {
+                if (evento.accion === 'atras' && evento.sistema) alternarPausa();
+            }
+        });
+        global.NavegacionArcade.setPausada(true);
+    }
 
     crearPartido();
     global.requestAnimationFrame(loop);

@@ -1,64 +1,42 @@
 /**
  * input-local.js
- * 
- * Módulo para gestionar la entrada del usuario en el navegador local.
- * Escucha los eventos del teclado, almacena las teclas presionadas
- * y expone una estructura de inputs estandarizada (direcciones, tiros, pases)
- * para ser utilizada por el Game Loop.
+ *
+ * Adaptador entre el módulo de controles de la cabina (js/arcade/controles.js)
+ * y el Game Loop del modo local. Expone una estructura de inputs
+ * estandarizada (direcciones y patada) para cada jugador.
+ *
+ * Las teclas y botones ya no están fijos acá: se configuran desde la pantalla
+ * de Controles y se leen por tecla física (event.code) o por joystick.
  */
 (function (global) {
-    const teclas = new Set();
-    const kickPressed = { j1: false, j2: false };
-    const teclasDeFlecha = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+    const inputVacio = { up: false, down: false, left: false, right: false, kick: false, kickPressed: false };
 
-    function normalizarTecla(tecla) {
-        return tecla.length === 1 ? tecla.toLowerCase() : tecla;
-    }
-
-    function obtenerInputs() {
+    function adaptar(estado) {
+        if (!estado) return { ...inputVacio };
         return {
-            j1: {
-                up: teclas.has('w'),
-                down: teclas.has('s'),
-                left: teclas.has('a'),
-                right: teclas.has('d'),
-                kick: teclas.has('v'),
-                kickPressed: kickPressed.j1
-            },
-            j2: {
-                up: teclas.has('ArrowUp'),
-                down: teclas.has('ArrowDown'),
-                left: teclas.has('ArrowLeft'),
-                right: teclas.has('ArrowRight'),
-                kick: teclas.has('l'),
-                kickPressed: kickPressed.j2
-            }
+            up: estado.up,
+            down: estado.down,
+            left: estado.left,
+            right: estado.right,
+            kick: estado.kick,
+            kickPressed: estado.kick,
+            start: estado.start
         };
     }
 
-    function limpiar() {
-        teclas.clear();
-        kickPressed.j1 = false;
-        kickPressed.j2 = false;
+    function obtenerInputs() {
+        if (!global.Controles) return { j1: { ...inputVacio }, j2: { ...inputVacio } };
+        const inputs = global.Controles.leerJuego();
+        return { j1: adaptar(inputs.j1), j2: adaptar(inputs.j2) };
     }
 
-    document.addEventListener('keydown', event => {
-        if (teclasDeFlecha.has(event.key)) event.preventDefault();
-        const tecla = normalizarTecla(event.key);
-        teclas.add(tecla);
-        if (tecla === 'v') kickPressed.j1 = true;
-        if (tecla === 'l') kickPressed.j2 = true;
-    });
-
-    document.addEventListener('keyup', event => {
-        if (teclasDeFlecha.has(event.key)) event.preventDefault();
-        const tecla = normalizarTecla(event.key);
-        teclas.delete(tecla);
-        if (tecla === 'v') kickPressed.j1 = false;
-        if (tecla === 'l') kickPressed.j2 = false;
-    });
-
-    window.addEventListener('blur', limpiar);
+    /**
+     * Antes se borraban todas las teclas al hacer un gol o pausar, y las que
+     * seguían apretadas "morían" hasta volver a presionarlas (parecía ghosting).
+     * Ahora el estado físico se conserva y el juego simplemente ignora los
+     * inputs cuando no corresponde.
+     */
+    function limpiar() {}
 
     const InputLocal = { obtenerInputs, limpiar };
     global.InputLocal = InputLocal;

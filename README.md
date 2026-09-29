@@ -25,7 +25,7 @@
 
 ## Instalación y Ejecución 💻
 
-Asegúrate de tener instalado [Node.js](https://nodejs.org/) en tu máquina.
+Asegúrate de tener instalado [Node.js](https://nodejs.org/) (versión 18 o superior) en tu máquina.
 
 1. **Clona o descarga este repositorio** en tu computadora.
 2. **Abre la terminal** en la carpeta principal del proyecto (`la-chaula`).
@@ -37,8 +37,63 @@ Asegúrate de tener instalado [Node.js](https://nodejs.org/) en tu máquina.
    ```bash
    npm start
    ```
+   (Para desarrollo, `npm run dev` reinicia el servidor solo cada vez que guardás un archivo.)
 5. **Juega**: Abre tu navegador y dirígete a `http://localhost:3000`. 
    > *Nota: Si quieres jugar en red LAN con otros dispositivos, tus amigos deben conectarse a la dirección IP local de tu computadora seguida del puerto 3000 (Ej: `http://192.168.0.10:3000`).*
+6. **Pruebas automáticas** de la física y del partido:
+   ```bash
+   npm test
+   ```
+
+## Modo Arcade (cabina) 🕹️
+
+El modo local está pensado para la cabina: se juega y se navega **sin mouse**, solo con palanca y botones.
+
+### Controles por defecto
+
+| Acción | Jugador 1 | Jugador 2 |
+| --- | --- | --- |
+| Moverse | `W` `A` `S` `D` | Flechas |
+| Patear / Aceptar | `Espacio` o `V` | `L` o `0` del teclado numérico |
+| Atrás | `C` | `K` |
+| Start / Pausa | `1` | `2` |
+| Insertar ficha | `5` | — |
+
+- En los **menús solo navega el Jugador 1** (el Jugador 2 queda ignorado). `Enter` y `Esc` también sirven como aceptar/atrás.
+- En el partido, `Start` de cualquiera de los dos (o `Esc`) pausa.
+- Todo se puede cambiar en **Configuración → Probar y asignar controles**.
+
+### Ghosting del teclado
+
+Muchos teclados comunes no pueden mandar ciertas combinaciones de 3 o más teclas a la vez (*ghosting*): es una limitación del hardware y ningún programa puede recuperar una tecla que el teclado no envía. Lo que sí hace el juego:
+
+- Lee las teclas por posición física (`event.code`), así no se "traban" con Shift, Bloq Mayús o teclados en español.
+- Ya no borra las teclas mantenidas al hacer un gol o pausar (antes parecía que una tecla "dejaba de andar").
+- Acepta varias teclas por acción y permite reasignarlas.
+- La pantalla **Controles** tiene una *prueba de ghosting*: los dos jugadores mantienen diagonal + patear (6 teclas, el peor caso de un partido) y se ve en vivo qué teclas llegan. Si alguna no se prende, asignale otra tecla a ese jugador.
+- Evitá asignar `Ctrl` (con `W` cierra la pestaña) y, en Windows, `Shift` (5 veces seguidas abre "Teclas especiales").
+
+Con las placas USB de los joysticks el problema desaparece, porque cada jugador tiene su propia placa.
+
+### Joysticks y placas USB
+
+- **Placas que se presentan como joystick** (Zero Delay, DragonRise, etc.): se detectan solas con la Gamepad API. La primera placa es del Jugador 1 y la segunda del Jugador 2 (se pueden intercambiar desde Controles). El navegador las detecta recién después de apretar un botón.
+- **Placas que se presentan como teclado** (I-PAC y similares): en Controles se elige cada acción y se aprieta el botón de la cabina para asignarlo.
+
+### Lanzar en la cabina (pantalla completa)
+
+Con el servidor corriendo (`npm start`), abrí Chrome en modo kiosco. El segundo parámetro permite que suenen la música y los efectos aunque solo se use la palanca:
+
+```bash
+# Windows
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk --autoplay-policy=no-user-gesture-required http://localhost:3000
+# Linux
+chromium --kiosk --autoplay-policy=no-user-gesture-required http://localhost:3000
+```
+
+### Jugabilidad estilo HaxBall
+
+El modo local usa `js/local/fisica-haxball.js`, que copia los valores y reglas de HaxBall: aceleración 0.1 y amortiguación 0.96 del jugador, pelota con amortiguación 0.99, patada de fuerza 5 que sale al mantener el botón cuando la pelota está a menos de 4 px (y mientras se mantiene el jugador va más lento, con borde blanco), postes redondos, redes que casi no rebotan, barreras de saque (el equipo que no saca no entra al círculo), saque para el equipo que recibió el gol, reloj que solo corre con la pelota en juego y tiempo extra con gol de oro. El mapa **HaxBall Classic** replica el estadio original; los power-ups quedaron como opción en la configuración de la partida.
 
 ## Estructura del Proyecto 📂
 
@@ -47,10 +102,14 @@ Asegúrate de tener instalado [Node.js](https://nodejs.org/) en tu máquina.
   - `css/` y `img/`: Estilos visuales e imágenes del juego.
   - `pages/`: Diferentes vistas HTML (menú, configuraciones, lobby).
   - `js/`: Lógica del cliente, dividida en:
+    - `arcade/`: Controles de la cabina (teclado + joysticks), navegación de menús con palanca y sonidos.
     - `core/`: Motor del juego (`PhysicsEngine`, `InputManager`, `Renderer`).
-    - `local/`: Físicas y lógica exclusiva del modo offline.
+    - `local/`: Físicas y lógica exclusiva del modo offline (`fisica-haxball.js` es la del modo local; `fisica-local.js` la sigue usando el servidor online).
     - `network/`: Gestión de Socket.IO para el modo online.
     - `ui/`: Controladores de paneles, botones y el chat del lobby.
+  - `sonidos/`: Efectos 8-bit de la interfaz (se regeneran con `node scripts/generar-sonidos.js`).
+  - `fonts/`: Fuente pixel *Press Start 2P* (licencia OFL), incluida para que funcione sin internet.
+- `test/`: Pruebas automáticas (`npm test`).
 
 ## Desarrollo y Contribución 🤝
 

@@ -10,6 +10,7 @@
     const mapas = Array.isArray(window.MAPAS) ? window.MAPAS : [];
     const matchTimeSelect = document.getElementById('localMatchTime');
     const goalLimitSelect = document.getElementById('localGoalLimit');
+    const powerUpsSelect = document.getElementById('localPowerUps');
     const mapName = document.getElementById('mapName');
     const mapInfo = document.getElementById('mapInfo');
     const mapPreviewCanvas = document.getElementById('mapPreviewCanvas');
@@ -20,6 +21,18 @@
     const startButton = document.getElementById('startLocalMatch');
     const backButton = document.getElementById('backButton');
     let mapaIndex = 0;
+
+    // Recuerda la última partida configurada (útil en la cabina).
+    function restaurarUltimaConfiguracion() {
+        const guardarSiExiste = (select, valor) => {
+            if (valor !== null && Array.from(select.options).some(opcion => opcion.value === valor)) select.value = valor;
+        };
+        guardarSiExiste(matchTimeSelect, localStorage.getItem('localMatchTime'));
+        guardarSiExiste(goalLimitSelect, localStorage.getItem('localGoalLimit'));
+        guardarSiExiste(powerUpsSelect, localStorage.getItem('localPowerUps'));
+        const indiceGuardado = Number.parseInt(localStorage.getItem('localMapIndex'), 10);
+        if (Number.isInteger(indiceGuardado) && indiceGuardado >= 0 && indiceGuardado < mapas.length) mapaIndex = indiceGuardado;
+    }
 
     function ajustarLayoutPreview() {
         const esMovil = window.matchMedia('(max-width: 700px)').matches;
@@ -33,6 +46,7 @@
         const gradient = mapPreviewContext.createRadialGradient(width / 2, height / 2, 30, width / 2, height / 2, Math.max(width, height));
 
         switch (mapa.theme) {
+            case 'haxball': gradient.addColorStop(0, mapa.bg); gradient.addColorStop(1, mapa.bg); break;
             case 'frozen': gradient.addColorStop(0, '#bfe6ff'); gradient.addColorStop(1, '#1d4ed8'); break;
             case 'desert': gradient.addColorStop(0, '#f7d28d'); gradient.addColorStop(1, '#7c2d12'); break;
             case 'street': gradient.addColorStop(0, '#3b4252'); gradient.addColorStop(1, '#111827'); break;
@@ -163,13 +177,15 @@
         mapPreviewCanvas.style.width = '100%';
         mapPreviewCanvas.style.height = 'auto';
 
-        const fieldLeft = 80;
-        const fieldRight = mapa.width - 80;
-        const fieldTop = 40;
-        const fieldBottom = mapa.height - 40;
-        const goalWidth = 45;
-        const goalTop = mapa.height / 2 - mapa.goalHeight / 2;
-        const goalBottom = mapa.height / 2 + mapa.goalHeight / 2;
+        // Mismas medidas que usa el motor de física (márgenes, arco y círculo por mapa).
+        const medidas = window.FisicaHaxball.normalizarMapa(mapa);
+        const fieldLeft = medidas.field.left;
+        const fieldRight = medidas.field.right;
+        const fieldTop = medidas.field.top;
+        const fieldBottom = medidas.field.bottom;
+        const goalWidth = medidas.profundidadArco;
+        const goalTop = medidas.goalTop;
+        const goalBottom = medidas.goalBottom;
         const centerX = mapa.width / 2;
         const centerY = mapa.height / 2;
 
@@ -190,10 +206,19 @@
         mapPreviewContext.lineTo(centerX, fieldBottom);
         mapPreviewContext.stroke();
         mapPreviewContext.beginPath();
-        mapPreviewContext.arc(centerX, centerY, mapa.width * 0.085, 0, Math.PI * 2);
+        mapPreviewContext.arc(centerX, centerY, medidas.radioSaque, 0, Math.PI * 2);
         mapPreviewContext.stroke();
         mapPreviewContext.strokeRect(fieldLeft - goalWidth, goalTop, goalWidth, goalBottom - goalTop);
         mapPreviewContext.strokeRect(fieldRight, goalTop, goalWidth, goalBottom - goalTop);
+        [[fieldLeft, goalTop], [fieldLeft, goalBottom], [fieldRight, goalTop], [fieldRight, goalBottom]].forEach(([x, y]) => {
+            mapPreviewContext.beginPath();
+            mapPreviewContext.arc(x, y, 8, 0, Math.PI * 2);
+            mapPreviewContext.fillStyle = x === fieldLeft ? '#ffcccc' : '#ccccff';
+            mapPreviewContext.fill();
+            mapPreviewContext.strokeStyle = '#000';
+            mapPreviewContext.lineWidth = 2;
+            mapPreviewContext.stroke();
+        });
     }
 
     function actualizarMapa() {
@@ -252,12 +277,26 @@
         localStorage.setItem('localMatchTime', String(configuracion.matchTime));
         localStorage.setItem('localGoalLimit', configuracion.goalLimit === null ? 'null' : String(configuracion.goalLimit));
         localStorage.setItem('localMapIndex', String(mapaIndex));
-        window.location.href = 'juego-local.html';
+        localStorage.setItem('localPowerUps', powerUpsSelect.value);
+        irA('juego-local.html');
     });
 
     backButton.addEventListener('click', function () {
-        window.location.href = 'menu.html';
+        irA('menu.html');
     });
+
+    // Confirmar sobre la cancha la elige y pasa directo a "Iniciar partido".
+    mapInfo.closest('.map-preview').addEventListener('click', function () {
+        if (window.NavegacionArcade) window.NavegacionArcade.seleccionar(startButton);
+    });
+
+    function irA(url) {
+        if (window.NavegacionArcade) window.NavegacionArcade.irA(url);
+        else window.location.href = url;
+    }
+
+    restaurarUltimaConfiguracion();
+    if (window.NavegacionArcade) window.NavegacionArcade.iniciar({ botonVolver: '#backButton' });
 
     window.addEventListener('resize', ajustarLayoutPreview);
     ajustarLayoutPreview();

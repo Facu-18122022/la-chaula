@@ -20,8 +20,14 @@
      * - bg: Color principal del fondo exterior a la cancha.
      * - goalBg: Color de fondo dentro del área del arco.
      * - theme: Identificador temático usado para lógica de renderizado adicional.
+     * - margenX, margenY, profundidadArco, radioSaque (opcionales): ver fisica-haxball.js.
      */
     const MAPAS = [
+        // --- Réplica del estadio "Classic" de HaxBall (medidas y colores originales) ---
+        // margenX/margenY: espacio fuera de las líneas donde pueden caminar los jugadores.
+        // profundidadArco: fondo de la red. radioSaque: círculo central del saque.
+        { name: 'HaxBall Classic (1v1)', width: 840, height: 400, margenX: 50, margenY: 30, profundidadArco: 30, radioSaque: 75, fieldColor: '#718c5a', lineColor: '#c7e6bd', goalHeight: 128, bg: '#718c5a', goalBg: '#667f51', theme: 'haxball' },
+
         // --- Mapas Clásicos y Base ---
         { name: 'Classic Arena (1v1)', width: 800, height: 400, fieldColor: '#333b42', lineColor: '#ffffff', goalHeight: 100, bg: '#121212', goalBg: '#22272b', theme: 'classic' },
         { name: 'Street Arena (1v1)', width: 820, height: 390, fieldColor: '#2c3e50', lineColor: '#ff9f43', goalHeight: 90, bg: '#1e293b', goalBg: '#111827', theme: 'street' },

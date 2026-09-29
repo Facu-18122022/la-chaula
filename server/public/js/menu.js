@@ -19,8 +19,7 @@ document.getElementById("btnExit");
 
 btnPlayLocal.addEventListener("click", () => {
 
-    window.location.href =
-    "../pages/local-config.html";
+    irA("../pages/local-config.html");
 
 });
 
@@ -30,8 +29,7 @@ btnPlayLocal.addEventListener("click", () => {
 
 btnSettings.addEventListener("click", () => {
 
-    window.location.href =
-    "../pages/configuracion.html";
+    irA("../pages/configuracion.html");
 
 });
 
@@ -39,15 +37,34 @@ btnSettings.addEventListener("click", () => {
 /* SALIR */
 /* ========================= */
 
+/* En la cabina no hay ventana que cerrar ni mouse para  */
+/* responder un confirm(): SALIR vuelve a la pantalla de  */
+/* "Insertá ficha".                                       */
+
 btnExit.addEventListener("click", () => {
 
-    const salir =
-    confirm("¿Deseas salir?");
+    irA("../inicio.html");
 
-    if(salir){
+});
 
-        window.close();
+function irA(url){
+
+    if(window.NavegacionArcade){
+
+        window.NavegacionArcade.irA(url);
+
+    }else{
+
+        window.location.href = url;
 
     }
 
-});
+}
+
+if(window.NavegacionArcade){
+
+    window.NavegacionArcade.iniciar({
+        alVolver: () => irA("../inicio.html")
+    });
+
+}

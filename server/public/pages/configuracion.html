@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../css/configuracion.css">
     <link rel="stylesheet" href="../css/ssf-theme.css">
     <link rel="stylesheet" href="../css/retro-ui.css">
+    <link rel="stylesheet" href="../css/arcade.css">
 </head>
 <body>
 <script src="/js/music.js"></script>
@@ -37,9 +38,9 @@
 
                 <h2 class="ssf-subtitle">🔊 Audio</h2>
 
-                <div class="setting-group">
+                <div class="setting-group" data-nav data-nav-inicial>
 
-                    <label>
+                    <label for="musicVolume">
                         Música
                     </label>
 
@@ -54,9 +55,9 @@
 
                 </div>
 
-                <div class="setting-group">
+                <div class="setting-group" data-nav>
 
-                    <label>
+                    <label for="effectsVolume">
                         Efectos
                     </label>
 
@@ -71,7 +72,7 @@
 
                 </div>
 
-                <div class="setting-group checkbox-group">
+                <div class="setting-group checkbox-group" data-nav>
 
                     <input
                         type="checkbox"
@@ -96,13 +97,38 @@
 
             </article>
 
+            <!-- CONTROLES -->
+
+            <article class="settings-card ssf-card">
+
+                <h2 class="ssf-subtitle">🕹️ Controles</h2>
+
+                <p class="settings-note">
+                    Probá el teclado o los joysticks, detectá teclas que se
+                    bloquean (ghosting) y cambiá qué tecla o botón hace cada cosa.
+                </p>
+
+                <button
+                    id="controlsButton"
+                    class="btn-primary ssf-button"
+                    type="button"
+                    data-nav>
+
+                    Probar y asignar controles
+
+                </button>
+
+            </article>
+
         </section>
 
         <footer class="settings-footer">
 
             <button
                 id="backButton"
-                class="btn-secondary ssf-button ssf-button-danger">
+                class="btn-secondary ssf-button ssf-button-danger"
+                type="button"
+                data-nav>
 
                 Volver
 
@@ -111,6 +137,9 @@
             <button
                 id="saveButton"
                 class="btn-primary ssf-button"
+                type="button"
+                data-nav
+                data-nav-sonido="elegir"
                 disabled>
 
                 Guardar cambios
@@ -119,9 +148,13 @@
 
         </footer>
 
+        <p id="saveStatus" class="arcade-aviso" role="status" aria-live="polite"></p>
+
     </main>
 
-*     <script src="/socket.io/socket.io.js"></script>
+    <script src="../js/arcade/controles.js"></script>
+    <script src="../js/arcade/sonidos.js"></script>
+    <script src="../js/arcade/navegacion.js"></script>
     <script src="../js/configuracion.js"></script>
 </body>
 </html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Controles</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/ssf-theme.css">
+    <link rel="stylesheet" href="../css/retro-ui.css">
+    <link rel="stylesheet" href="../css/arcade.css">
+    <link rel="stylesheet" href="../css/controles.css">
+</head>
+<body>
+<script src="/js/music.js"></script>
+
+    <main class="settings-page controles-page">
+
+        <div class="header-info">
+            <h1 class="ssf-title">CONTROLES</h1>
+            <p class="ssf-subtitle">Probá las teclas y asigná cada acción</p>
+        </div>
+
+        <!-- ========================= -->
+        <!-- PRUEBA EN VIVO -->
+        <!-- ========================= -->
+
+        <section class="controles-prueba" aria-label="Prueba en vivo">
+            <article class="panel-card controles-jugador controles-jugador--j1" data-jugador="j1">
+                <h2>Jugador 1 <span class="controles-pad" data-pad></span></h2>
+                <div class="controles-visor">
+                    <div class="controles-palanca" aria-hidden="true">
+                        <span data-dir="arriba-izquierda">↖</span><span data-dir="arriba">▲</span><span data-dir="arriba-derecha">↗</span>
+                        <span data-dir="izquierda">◀</span><span class="controles-palanca__centro">●</span><span data-dir="derecha">▶</span>
+                        <span data-dir="abajo-izquierda">↙</span><span data-dir="abajo">▼</span><span data-dir="abajo-derecha">↘</span>
+                    </div>
+                    <div class="controles-botones">
+                        <span data-accion="patear">Patear</span>
+                        <span data-accion="atras">Atrás</span>
+                        <span data-accion="start">Start</span>
+                    </div>
+                </div>
+            </article>
+
+            <article class="panel-card controles-jugador controles-jugador--j2" data-jugador="j2">
+                <h2>Jugador 2 <span class="controles-pad" data-pad></span></h2>
+                <div class="controles-visor">
+                    <div class="controles-palanca" aria-hidden="true">
+                        <span data-dir="arriba-izquierda">↖</span><span data-dir="arriba">▲</span><span data-dir="arriba-derecha">↗</span>
+                        <span data-dir="izquierda">◀</span><span class="controles-palanca__centro">●</span><span data-dir="derecha">▶</span>
+                        <span data-dir="abajo-izquierda">↙</span><span data-dir="abajo">▼</span><span data-dir="abajo-derecha">↘</span>
+                    </div>
+                    <div class="controles-botones">
+                        <span data-accion="patear">Patear</span>
+                        <span data-accion="atras">Atrás</span>
+                        <span data-accion="start">Start</span>
+                    </div>
+                </div>
+            </article>
+
+            <article class="panel-card controles-ghosting">
+                <h2>Prueba de ghosting</h2>
+                <p>
+                    Los dos jugadores a la vez: mantengan una <strong>diagonal + Patear</strong>
+                    (6 teclas juntas, el peor caso de un partido). Si alguna luz no se
+                    prende, el teclado bloquea esa combinación: asigná otra tecla abajo.
+                </p>
+                <ul class="controles-checks">
+                    <li id="checkJ1">J1 diagonal + patear</li>
+                    <li id="checkJ2">J2 diagonal + patear</li>
+                    <li id="checkAmbos">Los dos a la vez (6 teclas)</li>
+                </ul>
+                <p class="controles-teclas">Teclas que llegan ahora: <span id="teclasAhora">—</span></p>
+                <p class="controles-teclas">Máximo de teclas juntas: <strong id="maximoTeclas">0</strong></p>
+                <button id="testButton" class="btn-primary ssf-button" type="button" data-nav data-nav-inicial>Empezar prueba</button>
+                <p id="testBanner" class="controles-banner" hidden>MODO PRUEBA · el menú está pausado · ESC o ATRÁS de J1 para salir</p>
+            </article>
+        </section>
+
+        <!-- ========================= -->
+        <!-- ASIGNACIÓN -->
+        <!-- ========================= -->
+
+        <section class="controles-asignar" aria-label="Asignar teclas y botones">
+            <article class="panel-card">
+                <h2>Asignar Jugador 1</h2>
+                <ul class="controles-lista" id="listaJ1"></ul>
+            </article>
+            <article class="panel-card">
+                <h2>Asignar Jugador 2</h2>
+                <ul class="controles-lista" id="listaJ2"></ul>
+            </article>
+        </section>
+
+        <p id="controlesAviso" class="arcade-aviso" role="status" aria-live="polite"></p>
+
+        <footer class="settings-footer controles-footer">
+            <button id="backButton" class="btn-secondary ssf-button ssf-button-danger" type="button" data-nav>Volver</button>
+            <button id="swapPadsButton" class="btn-primary ssf-button" type="button" data-nav>Intercambiar joysticks</button>
+            <button id="resetButton" class="btn-primary ssf-button" type="button" data-nav>Restablecer de fábrica</button>
+        </footer>
+
+        <p class="arcade-pie">ELEGÍ UNA ACCIÓN Y APRETÁ PATEAR · DESPUÉS APRETÁ LA TECLA O BOTÓN NUEVO · ESC CANCELA</p>
+    </main>
+
+    <script src="../js/arcade/controles.js"></script>
+    <script src="../js/arcade/sonidos.js"></script>
+    <script src="../js/arcade/navegacion.js"></script>
+    <script src="../js/controles.js"></script>
+</body>
+</html>
