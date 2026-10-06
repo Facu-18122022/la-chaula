@@ -35,9 +35,9 @@ try {
     console.warn('No se pudo actualizar musica/lista.js:', error.message);
 }
 
-// Redirigir raíz a inicio.html
+// Redirigir raíz a index.html
 app.get('/', (req, res) => {
-    res.sendFile(path.join(publicPath, 'inicio.html'));
+    res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 const PORT = 3000;

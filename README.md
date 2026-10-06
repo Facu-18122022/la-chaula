@@ -95,9 +95,9 @@ Con el servidor corriendo (`npm start`), abrí Chrome en modo kiosco. El segundo
 chromium --kiosk --autoplay-policy=no-user-gesture-required http://localhost:3000
 ```
 
-### Sin servidor (Batocera): abrir `inicio.html` como archivo
+### Sin servidor (Batocera): abrir `index.html` como archivo
 
-El modo local también anda abriendo directamente `server/public/inicio.html` (una dirección `file://`), sin Node ni `localhost`. Lo que cambia:
+El modo local también anda abriendo directamente `server/public/index.html` (una dirección `file://`), sin Node ni `localhost`. Lo que cambia:
 
 - **La configuración viaja entre pantallas por la URL.** Con `file://`, Firefox le da a cada archivo su propio `localStorage`, así que antes lo elegido en *Partida local* (tiempo, goles, cancha) no llegaba al partido y siempre se jugaba con lo de fábrica; lo mismo pasaba con los controles y el volumen. Ahora `js/arcade/almacen.js` pasa esos datos a la pantalla siguiente (`#estado=...`) y los guarda con la hora, así una pantalla con datos viejos nunca pisa los nuevos. Con servidor no hace nada.
 - **Música**: sin servidor no existe `/api/musica`, así que se usa `server/public/musica/lista.js`. `npm start` la actualiza solo; si agregás canciones y copiás el juego a la cabina sin arrancar el servidor, corré antes `npm run musica`.

@@ -100,7 +100,7 @@ test('con servidor (http) la URL no cambia y no se toca nada', () => {
     const menu = abrir('http://localhost:3000/pages/menu.html');
     menu.pagina.guardar('localMatchTime', '3');
     assert.equal(menu.pagina.url('local-config.html'), 'local-config.html');
-    assert.equal(menu.pagina.url('../inicio.html#algo'), '../inicio.html#algo');
+    assert.equal(menu.pagina.url('../index.html#algo'), '../index.html#algo');
 });
 
 test('un estado roto en la URL se ignora sin romper la pantalla', t => {

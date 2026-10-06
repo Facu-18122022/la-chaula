@@ -43,7 +43,7 @@ btnSettings.addEventListener("click", () => {
 
 btnExit.addEventListener("click", () => {
 
-    irA("../inicio.html");
+    irA("../index.html");
 
 });
 
@@ -64,7 +64,7 @@ function irA(url){
 if(window.NavegacionArcade){
 
     window.NavegacionArcade.iniciar({
-        alVolver: () => irA("../inicio.html")
+        alVolver: () => irA("../index.html")
     });
 
 }
