@@ -11,6 +11,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const FisicaLocal = require("./public/js/local/fisica-local.js");
+const ListaMusica = require("./lista-musica.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -22,26 +23,17 @@ app.use(express.static(publicPath));
 
 // Lista de canciones: las de musica/ suenan en los menús y las de musica/partido/
 // en el partido. Alcanza con copiar el archivo a la carpeta para que se escuche.
-const EXTENSIONES_AUDIO = /\.(mp3|ogg|wav|m4a|opus)$/i;
-
-function listarCanciones(carpeta, prefijoUrl) {
-    try {
-        return require('fs').readdirSync(carpeta, { withFileTypes: true })
-            .filter(archivo => archivo.isFile() && EXTENSIONES_AUDIO.test(archivo.name))
-            .map(archivo => prefijoUrl + encodeURIComponent(archivo.name));
-    } catch (error) {
-        return [];
-    }
-}
-
 app.get('/api/musica', (req, res) => {
-    const carpetaMusica = path.join(publicPath, 'musica');
     res.set('Cache-Control', 'no-store');
-    res.json({
-        menu: listarCanciones(carpetaMusica, '/musica/'),
-        partido: listarCanciones(path.join(carpetaMusica, 'partido'), '/musica/partido/')
-    });
+    res.json(ListaMusica.listarTodo('/musica/'));
 });
+
+// musica/lista.js es la lista que se usa abriendo el juego como archivo (sin servidor).
+try {
+    ListaMusica.escribirListaArchivo();
+} catch (error) {
+    console.warn('No se pudo actualizar musica/lista.js:', error.message);
+}
 
 // Redirigir raíz a inicio.html
 app.get('/', (req, res) => {

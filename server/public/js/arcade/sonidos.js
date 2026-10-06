@@ -2,13 +2,15 @@
  * sonidos.js
  *
  * Efectos de sonido cortos de la interfaz y del partido.
- * Cada efecto es un archivo en /sonidos/ que se reproduce con new Audio().
+ * Cada efecto es un archivo en sonidos/ que se reproduce con new Audio().
  * Para cambiar un sonido alcanza con reemplazar el archivo (o cambiar el
  * nombre en ARCHIVOS, por ejemplo a un .mp3).
  * Respeta el volumen de "Efectos" y "Silenciar todo" de Configuración.
  */
 (function (global) {
-    const RUTA = '/sonidos/';
+    // Relativa a este archivo (js/arcade/sonidos.js): anda con servidor y abriendo el juego como archivo.
+    const script = global.document && global.document.currentScript;
+    const RUTA = script ? new URL('../../sonidos/', script.src).href : '/sonidos/';
     const ARCHIVOS = {
         mover: 'mover.wav',
         confirmar: 'confirmar.wav',

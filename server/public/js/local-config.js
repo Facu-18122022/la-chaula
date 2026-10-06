@@ -300,10 +300,10 @@
         }
 
         message.textContent = '';
-        localStorage.setItem('localMatchTime', String(configuracion.matchTime));
-        localStorage.setItem('localGoalLimit', configuracion.goalLimit === null ? 'null' : String(configuracion.goalLimit));
-        localStorage.setItem('localMapIndex', String(mapaIndex));
-        localStorage.setItem('localPowerUps', powerUpsSelect.value);
+        guardar('localMatchTime', String(configuracion.matchTime));
+        guardar('localGoalLimit', configuracion.goalLimit === null ? 'null' : String(configuracion.goalLimit));
+        guardar('localMapIndex', String(mapaIndex));
+        guardar('localPowerUps', powerUpsSelect.value);
         irA('juego-local.html');
     });
 
@@ -319,6 +319,12 @@
     function irA(url) {
         if (window.NavegacionArcade) window.NavegacionArcade.irA(url);
         else window.location.href = url;
+    }
+
+    // Con Almacen la partida elegida llega al partido aunque el juego se abra como archivo.
+    function guardar(clave, valor) {
+        if (window.Almacen) window.Almacen.guardar(clave, valor);
+        else localStorage.setItem(clave, valor);
     }
 
     restaurarUltimaConfiguracion();

@@ -71,6 +71,7 @@
         .local-phase-panel { padding: 10px 12px; color: #cbd5e1; font-size: .85rem; text-align: center; }
 
         .local-board {
+            position: relative;
             width: 100%;
             padding: 10px;
             background: rgba(2, 6, 23, .68);
@@ -78,6 +79,30 @@
             border-radius: 16px;
             box-shadow: 0 18px 45px rgba(0, 0, 0, .4);
         }
+
+        /* Firefox: hasta que J1 elige su joystick (ver js/arcade/controles.js). */
+        .local-aviso-joystick {
+            position: absolute;
+            top: 18px;
+            left: 50%;
+            z-index: 3;
+            width: max-content;
+            max-width: calc(100% - 40px);
+            margin: 0;
+            padding: 12px 16px;
+            border: 3px solid #ffe600;
+            background: rgba(2, 6, 23, .94);
+            color: #ffe600;
+            font-family: "Press Start 2P", "Courier New", monospace;
+            font-size: clamp(.6rem, 1.5vw, .9rem);
+            line-height: 1.7;
+            text-align: center;
+            text-shadow: 2px 2px 0 #000;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        .local-aviso-joystick[hidden] { display: none; }
 
         #localCanvas {
             display: block;
@@ -131,6 +156,7 @@
         .local-dialog h2 { margin: 0 0 10px; font-size: 2rem; }
         .local-dialog p { margin: 0 0 22px; color: #cbd5e1; }
         .local-dialog__actions { display: grid; gap: 10px; }
+        .local-dialog #pauseAviso { margin: 14px 0 0; color: #39ff14; }
         .local-dialog__actions .local-button--primary { background: #2563eb; }
         .local-dialog__actions .local-button--danger { background: #991b1b; }
 
@@ -165,6 +191,8 @@
 
         <section class="local-board" aria-label="Cancha local">
             <canvas id="localCanvas"></canvas>
+            <!-- Mayúsculas sin tilde: la fuente pixel dibuja mal Á (el texto correcto va en aria-label). -->
+            <p id="joystickAviso" class="local-aviso-joystick arcade-parpadeo" role="status" aria-label="Jugador 1, rojo: apretá patear en tu joystick" hidden>JUGADOR 1 (ROJO): APRETA PATEAR EN TU JOYSTICK</p>
         </section>
 
         <div class="local-actions">
@@ -179,8 +207,10 @@
             <div class="local-dialog__actions">
                 <button id="resumeButton" class="local-button local-button--primary ssf-button" type="button" data-nav data-nav-inicial>Reanudar</button>
                 <button id="restartButton" class="local-button ssf-button" type="button" data-nav>Reiniciar</button>
+                <button id="swapPadsButton" class="local-button ssf-button" type="button" data-nav>Cambiar joysticks</button>
                 <button id="pauseExitButton" class="local-button local-button--danger ssf-button ssf-button-danger" type="button" data-nav>Salir al menú</button>
             </div>
+            <p id="pauseAviso" class="arcade-aviso" role="status" aria-live="polite"></p>
         </section>
     </div>
 
@@ -195,7 +225,8 @@
         </section>
     </div>
 
-    <script src="/js/music.js"></script>
+    <script src="../js/arcade/almacen.js"></script>
+    <script src="../js/music.js"></script>
     <script src="../js/arcade/controles.js"></script>
     <script src="../js/arcade/sonidos.js"></script>
     <script src="../js/arcade/navegacion.js"></script>

@@ -624,6 +624,10 @@
 
     function avanzarPowerUps(estado) {
         if (!estado.powerUpsHabilitados || estado.golEnCurso) return;
+        // Durante el saque nadie puede cruzar la mitad: un power-up que salía en
+        // ese momento solo lo podía agarrar el de ese lado. La cuenta arranca
+        // recién con la pelota en juego.
+        if (estado.waitingForKickOff) return;
         estado.proximoPowerUpTicks -= 1;
         if (estado.proximoPowerUpTicks <= 0) {
             // Con la cancha llena no se acumula: se sortea otra espera.

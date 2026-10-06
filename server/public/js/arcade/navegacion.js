@@ -271,10 +271,15 @@
         }
     }
 
-    /** Navega a otra página dejando que termine de sonar el efecto. */
+    /**
+     * Navega a otra página dejando que termine de sonar el efecto. Con el juego
+     * abierto como archivo, Almacen suma a la URL la configuración (ver almacen.js).
+     */
     function irA(url, demoraMs = 180) {
         pausada = true;
-        global.setTimeout(() => { global.location.href = url; }, demoraMs);
+        global.setTimeout(() => {
+            global.location.href = global.Almacen ? global.Almacen.url(url) : url;
+        }, demoraMs);
     }
 
     global.NavegacionArcade = {

@@ -78,7 +78,10 @@ Con las placas USB de los joysticks el problema desaparece, porque cada jugador 
 
 ### Joysticks y placas USB
 
-- **Placas que se presentan como joystick** (Zero Delay, DragonRise, etc.): se detectan solas con la Gamepad API. La primera placa es del Jugador 1 y la segunda del Jugador 2 (se pueden intercambiar desde Controles). El navegador las detecta recién después de apretar un botón.
+- **Placas que se presentan como joystick** (Zero Delay, DragonRise, etc.): se detectan solas con la Gamepad API. El navegador las detecta recién después de apretar un botón.
+  - **Chrome / Chromium**: la placa 1 es del Jugador 1 y la 2 del Jugador 2 (se pueden intercambiar desde Controles y queda guardado).
+  - **Firefox**: numera las placas de nuevo en cada pantalla, en el orden en que se tocan, y dos placas iguales no se pueden distinguir (antes, si el Jugador 2 se movía primero, manejaba al Jugador 1 todo el partido). Por eso en Firefox el joystick del Jugador 1 es **el primero que aprieta PATEAR**: al empezar el partido aparece el cartel *"JUGADOR 1: APRETÁ PATEAR"* y, hasta que lo hace, ningún joystick mueve a nadie (el teclado sí anda). El otro joystick queda para el Jugador 2.
+  - Si alguna vez quedan al revés, en la **pausa** está **Cambiar joysticks**.
 - **Placas que se presentan como teclado** (I-PAC y similares): en Controles se elige cada acción y se aprieta el botón de la cabina para asignarlo.
 
 ### Lanzar en la cabina (pantalla completa)
@@ -92,20 +95,31 @@ Con el servidor corriendo (`npm start`), abrí Chrome en modo kiosco. El segundo
 chromium --kiosk --autoplay-policy=no-user-gesture-required http://localhost:3000
 ```
 
+### Sin servidor (Batocera): abrir `inicio.html` como archivo
+
+El modo local también anda abriendo directamente `server/public/inicio.html` (una dirección `file://`), sin Node ni `localhost`. Lo que cambia:
+
+- **La configuración viaja entre pantallas por la URL.** Con `file://`, Firefox le da a cada archivo su propio `localStorage`, así que antes lo elegido en *Partida local* (tiempo, goles, cancha) no llegaba al partido y siempre se jugaba con lo de fábrica; lo mismo pasaba con los controles y el volumen. Ahora `js/arcade/almacen.js` pasa esos datos a la pantalla siguiente (`#estado=...`) y los guarda con la hora, así una pantalla con datos viejos nunca pisa los nuevos. Con servidor no hace nada.
+- **Música**: sin servidor no existe `/api/musica`, así que se usa `server/public/musica/lista.js`. `npm start` la actualiza solo; si agregás canciones y copiás el juego a la cabina sin arrancar el servidor, corré antes `npm run musica`.
+- **Que suene sin tocar el teclado**: en Chrome, el parámetro `--autoplay-policy=no-user-gesture-required` de arriba. En Firefox, en `about:config` poné `media.autoplay.default` en `0` (o en Ajustes → Privacidad → Permisos → Reproducción automática: *Permitir audio y video*).
+- **Joysticks**: con Firefox, ver arriba (el Jugador 1 aprieta PATEAR al empezar). Con Chromium no hace falta.
+- El modo online necesita el servidor.
+
 ### Jugabilidad estilo HaxBall
 
 El modo local usa `js/local/fisica-haxball.js`, que copia las reglas de HaxBall con los valores de los estadios **Futsal**: aceleración 0.11 (0.083 pateando) y amortiguación 0.96 del jugador, que no rebota (bCoef 0); jugador de radio 16 (un toque más grande que el 15 de HaxBall); pelota de radio 8 (entre la del futsal, 6.25, y la del Classic, 10) con invMass 1.2, bCoef 0.4 y amortiguación 0.99; patada de fuerza 5 (sale a 6 px/tick; el súper tiro ×1.8) que se arma al mantener el botón cuando la pelota está a menos de 4 px (y mientras se mantiene el jugador va más lento, con borde blanco), postes finitos redondos, redes que casi no rebotan, barreras de saque (el equipo que no saca no entra al círculo), saque para el equipo que recibió el gol, reloj que solo corre con la pelota en juego y tiempo extra con gol de oro. Esos valores son los del mapa de referencia (840x400). Como el canvas se estira a toda la pantalla, cada mapa tiene una **escala** por área, `raíz(ancho × alto / (840 × 400))` entre 1 y 2 (Frozen ×1.24, Champions ×1.57, Volcanic ×1.34, The Tunnel ×1.12, Titan ×1.95; un mapa puede fijar la suya con `escala`), que multiplica los radios de jugadores, pelota, postes y power-ups, el alcance de la patada, las distancias entre discos y también la aceleración y la patada: así en cualquier cancha el jugador ocupa en pantalla lo mismo que en HaxBall y se tarda lo mismo en cruzarla. La pelota choca contra paredes y postes con barrido, así ni el súper tiro en el mapa más grande los atraviesa. El mapa **HaxBall Classic** conserva las medidas del estadio original.
 
-Los power-ups (velocidad, grande y súper patada) aparecen cada 4 a 9 segundos al azar, en un lugar libre de la cancha, y salen de una "bolsa" mezclada: aparecen los tres antes de repetir y nunca el mismo dos veces seguidas. Vienen activados por defecto y se pueden apagar en la configuración de la partida.
+Los power-ups (velocidad, grande y súper patada) aparecen cada 4 a 9 segundos al azar, en un lugar libre de la cancha, y salen de una "bolsa" mezclada: aparecen los tres antes de repetir y nunca el mismo dos veces seguidas. **Durante el saque no aparecen** (nadie puede cruzar la mitad, así que solo lo agarraba el de ese lado): la cuenta arranca con la pelota en juego y el primero sale entre 1.5 y 4 segundos después de sacar. El de velocidad se dibuja como un disco negro con un rayo amarillo grande y un halo que late, para que se distinga en el monitor de la cabina en cualquier cancha. Vienen activados por defecto y se pueden apagar en la configuración de la partida.
 
 ## Estructura del Proyecto 📂
 
 - `server/server.js`: El corazón del backend y donde sucede la magia de Socket.IO.
+- `server/lista-musica.js`: lista las canciones (para `/api/musica` y para `musica/lista.js`, la que se usa sin servidor).
 - `server/public/`: Carpeta con todos los archivos estáticos (Frontend).
   - `css/` y `img/`: Estilos visuales e imágenes del juego.
   - `pages/`: Diferentes vistas HTML (menú, configuraciones, lobby).
   - `js/`: Lógica del cliente, dividida en:
-    - `arcade/`: Controles de la cabina (teclado + joysticks), navegación de menús con palanca y sonidos.
+    - `arcade/`: Controles de la cabina (teclado + joysticks), navegación de menús con palanca, sonidos y `almacen.js` (pasa la configuración entre pantallas cuando el juego se abre como archivo).
     - `core/`: Motor del juego (`PhysicsEngine`, `InputManager`, `Renderer`).
     - `local/`: Físicas y lógica exclusiva del modo offline (`fisica-haxball.js` es la del modo local; `fisica-local.js` la sigue usando el servidor online).
     - `network/`: Gestión de Socket.IO para el modo online.

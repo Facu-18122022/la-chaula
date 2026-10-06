@@ -10,17 +10,18 @@
  *   - server/public/musica/          → rotan en los menús (orden al azar).
  *   - server/public/musica/partido/  → suenan solo en el partido.
  * Para agregar una canción alcanza con copiar el .mp3 a la carpeta.
+ *
+ * Abriendo el juego como archivo (file://, por ejemplo en Batocera) no hay
+ * servidor: se usa musica/lista.js, que `npm start` y `npm run musica`
+ * actualizan solos.
  */
 (function () {
     const path = window.location.pathname;
     const isGamePage = /\/(juego|jugar|juego-local|local-config)\.html$/.test(path);
     const modo = isGamePage ? 'partido' : 'menu';
-
-    // Por si no hay servidor (página abierta como archivo) o falla la lista.
-    const TRACKS_RESPALDO = {
-        menu: ['/musica/' + encodeURIComponent('El Negro Tecla - Ahí Ahí (Lyric Video).mp3')],
-        partido: ['/musica/partido/' + encodeURIComponent('NUEVA CHICAGO - ME GUSTA LA PASTA (CON LETRA).mp3')]
-    };
+    // Carpeta pública (server/public), calculada desde este archivo (js/music.js):
+    // así las rutas sirven igual con servidor que abriendo el juego como archivo.
+    const BASE = new URL('../', document.currentScript ? document.currentScript.src : window.location.href).href;
 
     const KEY_TIME = isGamePage
         ? 'laChaula_music_time_game'
@@ -38,7 +39,7 @@
     audio.muted = false;
     document.body.appendChild(audio);
 
-    let TRACKS = TRACKS_RESPALDO[modo].slice();
+    let TRACKS = [];
     let index = 0;
     let pistaCargada = null;
 
@@ -105,7 +106,8 @@
     function loadTrack(i) {
         if (!TRACKS.length) return;
         pistaCargada = TRACKS[i];
-        audio.src = pistaCargada;
+        // '/musica/...' (servidor) o 'musica/...' (lista.js): las dos se resuelven contra BASE.
+        audio.src = new URL(pistaCargada, BASE).href;
         audio.load();
         localStorage.setItem(KEY_TRACK, pistaCargada);
     }
@@ -327,13 +329,31 @@
         document.addEventListener('keydown', unlockMusic);
     }
 
-    fetch('/api/musica', { cache: 'no-store' })
-        .then(respuesta => respuesta.ok ? respuesta.json() : null)
-        .then(lista => {
-            const canciones = lista && Array.isArray(lista[modo]) ? lista[modo] : [];
-            armarLista(canciones.length ? canciones : TRACKS_RESPALDO[modo]);
-        })
-        .catch(() => armarLista(TRACKS_RESPALDO[modo]))
+    // Lista generada para cuando no hay servidor: define window.LISTA_MUSICA.
+    function cargarListaArchivo() {
+        return new Promise(resolve => {
+            if (window.LISTA_MUSICA) {
+                resolve(window.LISTA_MUSICA);
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = BASE + 'musica/lista.js';
+            script.onload = () => resolve(window.LISTA_MUSICA || null);
+            script.onerror = () => resolve(null);
+            document.head.appendChild(script);
+        });
+    }
+
+    // Con servidor la lista sale de la carpeta en el momento; si no hay, de musica/lista.js.
+    const listaServidor = window.location.protocol === 'file:'
+        ? Promise.resolve(null)
+        : fetch('/api/musica', { cache: 'no-store' })
+            .then(respuesta => respuesta.ok ? respuesta.json() : null)
+            .catch(() => null);
+
+    listaServidor
+        .then(lista => lista || cargarListaArchivo())
+        .then(lista => armarLista(lista && Array.isArray(lista[modo]) ? lista[modo] : []))
         .then(iniciar);
 
     window.addEventListener("storage", (e) => {

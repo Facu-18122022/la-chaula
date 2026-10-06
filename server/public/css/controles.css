@@ -220,6 +220,20 @@
     justify-content: flex-end;
 }
 
+/* Solo en Firefox: cómo se elige el joystick de cada jugador. */
+.controles-nota {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border: 2px solid var(--fichin-cian);
+    background: rgba(0, 240, 255, .1);
+    font-size: .8rem;
+    line-height: 1.5;
+}
+
+.controles-nota[hidden] {
+    display: none;
+}
+
 @media (max-width: 1100px) {
     .controles-prueba {
         grid-template-columns: 1fr 1fr;

@@ -18,6 +18,8 @@
     const pauseOverlay = document.getElementById('pauseOverlay');
     const finishOverlay = document.getElementById('finishOverlay');
     const finishResult = document.getElementById('finishResult');
+    const joystickAviso = document.getElementById('joystickAviso');
+    const pauseAviso = document.getElementById('pauseAviso');
 
     const mapas = Array.isArray(global.MAPAS) ? global.MAPAS : [];
     let configuracion = leerConfiguracion();
@@ -30,6 +32,7 @@
     const duracionEfectoPatadaMs = 160;
     const COLOR_ROJO = '#e56e56';
     const COLOR_AZUL = '#5689e5';
+    const COLOR_RAPIDEZ = '#ffe600';
     const duracionEstelaRapidezMs = 280;
     const duracionGrietasMs = 560;
     const duracionExplosionMs = 320;
@@ -446,19 +449,62 @@
     function obtenerColorPower(power) {
         if (power === 'BIG') return '#ff9f43';
         if (power === 'SUPER_KICK') return '#ff0055';
-        return '#ffd700';
+        return COLOR_RAPIDEZ;
     }
 
     function obtenerIconoPower(power) {
-        if (power === 'SPEED') return '⚡';
         if (power === 'BIG') return '🛡️';
         if (power === 'SUPER_KICK') return '🥊';
         return '';
     }
 
+    // Rayo de la rapidez (polígono en un cuadro de -1 a 1): se dibuja en vez de
+    // usar el emoji ⚡, que salía amarillo sobre dorado y en Linux depende de la
+    // fuente instalada.
+    const RAYO = [[0.1, -1], [-0.9, 0.2], [0, 0.2], [-0.1, 1], [0.9, -0.2], [0, -0.2]];
+
+    /**
+     * Power-up de rapidez pensado para el monitor de la cabina: disco negro con
+     * un rayo amarillo grande (el contraste más fuerte, se ve en las canchas
+     * claras y en las oscuras) y un halo que late para llamar la atención.
+     */
+    function dibujarPowerUpRapidez(powerUp, escala) {
+        const { x, y, r } = powerUp;
+        const pulso = (Math.sin(performance.now() * 0.0095) + 1) / 2; // ~1.5 latidos por segundo
+        context.save();
+        context.beginPath();
+        context.arc(x, y, r + (4 + pulso * 5) * escala, 0, Math.PI * 2);
+        context.strokeStyle = `rgba(255, 230, 0, ${0.35 + pulso * 0.55})`;
+        context.lineWidth = 4 * escala;
+        context.stroke();
+
+        context.beginPath();
+        context.arc(x, y, r, 0, Math.PI * 2);
+        context.fillStyle = '#0a0a0a';
+        context.fill();
+        context.strokeStyle = COLOR_RAPIDEZ;
+        context.lineWidth = 2 * escala;
+        context.stroke();
+
+        const tamano = r * 0.72;
+        context.beginPath();
+        RAYO.forEach(([px, py], indice) => {
+            if (indice === 0) context.moveTo(x + px * tamano, y + py * tamano);
+            else context.lineTo(x + px * tamano, y + py * tamano);
+        });
+        context.closePath();
+        context.fillStyle = COLOR_RAPIDEZ;
+        context.fill();
+        context.restore();
+    }
+
     function dibujarPowerUps(estado) {
         const escala = escalaDe(estado);
         estado.activePowerUps.forEach(powerUp => {
+            if (powerUp.type === 'SPEED') {
+                dibujarPowerUpRapidez(powerUp, escala);
+                return;
+            }
             context.beginPath();
             context.arc(powerUp.x, powerUp.y, powerUp.r, 0, Math.PI * 2);
             context.fillStyle = obtenerColorPower(powerUp.type);
@@ -725,6 +771,7 @@
     function mostrarPausa(visible) {
         const estabaVisible = !pauseOverlay.hidden;
         pauseOverlay.hidden = !visible;
+        if (visible && !estabaVisible) pauseAviso.textContent = '';
         if (!global.NavegacionArcade || visible === estabaVisible) return;
         // En la pausa Start lo maneja el loop (así ambos jugadores pueden reanudar).
         if (visible) global.NavegacionArcade.abrirAmbito(pauseOverlay, { alVolver: alternarPausa, alStart: () => {} });
@@ -775,6 +822,15 @@
         else global.location.href = 'menu.html';
     }
 
+    // Por si cada uno maneja al jugador del otro (por ejemplo, en Firefox apretó PATEAR primero el Jugador 2).
+    function cambiarJoysticks() {
+        const cambio = !!(global.Controles && global.Controles.intercambiarJoysticks());
+        pauseAviso.textContent = cambio
+            ? 'Listo: cada jugador ahora usa el otro joystick.'
+            : 'No hay joysticks: apretá un botón del joystick para que se detecte.';
+        sonar(cambio ? 'elegir' : 'error');
+    }
+
     // Start de cualquiera de los dos jugadores (o Escape) pausa el partido.
     function revisarStart(inputs) {
         const presionado = !!(inputs.j1.start || inputs.j2.start);
@@ -795,6 +851,7 @@
         const deltaMs = ultimoTimestamp === null ? 0 : Math.max(0, timestamp - ultimoTimestamp);
         ultimoTimestamp = timestamp;
         const inputs = global.InputLocal.obtenerInputs();
+        joystickAviso.hidden = !(global.Controles && global.Controles.faltaReclamoJoystick());
         const faseActual = partido.obtenerSnapshot().fase;
         if (revisarStart(inputs) && faseActual !== 'FIN') alternarPausa();
         else if (faseActual !== 'PAUSA' && faseActual !== 'FIN') partido.actualizar(deltaMs, inputs);
@@ -815,9 +872,14 @@
     pauseButton.addEventListener('click', alternarPausa);
     document.getElementById('resumeButton').addEventListener('click', alternarPausa);
     document.getElementById('restartButton').addEventListener('click', reiniciarPartido);
+    document.getElementById('swapPadsButton').addEventListener('click', cambiarJoysticks);
     document.getElementById('pauseExitButton').addEventListener('click', volverAlMenu);
     document.getElementById('finishRestartButton').addEventListener('click', reiniciarPartido);
     document.getElementById('finishExitButton').addEventListener('click', volverAlMenu);
+
+    // En Firefox los joysticks no se pueden distinguir entre pantallas: en el
+    // partido ninguno mueve a nadie hasta que J1 apriete PATEAR en el suyo.
+    if (global.Controles && global.Controles.exigirReclamoJoystick) global.Controles.exigirReclamoJoystick();
 
     if (global.NavegacionArcade) {
         // Durante el partido la palanca mueve al jugador; los menús solo se usan en la pausa y el final.

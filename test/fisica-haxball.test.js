@@ -347,7 +347,9 @@ const C = Fisica.constantes;
 
 // Avanza tick a tick y junta cada power-up que aparece (lo saca de la cancha
 // enseguida para que siempre haya lugar), con los ticks desde el anterior.
+// Pone la pelota en juego: durante el saque no aparecen.
 function juntarPowerUps(estado, cantidad) {
+    estado.waitingForKickOff = false;
     const apariciones = [];
     let ticks = 0;
     while (apariciones.length < cantidad && ticks < 200000) {
@@ -437,6 +439,33 @@ test('power-ups: después de un gol el próximo sale pronto y la bolsa no se pie
     assert.deepEqual(estado.bolsaPowerUps, bolsa);
     assert.equal(estado.ultimoPowerUp, tipos[1]);
     assert.ok(estado.proximoPowerUpTicks >= C.TICKS_PRIMER_POWERUP_MIN && estado.proximoPowerUpTicks <= C.TICKS_PRIMER_POWERUP_MAX);
+    // Mientras esperan el saque no aparece ninguno.
+    simular(estado, 1200);
+    assert.equal(estado.waitingForKickOff, true);
+    assert.equal(estado.activePowerUps.length, 0);
+});
+
+test('power-ups: no aparecen durante el saque y el primero sale 1.5 a 4 s después de sacar', () => {
+    [2, 8, 21].forEach(semilla => {
+        const estado = crear({ powerUps: true, aleatorio: generador(semilla) });
+        // Nadie saca durante 30 s: si apareciera uno, solo lo podría agarrar el de ese lado.
+        simular(estado, 1800);
+        assert.equal(estado.waitingForKickOff, true);
+        assert.equal(estado.activePowerUps.length, 0, `semilla ${semilla}: apareció durante el saque`);
+        // Saca J1 hacia arriba (así la pelota no termina en un arco) y desde ahí corre la espera.
+        const j1 = estado.players[0];
+        j1.x = estado.ball.x;
+        j1.y = estado.ball.y + (j1.r + estado.ball.r + 1);
+        simular(estado, 1, { j1: { kick: true } });
+        assert.equal(estado.waitingForKickOff, false);
+        let ticks = 1;
+        while (!estado.activePowerUps.length && ticks < 1000) {
+            simular(estado, 1);
+            ticks += 1;
+        }
+        assert.ok(ticks >= C.TICKS_PRIMER_POWERUP_MIN && ticks <= C.TICKS_PRIMER_POWERUP_MAX,
+            `semilla ${semilla}: salió a los ${ticks} ticks del saque`);
+    });
 });
 
 test('sin power-ups habilitados no aparece ninguno', () => {

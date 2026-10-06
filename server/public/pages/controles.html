@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="../css/controles.css">
 </head>
 <body>
-<script src="/js/music.js"></script>
+<script src="../js/arcade/almacen.js"></script>
+<script src="../js/music.js"></script>
 
     <main class="settings-page controles-page">
 
@@ -90,6 +91,12 @@
                 <ul class="controles-lista" id="listaJ2"></ul>
             </article>
         </section>
+
+        <p id="avisoFirefox" class="controles-nota" hidden>
+            Firefox numera los joysticks de nuevo en cada pantalla y no distingue dos placas iguales:
+            el del <strong>Jugador 1</strong> es el primero que aprieta <strong>PATEAR</strong>
+            (en el partido aparece un cartel). Si quedan al revés, usá "Cambiar joysticks" en la pausa.
+        </p>
 
         <p id="controlesAviso" class="arcade-aviso" role="status" aria-live="polite"></p>
 

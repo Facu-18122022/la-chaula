@@ -143,7 +143,11 @@
             tarjeta.querySelector(`[data-accion="${accion}"]`).classList.toggle('activo', estado[accion]);
         });
         const pad = Controles.infoPad(jugador);
-        tarjeta.querySelector('[data-pad]').textContent = pad ? `· Joystick ${pad.index + 1}` : '· Teclado';
+        // En Firefox el número cambia en cada pantalla (ver js/arcade/controles.js): no se muestra.
+        const porPantalla = Controles.MODO_JOYSTICKS === 'por-pantalla';
+        let textoPad = '· Teclado';
+        if (pad) textoPad = porPantalla ? `· Joystick${pad.provisorio ? ' (provisorio)' : ''}` : `· Joystick ${pad.index + 1}`;
+        tarjeta.querySelector('[data-pad]').textContent = textoPad;
         tarjeta.querySelector('[data-pad]').title = pad ? pad.id : 'Sin joystick conectado';
 
         const diagonal = (estado.arriba || estado.abajo) && (estado.izquierda || estado.derecha);
@@ -216,13 +220,20 @@
     });
 
     document.getElementById('swapPadsButton').addEventListener('click', () => {
-        const invertir = !Controles.obtenerConfig().invertirPads;
-        Controles.setInvertirPads(invertir);
-        const pads = Controles.padsConectados().length;
-        mostrarAviso(pads
-            ? `Joysticks intercambiados: el joystick ${invertir ? 2 : 1} ahora es del Jugador 1.`
-            : 'No hay joysticks conectados (apretá un botón del joystick para que el navegador lo detecte).');
+        if (!Controles.intercambiarJoysticks()) {
+            mostrarAviso('No hay joysticks conectados (apretá un botón del joystick para que el navegador lo detecte).');
+            return;
+        }
+        if (Controles.MODO_JOYSTICKS === 'por-pantalla') {
+            mostrarAviso('Joysticks intercambiados en esta pantalla. En el partido, el joystick del Jugador 1 es el primero que aprieta PATEAR.', 8000);
+            return;
+        }
+        const invertido = Controles.obtenerConfig().invertirPads;
+        mostrarAviso(`Joysticks intercambiados: el joystick ${invertido ? 2 : 1} ahora es del Jugador 1.`);
     });
+
+    // Firefox numera los joysticks de nuevo en cada pantalla: se explica cómo se eligen.
+    document.getElementById('avisoFirefox').hidden = Controles.MODO_JOYSTICKS !== 'por-pantalla';
 
     window.addEventListener('gamepadconnected', evento => {
         mostrarAviso(`Joystick conectado: ${evento.gamepad.id}`);

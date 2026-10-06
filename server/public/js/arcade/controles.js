@@ -19,6 +19,16 @@
  * módulo es permitir elegir combinaciones que el teclado soporte, aceptar
  * varias teclas por acción y no perder teclas mantenidas (por ejemplo al
  * hacer un gol). Con las placas USB de los joysticks el problema desaparece.
+ *
+ * De quién es cada joystick:
+ * - Chrome (y casi todos) numera los joysticks una sola vez, en el orden en
+ *   que los conectó el sistema, y el número se mantiene al cambiar de
+ *   pantalla: J1 usa el joystick 0 y J2 el 1 (se invierten desde Controles).
+ * - Firefox los numera de nuevo en CADA pantalla, en el orden en que se tocan
+ *   (el primero que se mueve pasa a ser el 0). Con dos placas iguales no hay
+ *   forma de distinguirlas, así que si el Jugador 2 se movía primero manejaba
+ *   al Jugador 1 todo el partido. Por eso en Firefox el joystick de J1 es el
+ *   primero que aprieta PATEAR en la pantalla, y el otro queda para J2.
  */
 (function (global) {
     const CLAVE_STORAGE = 'lachaula_controles';
@@ -29,6 +39,9 @@
     const UMBRAL_EJE = 0.5;
     const REPETICION_INICIAL_MS = 380;
     const REPETICION_MS = 120;
+    const MODO_JOYSTICKS = typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent || '')
+        ? 'por-pantalla'
+        : 'fijo';
 
     // Teclas del sistema: solo cuentan si ningún jugador las tiene asignadas.
     const TECLAS_CONFIRMAR = ['Enter', 'NumpadEnter'];
@@ -102,6 +115,14 @@
     let padsCache = [];
     let mapaTeclado = null;
     let config = cargarConfig();
+    // Modo 'por-pantalla' (Firefox): qué joystick eligió cada jugador en esta pantalla.
+    const reclamo = {
+        j1: null, // índice del joystick elegido por J1 (null = ninguno fijo: toma uno libre)
+        j2: null, // índice fijado para J2 (null = el que sobre)
+        hecho: false, // J1 ya eligió su joystick (o se intercambiaron a mano)
+        exigido: false, // en el partido ningún joystick mueve a nadie hasta que J1 elija
+        patearAntes: {} // índice → tenía PATEAR apretado en la lectura anterior
+    };
 
     function crearEstadoMenuVacio() {
         return ACCIONES_MENU.reduce((estado, accion) => {
@@ -134,7 +155,9 @@
 
     function guardarConfig() {
         try {
-            global.localStorage.setItem(CLAVE_STORAGE, JSON.stringify(config));
+            // Con Almacen los controles llegan a las otras pantallas aunque el juego se abra como archivo.
+            if (global.Almacen) global.Almacen.guardar(CLAVE_STORAGE, JSON.stringify(config));
+            else global.localStorage.setItem(CLAVE_STORAGE, JSON.stringify(config));
         } catch (error) {
             console.warn('[Controles] no se pudo guardar la configuración', error);
         }
@@ -224,13 +247,55 @@
 
     function sondearPads() {
         const lista = typeof navigator !== 'undefined' && navigator.getGamepads ? navigator.getGamepads() : [];
-        padsCache = Array.from(lista || []).filter(Boolean).sort((a, b) => a.index - b.index);
+        padsCache = Array.from(lista || []).filter(pad => pad && pad.connected !== false).sort((a, b) => a.index - b.index);
+        if (MODO_JOYSTICKS === 'por-pantalla') actualizarReclamo();
         return padsCache;
     }
 
+    /** Firefox: el primer joystick que aprieta PATEAR en la pantalla es el de J1. */
+    function actualizarReclamo() {
+        const indices = padsCache.map(pad => pad.index);
+        Object.keys(reclamo.patearAntes).forEach(indice => {
+            if (!indices.includes(Number(indice))) delete reclamo.patearAntes[indice];
+        });
+        if (reclamo.j2 !== null && !indices.includes(reclamo.j2)) reclamo.j2 = null;
+        if (reclamo.j1 !== null && !indices.includes(reclamo.j1)) {
+            // Se desconectó el de J1: J2 conserva el suyo y J1 lo elige de nuevo al volver.
+            reclamo.j2 = indicesPorPantalla().j2;
+            reclamo.j1 = null;
+            reclamo.hecho = false;
+        }
+        const botonesPatear = config.j1.patear.filter(entrada => entrada.startsWith('Pad:'));
+        padsCache.forEach(pad => {
+            const aprieta = botonesPatear.some(entrada => entradaPadActiva(pad, entrada));
+            if (aprieta && !reclamo.patearAntes[pad.index] && !reclamo.hecho && pad.index !== reclamo.j2) {
+                reclamo.j1 = pad.index;
+                reclamo.hecho = true;
+            }
+            reclamo.patearAntes[pad.index] = aprieta;
+        });
+    }
+
+    function indicesPorPantalla() {
+        // En el partido, hasta que J1 elija, solo mueve a alguien el joystick ya fijado para J2.
+        if (!reclamo.hecho && reclamo.exigido) return { j1: null, j2: reclamo.j2 };
+        const fijoJ1 = reclamo.hecho ? reclamo.j1 : null;
+        // Los que nadie fijó se reparten en el orden en que se tocaron: primero J1, después J2
+        // (en los menús, antes de elegir, manda el primero que se tocó).
+        const libres = padsCache.map(pad => pad.index).filter(indice => indice !== fijoJ1 && indice !== reclamo.j2);
+        const j1 = fijoJ1 !== null ? fijoJ1 : (libres.length ? libres.shift() : null);
+        const j2 = reclamo.j2 !== null ? reclamo.j2 : (libres.length ? libres.shift() : null);
+        return { j1, j2 };
+    }
+
+    // Se busca por el número del joystick (no por la posición en la lista): si
+    // el de J1 se desconecta, el de J2 no pasa a manejar al Jugador 1.
     function padDeJugador(jugador) {
-        const posicion = (jugador === 'j1') !== config.invertirPads ? 0 : 1;
-        return padsCache[posicion] || null;
+        const indice = MODO_JOYSTICKS === 'por-pantalla'
+            ? indicesPorPantalla()[jugador]
+            : ((jugador === 'j1') !== config.invertirPads ? 0 : 1);
+        if (indice === null || indice === undefined) return null;
+        return padsCache.find(pad => pad.index === indice) || null;
     }
 
     function botonPad(pad, indice) {
@@ -407,7 +472,9 @@
 
     function revisarCapturaPad() {
         if (!captura || !captura.permitirPad) return;
-        const pads = captura.jugador ? [padDeJugador(captura.jugador)].filter(Boolean) : padsCache;
+        // Si el jugador todavía no tiene joystick (Firefox antes de elegir), sirve cualquiera.
+        const propio = captura.jugador ? padDeJugador(captura.jugador) : null;
+        const pads = propio ? [propio] : padsCache;
         for (const pad of pads) {
             const antes = captura.padsIniciales[pad.index] || [];
             for (let indice = 0; indice < pad.buttons.length; indice += 1) {
@@ -455,6 +522,39 @@
         guardarConfig();
     }
 
+    /**
+     * Cambia qué joystick usa cada jugador. En Firefox vale para esta pantalla;
+     * en los demás navegadores queda guardado. Devuelve false si no hay joysticks.
+     */
+    function intercambiarJoysticks() {
+        sondearPads();
+        if (!padsCache.length) return false;
+        if (MODO_JOYSTICKS === 'por-pantalla') {
+            let { j1, j2 } = indicesPorPantalla();
+            if (j1 === null && j2 === null) {
+                // Partido antes de elegir: se invierte el orden en que se tocaron.
+                j1 = padsCache[0].index;
+                j2 = padsCache.length > 1 ? padsCache[1].index : null;
+            }
+            reclamo.j1 = j2;
+            reclamo.j2 = j1;
+            reclamo.hecho = true;
+        } else {
+            setInvertirPads(!config.invertirPads);
+        }
+        return true;
+    }
+
+    /** En el partido: ningún joystick mueve a nadie hasta que J1 apriete PATEAR (solo Firefox). */
+    function exigirReclamoJoystick() {
+        reclamo.exigido = true;
+    }
+
+    /** Firefox: hay un joystick tocado que no es de nadie y J1 todavía no eligió el suyo. */
+    function faltaReclamoJoystick() {
+        return MODO_JOYSTICKS === 'por-pantalla' && !reclamo.hecho && padsCache.some(pad => pad.index !== reclamo.j2);
+    }
+
     function alCambiarConfig(oyente) {
         oyentesCambio.add(oyente);
         return () => oyentesCambio.delete(oyente);
@@ -485,7 +585,9 @@
 
     function infoPad(jugador) {
         const pad = padDeJugador(jugador);
-        return pad ? { index: pad.index, id: pad.id } : null;
+        if (!pad) return null;
+        // provisorio: en Firefox, J1 todavía no apretó PATEAR para elegir su joystick.
+        return { index: pad.index, id: pad.id, provisorio: MODO_JOYSTICKS === 'por-pantalla' && !reclamo.hecho };
     }
 
     /* ========================= */
@@ -520,6 +622,7 @@
         ACCIONES,
         NOMBRES_ACCION,
         PREDETERMINADOS: clonar(PREDETERMINADOS),
+        MODO_JOYSTICKS,
         leerJugador,
         leerJuego,
         estadoAcciones,
@@ -529,6 +632,9 @@
         asignar,
         restablecer,
         setInvertirPads,
+        intercambiarJoysticks,
+        exigirReclamoJoystick,
+        faltaReclamoJoystick,
         obtenerConfig,
         alCambiarConfig,
         nombreEntrada,
@@ -539,4 +645,5 @@
     };
 
     global.Controles = Controles;
+    if (typeof module !== 'undefined' && module.exports) module.exports = Controles;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

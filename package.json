@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "nodemon server/server.js",
+    "musica": "node server/lista-musica.js",
     "test": "node --test"
   },
   "dependencies": {

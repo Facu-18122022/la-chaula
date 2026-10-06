@@ -73,7 +73,9 @@ saveButton.addEventListener("click", () => {
         theme: "dark"
     };
 
-    localStorage.setItem("lachaula_settings", JSON.stringify(settings));
+    // Con Almacen el volumen llega a las otras pantallas aunque el juego se abra como archivo.
+    if (window.Almacen) window.Almacen.guardar("lachaula_settings", JSON.stringify(settings));
+    else localStorage.setItem("lachaula_settings", JSON.stringify(settings));
     syncAudioSettings();
     saveButton.disabled = true;
     // Sin alert(): en la cabina no hay mouse para cerrarlo.
