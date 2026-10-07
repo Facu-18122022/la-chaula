@@ -25,6 +25,20 @@ btnPlayLocal.addEventListener("click", () => {
 });
 
 /* ========================= */
+/* JUGAR ONLINE */
+/* ========================= */
+
+const btnPlayOnline =
+document.getElementById("btnPlayOnline");
+
+btnPlayOnline.addEventListener("click", () => {
+
+    window.location.href =
+    "../pages/online.html";
+
+});
+
+/* ========================= */
 /* CONFIGURACION */
 /* ========================= */
 

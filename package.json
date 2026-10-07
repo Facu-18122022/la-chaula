@@ -1,11 +1,12 @@
 {
   "name": "la-chaula",
   "version": "1.0.0",
-  "description": "Clon local inspirado en HaxBall",
+  "description": "Juego de fútbol 2D estilo HaxBall: local y online hasta 5v5",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
-    "dev": "nodemon server/server.js"
+    "dev": "nodemon server/server.js",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^4.19.2",
@@ -13,6 +14,10 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "socket.io-client": "^4.8.4"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

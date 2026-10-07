@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chaula | Online</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/ssf-theme.css">
+    <link rel="stylesheet" href="../css/retro-ui.css">
+    <link rel="stylesheet" href="../css/online.css">
+</head>
+<body class="online">
+<script src="/js/music.js"></script>
+
+    <header class="online-barra">
+        <div class="logo-placeholder online-logo" aria-hidden="true"></div>
+        <strong class="online-barra__titulo">ONLINE</strong>
+        <span id="estadoConexion" class="online-conexion">Conectando…</span>
+        <button id="volverMenu" class="ssf-button ssf-button-danger" type="button">Menú</button>
+    </header>
+
+    <!-- ========================= -->
+    <!-- LISTA DE SALAS            -->
+    <!-- ========================= -->
+
+    <main id="vistaSalas" class="online-salas">
+        <div class="online-columna">
+            <article class="panel-card">
+                <h2>Tu jugador</h2>
+                <label class="online-campo">
+                    <span>Nombre</span>
+                    <input id="nombreJugador" type="text" maxlength="16" autocomplete="nickname" placeholder="Ej: Facu">
+                </label>
+            </article>
+
+            <article class="panel-card">
+                <h2>Crear sala</h2>
+                <form id="formCrear" class="online-form">
+                    <label class="online-campo">
+                        <span>Nombre de la sala</span>
+                        <input id="nombreSala" type="text" maxlength="30" placeholder="Sala de …">
+                    </label>
+                    <label class="online-campo">
+                        <span>Contraseña (opcional)</span>
+                        <input id="claveSala" type="text" maxlength="20" autocomplete="off" placeholder="Sin contraseña">
+                    </label>
+                    <label class="online-campo">
+                        <span>Máximo de jugadores</span>
+                        <select id="maxJugadores">
+                            <option value="2">2 (1v1)</option>
+                            <option value="4">4 (2v2)</option>
+                            <option value="6">6 (3v3)</option>
+                            <option value="8">8 (4v4)</option>
+                            <option value="10" selected>10 (5v5)</option>
+                        </select>
+                    </label>
+                    <button class="ssf-button" type="submit">Crear sala</button>
+                </form>
+            </article>
+        </div>
+
+        <article class="panel-card online-lista">
+            <div class="online-lista__cabecera">
+                <h2>Salas abiertas</h2>
+                <button id="actualizarSalas" class="ssf-button" type="button" title="Actualizar">↻</button>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>Sala</th><th>Jugadores</th><th>Cancha</th><th>Estado</th><th></th></tr>
+                </thead>
+                <tbody id="listaSalas">
+                    <tr><td colspan="5" class="online-vacio">Buscando salas…</td></tr>
+                </tbody>
+            </table>
+            <form id="formCodigo" class="online-codigo">
+                <input id="codigoSala" type="text" maxlength="10" placeholder="Código de sala (ej: AB12C)" autocomplete="off">
+                <button class="ssf-button" type="submit">Entrar</button>
+            </form>
+        </article>
+
+        <p id="avisoSalas" class="online-aviso" role="alert" aria-live="polite"></p>
+    </main>
+
+    <!-- ========================= -->
+    <!-- SALA                      -->
+    <!-- ========================= -->
+
+    <main id="vistaSala" class="online-sala" hidden>
+        <section class="online-juego">
+            <div class="online-hud" aria-live="polite">
+                <span class="online-hud__equipo online-hud__equipo--red">ROJO <strong id="golesRojo">0</strong></span>
+                <span class="online-hud__reloj"><span id="reloj">--:--</span><small id="faseTexto"></small></span>
+                <span class="online-hud__equipo online-hud__equipo--blue"><strong id="golesAzul">0</strong> AZUL</span>
+                <button id="botonPanel" class="ssf-button" type="button" title="Mostrar u ocultar la sala (Esc)">Sala (Esc)</button>
+            </div>
+
+            <div class="online-cancha">
+                <canvas id="cancha"></canvas>
+
+                <div id="panelSala" class="online-panel">
+                    <div class="online-panel__cabecera">
+                        <div>
+                            <h2 id="tituloSala">Sala</h2>
+                            <p>Código <strong id="codigoActual">-----</strong>
+                                <button id="copiarLink" class="online-mini" type="button">Copiar link</button>
+                                <span id="candado" hidden>🔒</span>
+                            </p>
+                        </div>
+                        <button id="salirSala" class="ssf-button ssf-button-danger" type="button">Salir de la sala</button>
+                    </div>
+
+                    <div class="online-equipos">
+                        <section class="online-equipo online-equipo--red" data-equipo="red">
+                            <h3>Rojo <span data-cuenta></span></h3>
+                            <ul data-lista></ul>
+                            <button class="online-unirme" data-unirme="red" type="button">Unirme</button>
+                        </section>
+                        <section class="online-equipo online-equipo--spec" data-equipo="">
+                            <h3>Espectadores <span data-cuenta></span></h3>
+                            <ul data-lista></ul>
+                            <button class="online-unirme" data-unirme="" type="button">Unirme</button>
+                        </section>
+                        <section class="online-equipo online-equipo--blue" data-equipo="blue">
+                            <h3>Azul <span data-cuenta></span></h3>
+                            <ul data-lista></ul>
+                            <button class="online-unirme" data-unirme="blue" type="button">Unirme</button>
+                        </section>
+                    </div>
+
+                    <div id="controlesAdmin" class="online-admin">
+                        <label>Cancha <select id="cfgMapa"></select></label>
+                        <label>Tiempo <select id="cfgTiempo"></select></label>
+                        <label>Goles <select id="cfgGoles"></select></label>
+                        <label class="online-check"><input id="cfgPowerUps" type="checkbox"> Power-ups</label>
+                        <label class="online-check"><input id="cfgBloqueo" type="checkbox"> Solo el admin arma equipos</label>
+                        <div class="online-admin__botones">
+                            <button id="mezclar" class="ssf-button" type="button">Mezclar equipos</button>
+                            <button id="pausa" class="ssf-button" type="button">Pausa (P)</button>
+                            <button id="iniciarDetener" class="ssf-button ssf-button-primary" type="button">Iniciar partido</button>
+                        </div>
+                    </div>
+                    <p id="infoNoAdmin" class="online-nota" hidden>El admin elige los equipos y arranca el partido.</p>
+                    <p id="ultimoResultado" class="online-nota" hidden></p>
+                    <p class="online-nota online-nota--teclas">Moverse: flechas o WASD · Patear: Espacio o X · Chat: Enter · Panel: Esc</p>
+                </div>
+
+                <div id="cartelGol" class="online-cartel" hidden></div>
+            </div>
+        </section>
+
+        <aside class="online-chat panel-card">
+            <h2>Chat</h2>
+            <div id="chatMensajes" class="online-chat__mensajes" aria-live="polite"></div>
+            <form id="formChat" class="online-chat__form">
+                <input id="chatTexto" type="text" maxlength="140" placeholder="Enter para escribir…" autocomplete="off">
+            </form>
+        </aside>
+
+        <p id="avisoSala" class="online-aviso online-aviso--flotante" role="alert" aria-live="polite"></p>
+    </main>
+
+    <dialog id="dialogoClave" class="online-dialogo">
+        <form method="dialog">
+            <h2>Sala con contraseña</h2>
+            <input id="claveIngreso" type="text" maxlength="20" autocomplete="off" placeholder="Contraseña">
+            <div class="online-dialogo__botones">
+                <button class="ssf-button ssf-button-danger" value="cancelar" type="submit">Cancelar</button>
+                <button class="ssf-button" value="entrar" type="submit">Entrar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../js/online/dibujo.js"></script>
+    <script src="../js/online/cliente.js"></script>
+</body>
+</html>
