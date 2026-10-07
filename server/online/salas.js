@@ -178,6 +178,10 @@ class GestorSalas {
             desconectadoDesde: null,
             entrada: { up: false, down: false, left: false, right: false, kick: false },
             patadaPendiente: false,
+            // Para la predicción del navegador: tick (del navegador) de la última tecla
+            // y cuántos ticks la aplicó el servidor desde que llegó.
+            teclaTick: -1,
+            ticksDesdeTecla: 0,
             chat: []
         };
     }
@@ -514,10 +518,19 @@ class GestorSalas {
         return { ok: true };
     }
 
-    /** Teclas del jugador como bits (arriba 1, abajo 2, izquierda 4, derecha 8, patear 16). */
-    entrada(socketId, bits) {
+    /**
+     * Teclas del jugador como bits (arriba 1, abajo 2, izquierda 4, derecha 8, patear 16).
+     * Llega como número o como { b: bits, k: tick del navegador en que se apretó }.
+     */
+    entrada(socketId, datos) {
         const { jugador } = this.buscar(socketId);
         if (!jugador) return;
+        const bits = datos && typeof datos === 'object' ? datos.b : datos;
+        const tickNavegador = datos && typeof datos === 'object' ? Number(datos.k) : NaN;
+        if (Number.isFinite(tickNavegador)) {
+            jugador.teclaTick = Math.floor(tickNavegador);
+            jugador.ticksDesdeTecla = 0;
+        }
         const valor = Number(bits) | 0;
         jugador.entrada = {
             up: !!(valor & BITS.arriba),
@@ -541,8 +554,16 @@ class GestorSalas {
                 jugador.patadaPendiente = false;
             });
             const eventos = sala.partido.actualizar(deltaMs, inputs);
+            const pasos = sala.partido.ultimosPasos;
+            sala.jugadores.forEach(jugador => { jugador.ticksDesdeTecla += pasos; });
             eventos.forEach(evento => this.procesarEvento(sala, evento));
-            if (sala.partido && enviarEstado) this.emisor.aSala(sala.id, 'partido:estado', sala.partido.snapshot());
+            // Si en esta vuelta no corrió ningún tick (pausa) no hace falta mandar nada nuevo.
+            if (!sala.partido || !enviarEstado || (!pasos && !sala.partido.pausado)) return;
+            const porId = new Map(sala.jugadores.map(jugador => [jugador.id, jugador]));
+            this.emisor.aSala(sala.id, 'partido:estado', sala.partido.snapshot(id => {
+                const jugador = porId.get(id);
+                return jugador ? [jugador.teclaTick, jugador.ticksDesdeTecla] : [-1, 0];
+            }));
         });
     }
 

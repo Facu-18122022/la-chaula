@@ -62,7 +62,9 @@ Si se corta la conexión (o se recarga la página) hay 15 segundos para volver s
 
 ### Cómo funciona por dentro
 
-- El **servidor es el que juega el partido**: corre la física a 60 ticks por segundo y le manda la posición de todo a cada sala en cada tick. Los navegadores solo mandan qué teclas están apretadas y dibujan, interpolando entre fotos para que se vea fluido. Así nadie puede hacer trampa moviendo su jugador desde el navegador.
+- El **servidor es el que juega el partido**: corre la física a 60 ticks por segundo y le manda la posición de todo a cada sala en cada tick. Así nadie puede hacer trampa moviendo su jugador desde el navegador.
+- **Tu jugador responde al instante** (`js/online/red.js`): el navegador lo mueve con la misma física de develop sin esperar al servidor, y cuando llega la posición real corrige la diferencia de a poco. Sin esto, con la demora de la red, el jugador "resbala".
+- **No se traba**: las fotos del servidor se dibujan según su número de tick (no según cuándo llegan), con un margen chico que crece solo si la red es inestable.
 - La física, las canchas y el dibujo (fondos temáticos, poderes con su ícono y animación, festejo de gol) son los mismos del modo arcade de la rama `develop`.
 - Toda la experiencia online es una sola página (`pages/online.html`), así la conexión no se corta al pasar de la lista de salas al partido.
 

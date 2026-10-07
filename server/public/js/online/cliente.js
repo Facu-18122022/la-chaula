@@ -16,8 +16,6 @@
     const $ = id => document.getElementById(id);
 
     const CLAVE_NOMBRE = 'lachaula_nombre';
-    // El servidor manda 60 fotos por segundo: con un atraso chico ya hay dos para interpolar.
-    const RETARDO_INTERPOLACION_MS = 25;
     const BITS_TECLA = {
         ArrowUp: 1, KeyW: 1,
         ArrowDown: 2, KeyS: 2,
@@ -32,7 +30,6 @@
         tuId: null,
         token: null,
         sala: null,
-        fotos: [],
         teclas: new Set(),
         bits: 0,
         panelVisible: true,
@@ -40,6 +37,10 @@
         mapas: [],
         ultimoDibujo: null
     };
+
+    // Fotos del servidor ordenadas por tick y predicción de tu jugador (ver red.js).
+    const linea = RedOnline.crearLinea();
+    const prediccion = RedOnline.crearPrediccion(FisicaHaxball);
 
     const canvas = $('cancha');
     const dibujante = DibujoOnline.crearDibujante(canvas);
@@ -263,7 +264,7 @@
         estado.salaId = respuesta.salaId;
         estado.tuId = respuesta.tuId;
         estado.token = respuesta.token;
-        estado.fotos = [];
+        reiniciarRed();
         if (respuesta.mapas) {
             estado.mapas = respuesta.mapas;
             dibujarMiniaturas();
@@ -283,7 +284,7 @@
         estado.tuId = null;
         estado.token = null;
         estado.sala = null;
-        estado.fotos = [];
+        reiniciarRed();
         soltarTeclas();
         history.replaceState(null, '', window.location.pathname);
         $('vistaSala').hidden = true;
@@ -330,7 +331,7 @@
         dibujarEquipos(sala);
         dibujarControlesAdmin(sala);
         dibujarUltimoResultado(sala);
-        if (!sala.partido) estado.fotos = [];
+        if (!sala.partido) reiniciarRed();
     }
 
     function ajustarCanvas(mapa) {
@@ -577,19 +578,28 @@
         if (estado.sala) estado.sala.mapa = mapa;
         ajustarCanvas(mapa);
         dibujante.reiniciarEfectos();
-        estado.fotos = [];
+        reiniciarRed();
         sonar('silbato');
         mostrarPanel(false);
         if (document.activeElement) document.activeElement.blur();
     });
 
+    function reiniciarRed() {
+        linea.reiniciar();
+        prediccion.reiniciar();
+    }
+
     socket.on('partido:estado', foto => {
-        estado.fotos.push({ hora: performance.now(), foto });
-        if (estado.fotos.length > 30) estado.fotos.shift();
+        linea.agregar(foto);
+        // Corrige la predicción de tu jugador con lo que dice el servidor.
+        const yo = estado.sala && estado.sala.jugadores.find(jugador => jugador.id === estado.tuId);
+        const fila = yo && yo.equipo ? foto.j.find(jugador => jugador[0] === estado.tuId) : null;
+        if (fila) prediccion.reconciliar(fila, foto, estado.sala.mapa, yo.equipo, estado.bits);
+        else prediccion.reiniciar();
     });
 
     socket.on('partido:detenido', () => {
-        estado.fotos = [];
+        reiniciarRed();
         mostrarPanel(true);
     });
 
@@ -621,36 +631,9 @@
         const texto = evento.ganador ? `¡GANÓ ${NOMBRE_EQUIPO[evento.ganador].toUpperCase()}!` : '¡EMPATE!';
         mostrarCartel(`${texto} ${evento.marcador.red} - ${evento.marcador.blue}`, evento.ganador, 4000);
         sonar('silbato');
-        estado.fotos = [];
+        reiniciarRed();
         setTimeout(() => mostrarPanel(true), 1500);
     });
-
-    function interpolar(a, b, t) {
-        return a + (b - a) * t;
-    }
-
-    // Devuelve la foto a dibujar: un poco "en el pasado" para tener dos fotos entre las que interpolar.
-    function fotoParaDibujar() {
-        const fotos = estado.fotos;
-        if (!fotos.length) return null;
-        const momento = performance.now() - RETARDO_INTERPOLACION_MS;
-        let siguiente = fotos.findIndex(item => item.hora >= momento);
-        if (siguiente === -1) return fotos[fotos.length - 1].foto;
-        if (siguiente === 0) return fotos[0].foto;
-        const a = fotos[siguiente - 1];
-        const b = fotos[siguiente];
-        const t = (momento - a.hora) / Math.max(1, b.hora - a.hora);
-        const posiciones = new Map(a.foto.j.map(jugador => [jugador[0], jugador]));
-        return {
-            ...b.foto,
-            b: [interpolar(a.foto.b[0], b.foto.b[0], t), interpolar(a.foto.b[1], b.foto.b[1], t), b.foto.b[2]],
-            j: b.foto.j.map(jugador => {
-                const previo = posiciones.get(jugador[0]);
-                if (!previo) return jugador;
-                return [jugador[0], interpolar(previo[1], jugador[1], t), interpolar(previo[2], jugador[2], t), ...jugador.slice(3)];
-            })
-        };
-    }
 
     function textoFase(foto) {
         if (foto.p) return 'PAUSA';
@@ -668,7 +651,7 @@
     }
 
     // Arma el "estado" que esperan las funciones de dibujo de develop a partir de la foto del servidor.
-    function estadoParaDibujar(foto) {
+    function estadoParaDibujar(foto, posicionPropia) {
         const sala = estado.sala;
         const base = DibujoOnline.estadoVacio(sala.mapa);
         if (!foto) return base;
@@ -682,6 +665,11 @@
         base.lastPowerImpact = foto.i ? { id: foto.i[0], x: foto.i[1], y: foto.i[2] } : null;
         base.players = foto.j.map(([id, x, y, r, pateando, power]) => {
             const jugador = datos.get(id) || {};
+            if (id === estado.tuId && posicionPropia) {
+                x = posicionPropia.x;
+                y = posicionPropia.y;
+                pateando = posicionPropia.pateando;
+            }
             return {
                 id, x, y, r,
                 equipo: jugador.equipo,
@@ -710,9 +698,14 @@
         const delta = estado.ultimoDibujo === null ? 0 : ahora - estado.ultimoDibujo;
         estado.ultimoDibujo = ahora;
         if (estado.sala) {
-            const foto = fotoParaDibujar();
-            dibujante.dibujar(estadoParaDibujar(foto), foto && !foto.p ? delta : 0, celebracionDe(foto));
-            actualizarHud(foto);
+            const ultima = linea.ultima();
+            linea.avanzar(delta);
+            // Tu jugador avanza acá mismo, al instante; cada medio segundo se manda un "ancla".
+            if (prediccion.avanzar(delta, estado.bits, !ultima || !!ultima.p) && ultima) mandarTeclas();
+            const foto = linea.fotoParaDibujar();
+            const posicionPropia = foto ? prediccion.posicion(delta) : null;
+            dibujante.dibujar(estadoParaDibujar(foto, posicionPropia), foto && !foto.p ? delta : 0, celebracionDe(ultima));
+            actualizarHud(ultima);
             dibujarPreview();
         }
         requestAnimationFrame(bucle);
@@ -727,8 +720,13 @@
         estado.teclas.forEach(codigo => { bits |= BITS_TECLA[codigo] || 0; });
         if (bits !== estado.bits) {
             estado.bits = bits;
-            socket.emit('entrada', bits);
+            mandarTeclas();
         }
+    }
+
+    // Manda las teclas con el tick del navegador en que empiezan a valer (para la predicción).
+    function mandarTeclas() {
+        socket.emit('entrada', { b: estado.bits, k: prediccion.proximoTick() });
     }
 
     function soltarTeclas() {

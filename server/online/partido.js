@@ -26,6 +26,10 @@ function redondear(valor) {
     return Math.round(valor * 10) / 10;
 }
 
+function redondearFino(valor) {
+    return Math.round(valor * 1000) / 1000;
+}
+
 /**
  * opciones: { mapa, jugadores: [{ id, nombre, equipo }], tiempoMin, goles (0 = sin límite), powerUps }
  */
@@ -49,6 +53,10 @@ function crearPartido({ mapa, jugadores = [], tiempoMin = 3, goles = 3, powerUps
         equipoSaque: 'red',
         golTranscurridoMs: 0,
         terminaTrasGol: false,
+        // Número de tick de la física: los navegadores dibujan según este reloj
+        // (y no según cuándo les llega cada foto), así no se traba.
+        tick: 0,
+        ultimosPasos: 0,
         goles: [],
         nombres: new Map(jugadores.map(jugador => [jugador.id, jugador.nombre]))
     };
@@ -119,10 +127,13 @@ function crearPartido({ mapa, jugadores = [], tiempoMin = 3, goles = 3, powerUps
      */
     function actualizar(deltaMs, inputs = {}) {
         const eventos = [];
+        partido.ultimosPasos = 0;
         if (partido.pausado || partido.fase === 'FIN') return eventos;
         const transcurrido = Math.min(Math.max(Number(deltaMs) || 0, 0), 250);
         const resultado = Fisica.avanzar(estado, transcurrido, inputs);
         const simulado = resultado.pasos * PASO_MS;
+        partido.tick += resultado.pasos;
+        partido.ultimosPasos = resultado.pasos;
 
         estado.kickImpactEvents.splice(0).forEach(impacto => eventos.push({ tipo: 'patada', id: impacto.player.id }));
         estado.kickEvents.length = 0;
@@ -206,9 +217,15 @@ function crearPartido({ mapa, jugadores = [], tiempoMin = 3, goles = 3, powerUps
     /* ESTADO PARA LOS CLIENTES */
     /* ========================= */
 
-    /** Foto compacta que se manda 60 veces por segundo. */
-    function snapshot() {
+    /**
+     * Foto compacta que se manda 60 veces por segundo.
+     * `teclaDe(id)` devuelve [tick del navegador de su última tecla, ticks que pasaron
+     * desde que el servidor la aplicó]: con eso cada navegador corrige la predicción
+     * de su propio jugador (ver cliente.js).
+     */
+    function snapshot(teclaDe = () => [-1, 0]) {
         return {
+            n: partido.tick,
             f: partido.fase,
             p: partido.pausado ? 1 : 0,
             m: [partido.marcador.red, partido.marcador.blue],
@@ -227,7 +244,11 @@ function crearPartido({ mapa, jugadores = [], tiempoMin = 3, goles = 3, powerUps
                 redondear(jugador.y),
                 redondear(jugador.r),
                 jugador.pateando ? 1 : 0,
-                jugador.activePower || 0
+                jugador.activePower || 0,
+                redondearFino(jugador.vx),
+                redondearFino(jugador.vy),
+                jugador.patadaUsada ? 1 : 0,
+                ...teclaDe(jugador.id)
             ]),
             u: estado.activePowerUps.map(powerUp => [redondear(powerUp.x), redondear(powerUp.y), powerUp.type, redondear(powerUp.r)])
         };
@@ -253,6 +274,7 @@ function crearPartido({ mapa, jugadores = [], tiempoMin = 3, goles = 3, powerUps
         resumen,
         get fase() { return partido.fase; },
         get pausado() { return partido.pausado; },
+        get ultimosPasos() { return partido.ultimosPasos; },
         get estado() { return estado; },
         get marcador() { return { ...partido.marcador }; }
     };
