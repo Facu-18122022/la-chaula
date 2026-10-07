@@ -4,6 +4,9 @@
  * Archivo de scripts auxiliares para los botones del menú principal.
  * Contiene referencias y manejadores de eventos (Ej: jugar online, opciones).
  */
+const btnPlayOnline =
+document.getElementById("btnPlayOnline");
+
 const btnSettings =
 document.getElementById("btnSettings");
 
@@ -14,13 +17,9 @@ document.getElementById("btnExit");
 /* JUGAR ONLINE */
 /* ========================= */
 
-const btnPlayOnline =
-document.getElementById("btnPlayOnline");
-
 btnPlayOnline.addEventListener("click", () => {
 
-    window.location.href =
-    "../pages/online.html";
+    irA("../pages/online.html");
 
 });
 
@@ -30,8 +29,7 @@ btnPlayOnline.addEventListener("click", () => {
 
 btnSettings.addEventListener("click", () => {
 
-    window.location.href =
-    "../pages/configuracion.html";
+    irA("../pages/configuracion.html");
 
 });
 
@@ -39,15 +37,34 @@ btnSettings.addEventListener("click", () => {
 /* SALIR */
 /* ========================= */
 
+/* En la cabina no hay ventana que cerrar ni mouse para  */
+/* responder un confirm(): SALIR vuelve a la pantalla de  */
+/* "Insertá ficha".                                       */
+
 btnExit.addEventListener("click", () => {
 
-    const salir =
-    confirm("¿Deseas salir?");
+    irA("../index.html");
 
-    if(salir){
+});
 
-        window.close();
+function irA(url){
+
+    if(window.NavegacionArcade){
+
+        window.NavegacionArcade.irA(url);
+
+    }else{
+
+        window.location.href = url;
 
     }
 
-});
+}
+
+if(window.NavegacionArcade){
+
+    window.NavegacionArcade.iniciar({
+        alVolver: () => irA("../index.html")
+    });
+
+}

@@ -13,6 +13,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const { iniciarOnline } = require("./online/sockets.js");
+const ListaMusica = require("./lista-musica.js");
 
 const publicPath = path.join(__dirname, 'public');
 
@@ -26,9 +27,21 @@ function crearServidor() {
 
     app.use(express.static(publicPath));
 
-    // Redirigir raíz a inicio.html
+    // Lista de canciones (como en develop): las de musica/ suenan en los menús
+    // y las de musica/partido/ en el partido. Para sumar una, copiar el .mp3.
+    app.get('/api/musica', (req, res) => {
+        res.set('Cache-Control', 'no-store');
+        res.json(ListaMusica.listarTodo('/musica/'));
+    });
+    try {
+        ListaMusica.escribirListaArchivo();
+    } catch (error) {
+        console.warn('No se pudo actualizar musica/lista.js:', error.message);
+    }
+
+    // Redirigir raíz a index.html
     app.get('/', (req, res) => {
-        res.sendFile(path.join(publicPath, 'inicio.html'));
+        res.sendFile(path.join(publicPath, 'index.html'));
     });
 
     // Para que el hosting sepa que el servidor está vivo.

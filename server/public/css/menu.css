@@ -20,11 +20,27 @@
     --menu-hover-saturation: 1.16;
 }
 
+/* Una sola declaración de body: el menú entra justo en la pantalla, sin scroll.
+   El fondo es la foto del estadio de noche (cover, centrada) con una capa oscura
+   encima: arriba se ven los reflectores y abajo se oscurece para que se lean los botones. */
 body {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     color: var(--menu-text);
     background-color: var(--space-ink);
-    background-image: radial-gradient(circle at 50% 40%, var(--menu-space-center) 0%, #080a14 48%, var(--menu-space-edge) 100%);
+    background-image:
+        radial-gradient(ellipse at 50% 40%, transparent 35%, rgba(2, 6, 23, .55) 100%),
+        linear-gradient(180deg,
+            rgba(2, 6, 23, .30) 0%,
+            rgba(2, 6, 23, .10) 30%,
+            rgba(2, 6, 23, .45) 62%,
+            rgba(2, 6, 23, .82) 100%),
+        url("../img/fondo.jpg");
+    background-position: center, center, center;
+    background-size: cover, cover, cover;
+    background-repeat: no-repeat;
 }
 
 body::before,
@@ -36,30 +52,20 @@ body::after {
     content: "";
 }
 
-body{
-
-    width:100vw;
-    height:100vh;
-
-    overflow:hidden;
-
-    background:
-    radial-gradient(circle at center,
-    #1e3a8a 0%,
-    #0f172a 45%,
-    #020617 100%);
-
-    color:white;
-}
+/* Las estrellas de retro-ui ensucian la foto: en el menú quedan apenas insinuadas. */
+body.menu-page::before { opacity: .12; }
+body.menu-page::after { opacity: .08; }
 
 /* ========================= */
 /* VISTAS */
 /* ========================= */
 
+/* 100% y no 100vw: el vw cuenta la barra de scroll y empuja todo a la derecha. */
 .view{
 
-    width:100vw;
+    width:100%;
     height:100vh;
+    height:100dvh;
 
 }
 
@@ -72,11 +78,20 @@ body{
 /* MENU */
 /* ========================= */
 
+/* Tres filas: logo arriba, los botones se comen el espacio que sobra y el pie
+   queda abajo, siempre visible. */
 #main-menu{
 
     position:relative;
 
-    padding:30px;
+    display:grid;
+    grid-template-rows:auto minmax(0, 1fr) auto;
+    /* minmax(0) y no auto: si no, el ancho natural del logo (1727px) ensancha la columna. */
+    grid-template-columns:minmax(0, 1fr);
+    justify-items:center;
+    gap:clamp(8px, 2vh, 20px);
+
+    padding:clamp(12px, 3vh, 36px) clamp(16px, 3vw, 40px) 12px;
 
 }
 
@@ -84,63 +99,92 @@ body{
 /* LOGO */
 /* ========================= */
 
+/* El PNG tiene fondo negro: con screen el negro desaparece sobre el cielo oscuro. */
 .logo-container{
-
-    position:absolute;
-
-    top:20px;
-    left:30px;
-
-    width:320px;
-    height:110px;
-
-    border-radius:18px;
-
-    background-image:url("../img/logo.png");
-    background-size:cover;
-    background-position:center;
 
     display:flex;
     justify-content:center;
     align-items:center;
 
-    z-index:20;
-}
+    width:min(100%, 720px);
+    height:clamp(56px, 18vh, 220px);
 
-.logo-container h1{
+    margin:0;
 
-    font-size:4rem;
-
-    font-weight:900;
-
-    text-shadow:
-        0 0 25px rgba(255,255,255,.3);
+    pointer-events:none;
 
 }
 
+.logo-container img{
+
+    display:block;
+
+    max-width:100%;
+    max-height:100%;
+
+    object-fit:contain;
+
+    mix-blend-mode:screen;
+
+    filter:drop-shadow(0 6px 18px rgba(0, 0, 0, .55));
+
+}
+
+/* JUGAR LOCAL arriba ocupando las dos columnas; CONFIGURACION y SALIR abajo.
+   Bloque centrado y bajo: deja ver los reflectores de los costados. */
 .menu-grid {
     display: grid;
-    width: 100%;
-    height: calc(100vh - 180px);
-    min-height: 440px;
-    margin-top: 140px;
-    grid-template-columns: 1.1fr .9fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 18px;
+    align-self: center;
+    width: min(100%, 1040px, 88vw);
+    height: min(100%, 540px);
+    min-height: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: clamp(10px, 2vh, 18px) clamp(10px, 1.6vw, 18px);
 }
 
+.menu-card--play {
+    grid-column: 1 / -1;
+}
+
+/* El borde lo dibuja ::before siguiendo el clip-path: un border común queda
+   recortado en los lados inclinados y solo se ve arriba y abajo.
+   La inclinación va en px (no en %) para que las tres tarjetas tengan el mismo ángulo. */
 .smash-panel {
+    --marco: 3px;
+    --marco-x: calc(var(--marco) * 1.2);
+    --marco-color: var(--panel-line);
+    --inclinacion: clamp(16px, 2.4vw, 40px);
     position: relative;
-    min-height: 220px;
+    min-height: 0;
     overflow: hidden;
-    border: 3px solid var(--panel-line);
+    border: 0;
     border-radius: 0 !important;
-    clip-path: polygon(7% 0, 100% 0, 93% 100%, 0 100%);
+    clip-path: polygon(var(--inclinacion) 0, 100% 0, calc(100% - var(--inclinacion)) 100%, 0 100%);
     color: var(--menu-text);
     text-align: left;
     cursor: pointer;
-    box-shadow: 0 9px 0 var(--menu-panel-shadow), 0 0 15px 5px var(--panel-glow, rgba(0, 188, 212, .2));
-    transition: transform .2s ease-out, box-shadow .2s ease-out, filter .2s ease-out;
+    transition: filter .2s ease-out;
+    /* Se ve la foto de atrás, un poco borroneada para que no compita con el texto. */
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+}
+
+/* Marco: el polígono de afuera menos el de adentro (evenodd) = un borde con la forma de la tarjeta. */
+.smash-panel::before {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    content: "";
+    background: var(--marco-color);
+    clip-path: polygon(evenodd,
+        var(--inclinacion) 0, 100% 0, calc(100% - var(--inclinacion)) 100%, 0 100%, var(--inclinacion) 0,
+        calc(var(--inclinacion) + var(--marco-x)) var(--marco),
+        calc(100% - var(--marco-x)) var(--marco),
+        calc(100% - var(--inclinacion) - var(--marco-x)) calc(100% - var(--marco)),
+        var(--marco-x) calc(100% - var(--marco)),
+        calc(var(--inclinacion) + var(--marco-x)) var(--marco));
 }
 
 .smash-panel::after {
@@ -155,23 +199,22 @@ body{
     mix-blend-mode: overlay;
 }
 
+/* Hover sin mover la tarjeta: si se agranda o sube, se desalinea la grilla. */
 .smash-panel:hover {
-    z-index: 3;
-    transform: scale(1.02) translateY(-4px);
     filter: brightness(var(--menu-hover-brightness)) saturate(var(--menu-hover-saturation));
-    box-shadow: 0 12px 0 var(--menu-panel-shadow), 0 0 25px 9px var(--panel-glow);
 }
 
-.smash-panel:active { transform: scale(.99) translateY(2px); }
+.smash-panel:active { filter: brightness(.95); }
 
 .smash-panel:focus-visible {
     outline: 3px solid #fff;
     outline-offset: 5px;
 }
 
+/* Colores de siempre, semitransparentes: por detrás se adivina el estadio. */
 .menu-card--play {
     --panel-glow: rgba(212, 0, 52, .62);
-    background: linear-gradient(135deg, #a6002b 0%, var(--primary-red) 45%, #ff5b38 100%);
+    background: linear-gradient(135deg, rgba(166, 0, 43, .88) 0%, rgba(212, 0, 52, .80) 45%, rgba(255, 91, 56, .68) 100%);
 }
 
 .menu-card--settings{
@@ -179,8 +222,8 @@ body{
     background:
     linear-gradient(
         135deg,
-        #2563eb,
-        #00c2ff
+        rgba(37, 99, 235, .85),
+        rgba(0, 194, 255, .62)
     );
 
 }
@@ -190,32 +233,9 @@ body{
     background:
     linear-gradient(
         135deg,
-        #334155,
-        #64748b
+        rgba(51, 65, 85, .88),
+        rgba(100, 116, 139, .66)
     );
-
-}
-
-.menu-card--art{
-
-    background:
-        url("../img/fondo.jpg") center center / cover no-repeat;
-
-    border: 2px solid rgba(255,255,255,.18);
-    box-shadow: inset 0 0 35px rgba(0,0,0,.35);
-    cursor: default;
-    opacity: .95;
-
-}
-
-.menu-card--art .menu-card__image{
-
-    background:
-        linear-gradient(
-            180deg,
-            rgba(15, 23, 42, 0.15),
-            rgba(15, 23, 42, 0.4)
-        );
 
 }
 
@@ -223,6 +243,7 @@ body{
 /* PLACEHOLDER */
 /* ========================= */
 
+/* Brillo diagonal de arriba, como en las tarjetas de Smash. */
 .menu-card__image{
 
     position:absolute;
@@ -230,7 +251,7 @@ body{
     inset:0;
 
     background:
-        rgba(255,255,255,.08);
+        linear-gradient(160deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 45%, transparent 46%);
 
 }
 
@@ -242,10 +263,18 @@ body{
 
     position:absolute;
 
-    left:35px;
-    bottom:30px;
+    /* Margen izquierdo con hueco para la flecha ▶ de la selección (va en absoluto, no corre el texto). */
+    left:calc(var(--inclinacion) + clamp(30px, 3vw, 48px));
+    right:calc(var(--inclinacion) + 8px);
+    bottom:clamp(10px, 3vh, 26px);
 
     z-index:5;
+
+}
+
+.menu-card--play .menu-card__content{
+
+    bottom:clamp(14px, 4vh, 36px);
 
 }
 
@@ -259,9 +288,13 @@ body{
 
 .menu-card__content h2{
 
+    position:relative;
+
     font-size:2.2rem;
 
     font-weight:900;
+
+    white-space:nowrap;
 
     text-shadow:
         0 4px 15px rgba(0,0,0,.35);
@@ -272,20 +305,10 @@ body{
 /* HOVER */
 /* ========================= */
 
-.menu-card:hover{
-
-    transform:
-        scale(1.03);
-
-    filter:
-        brightness(1.15);
-
-}
-
-.menu-card:hover .menu-card__image{
+.smash-panel:hover .menu-card__image{
 
     background:
-        rgba(255,255,255,.18);
+        rgba(255,255,255,.14);
 
 }
 
@@ -293,20 +316,31 @@ body{
 /* RESPONSIVE */
 /* ========================= */
 
-@media(max-width:900px){
+/* Angosto: las tres tarjetas en una columna, JUGAR LOCAL un poco más alta. */
+@media(max-width:600px){
 
     .menu-grid{
 
-        grid-template-columns:1fr;
+        grid-template-columns:minmax(0, 1fr);
 
-        grid-template-rows:
-            repeat(4,1fr);
+        grid-template-rows:minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
 
     }
 
-    .menu-card__content h2{
+}
 
-        font-size:2rem;
+/* Pantallas bajitas: menos aire para que las tarjetas no corten el texto. */
+@media(max-height:560px){
+
+    .menu-grid{
+
+        gap:8px;
+
+    }
+
+    .menu-card__subtitle{
+
+        margin-bottom:2px;
 
     }
 

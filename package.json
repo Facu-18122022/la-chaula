@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "nodemon server/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "musica": "node server/lista-musica.js"
   },
   "dependencies": {
     "express": "^4.19.2",

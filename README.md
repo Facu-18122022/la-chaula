@@ -11,7 +11,7 @@
 - **Mapas Dinámicos y Gamificados** (los mismos del arcade, con vista previa al elegirlos): Una variedad de mapas con distintos tamaños (desde 1v1 hasta 5v5), temáticas y colores (Cyberpunk, Volcánico, Micro Arena, etc.).
 - **Salas online estilo HaxBall**: cualquiera crea una sala (con contraseña opcional), los demás entran desde la lista o con un link, y el admin elige quién juega en Rojo, Azul o queda de espectador. Chat por sala en tiempo real.
 - **Configuración Personalizada**: Ajustes de música y temas que persisten gracias al uso de `localStorage`.
-- **Sistema de Audio**: Banda sonora integrada que cambia dinámicamente dependiendo si te encuentras en un menú o dentro de una partida.
+- **Sistema de Audio**: las canciones de `server/public/musica/` rotan solas (para sumar una, copiá el .mp3); la tecla **M** cambia de tema en cualquier pantalla. Efectos 8-bit en menús y partido.
 
 ## Tecnologías Utilizadas 🛠️
 

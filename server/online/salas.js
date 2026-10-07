@@ -547,8 +547,10 @@ class GestorSalas {
     }
 
     procesarEvento(sala, evento) {
-        // Las patadas no se avisan: los navegadores ya ven el borde blanco en la foto.
-        if (evento.tipo === 'patada') return;
+        if (evento.tipo === 'patada') {
+            this.emisor.aSala(sala.id, 'partido:evento', evento);
+            return;
+        }
         if (evento.tipo === 'gol') {
             const equipo = evento.equipo === 'red' ? 'Rojo' : 'Azul';
             const autor = evento.autor ? `: ${evento.autor}${evento.enContra ? ' (en contra)' : ''}` : '';

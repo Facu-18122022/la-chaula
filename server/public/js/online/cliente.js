@@ -578,6 +578,7 @@
         ajustarCanvas(mapa);
         dibujante.reiniciarEfectos();
         estado.fotos = [];
+        sonar('silbato');
         mostrarPanel(false);
         if (document.activeElement) document.activeElement.blur();
     });
@@ -592,6 +593,11 @@
         mostrarPanel(true);
     });
 
+    // Mismos efectos 8-bit que el arcade (js/arcade/sonidos.js de develop).
+    function sonar(nombre) {
+        if (window.Sonidos) window.Sonidos.reproducir(nombre);
+    }
+
     function mostrarCartel(texto, equipo, duracionMs) {
         const cartel = $('cartelGol');
         cartel.textContent = texto;
@@ -603,6 +609,9 @@
 
     socket.on('partido:evento', evento => {
         // El gol se festeja dentro de la cancha (mismo dibujo que el arcade).
+        if (evento.tipo === 'patada') sonar('patada');
+        else if (evento.tipo === 'gol') sonar('gol');
+        else if (evento.tipo === 'saque') sonar('silbato');
         if (evento.tipo === 'tiempoExtra') {
             mostrarCartel('¡TIEMPO EXTRA!', null, 2000);
         }
@@ -611,6 +620,7 @@
     socket.on('partido:fin', evento => {
         const texto = evento.ganador ? `¡GANÓ ${NOMBRE_EQUIPO[evento.ganador].toUpperCase()}!` : '¡EMPATE!';
         mostrarCartel(`${texto} ${evento.marcador.red} - ${evento.marcador.blue}`, evento.ganador, 4000);
+        sonar('silbato');
         estado.fotos = [];
         setTimeout(() => mostrarPanel(true), 1500);
     });
