@@ -1,16 +1,14 @@
 # La Chaula ⚽
 
-**La Chaula** es un dinámico juego de fútbol 2D, jugable tanto en modo multijugador local (offline) como en multijugador **online hasta 5 vs 5**, al estilo HaxBall. Construido con Vanilla JavaScript, Canvas API y Node.js + Socket.IO, el juego incluye un motor físico desarrollado desde cero para manejar colisiones, fricción y físicas de la pelota.
+**La Chaula** es un dinámico juego de fútbol 2D, multijugador **online hasta 5 vs 5**, al estilo HaxBall. Construido con Vanilla JavaScript, Canvas API y Node.js + Socket.IO, el juego incluye un motor físico desarrollado desde cero para manejar colisiones, fricción y físicas de la pelota.
 
 > Esta es la rama **`version-online`**. La versión para la cabina arcade está en la rama `develop`.
 
 ## Características Principales 🚀
 
-- **Multijugador Online y Local**: 
-  - Juega online con tus amigos en salas de hasta 5 vs 5 (por internet o red LAN).
-  - O disfruta de un modo de juego en la misma pantalla (Local).
+- **Multijugador Online**: juega con tus amigos en salas de hasta 5 vs 5, por internet o red LAN. (El modo local para la cabina arcade vive en la rama `develop`.)
 - **Física Realista 2D**: Motor de física propio para gestionar la aceleración de jugadores, el rebote de la pelota en los bordes y las colisiones entre jugadores y pelota.
-- **Mapas Dinámicos y Gamificados**: Una variedad de mapas con distintos tamaños (desde 1v1 hasta 5v5), temáticas y colores (Cyberpunk, Volcánico, Micro Arena, etc.).
+- **Mapas Dinámicos y Gamificados** (los mismos del arcade, con vista previa al elegirlos): Una variedad de mapas con distintos tamaños (desde 1v1 hasta 5v5), temáticas y colores (Cyberpunk, Volcánico, Micro Arena, etc.).
 - **Salas online estilo HaxBall**: cualquiera crea una sala (con contraseña opcional), los demás entran desde la lista o con un link, y el admin elige quién juega en Rojo, Azul o queda de espectador. Chat por sala en tiempo real.
 - **Configuración Personalizada**: Ajustes de música y temas que persisten gracias al uso de `localStorage`.
 - **Sistema de Audio**: Banda sonora integrada que cambia dinámicamente dependiendo si te encuentras en un menú o dentro de una partida.
@@ -62,12 +60,10 @@ Desde el menú: **JUGAR ONLINE**.
 
 Si se corta la conexión (o se recarga la página) hay 15 segundos para volver sin perder el lugar ni el equipo.
 
-**Canchas para muchos jugadores:** *HaxBall Big* (3v3 a 5v5) y *HaxBall Huge* (4v4 a 5v5) replican los estadios grandes de HaxBall; *HaxBall Classic* y las temáticas chicas son mejores para 1v1 a 3v3.
-
 ### Cómo funciona por dentro
 
-- El **servidor es el que juega el partido**: corre la física a 60 ticks por segundo y le manda la posición de todo a cada sala 30 veces por segundo. Los navegadores solo mandan qué teclas están apretadas y dibujan, interpolando entre fotos para que se vea fluido. Así nadie puede hacer trampa moviendo su jugador desde el navegador.
-- La física es la misma del modo arcade (`fisica-haxball.js`, traída de la rama `develop`).
+- El **servidor es el que juega el partido**: corre la física a 60 ticks por segundo y le manda la posición de todo a cada sala en cada tick. Los navegadores solo mandan qué teclas están apretadas y dibujan, interpolando entre fotos para que se vea fluido. Así nadie puede hacer trampa moviendo su jugador desde el navegador.
+- La física, las canchas y el dibujo (fondos temáticos, poderes con su ícono y animación, festejo de gol) son los mismos del modo arcade de la rama `develop`.
 - Toda la experiencia online es una sola página (`pages/online.html`), así la conexión no se corta al pasar de la lista de salas al partido.
 
 ### Subirlo a un servidor (para jugar por internet)
@@ -91,10 +87,10 @@ En un VPS propio: `npm install && PORT=80 npm start` (o detrás de nginx con sop
   - `mapas.js`: canchas disponibles online.
 - `server/public/`: Carpeta con todos los archivos estáticos (Frontend).
   - `css/` y `img/`: Estilos visuales e imágenes del juego.
-  - `pages/`: Vistas HTML (menú, configuración, partida local y `online.html`).
+  - `pages/`: Vistas HTML (menú, configuración y `online.html`).
   - `js/`: Lógica del cliente, dividida en:
     - `online/`: cliente online (`cliente.js`) y dibujo de la cancha (`dibujo.js`).
-    - `local/`: Físicas y lógica del modo local (`fisica-haxball.js` es la física compartida con el servidor).
+    - `local/`: `fisica-haxball.js` y `mapas.js`, copiados tal cual de `develop` (los usa el servidor para jugar igual que el arcade).
 - `test/`: Pruebas automáticas (`npm test`).
 
 ## Desarrollo y Contribución 🤝

@@ -131,11 +131,11 @@ test('chat: limpia el texto y frena el spam', () => {
 test('configuración: solo valores válidos y no durante el partido', () => {
     const { gestor, sala } = salaConGente(2);
     assert.ok(gestor.configurar('s0', { tiempoMin: 4 }).error);
-    assert.equal(gestor.configurar('s0', { tiempoMin: 5, goles: 0, mapaId: 'hb-huge', powerUps: true }).ok, true);
-    assert.deepEqual(sala.config, { mapaId: 'hb-huge', tiempoMin: 5, goles: 0, powerUps: true, equiposBloqueados: true });
+    assert.equal(gestor.configurar('s0', { tiempoMin: 5, goles: 0, mapaId: 'champions', powerUps: false }).ok, true);
+    assert.deepEqual(sala.config, { mapaId: 'champions', tiempoMin: 5, goles: 0, powerUps: false, equiposBloqueados: true });
     assert.ok(gestor.configurar('s1', { tiempoMin: 3 }).error, 'no admin');
     gestor.iniciarPartido('s0');
-    assert.match(gestor.configurar('s0', { mapaId: 'hb-classic' }).error, /Detené/);
+    assert.match(gestor.configurar('s0', { mapaId: 'haxball' }).error, /Detené/);
 });
 
 test('mezclar reparte parejo en dos equipos', () => {

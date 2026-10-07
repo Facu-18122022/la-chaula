@@ -127,17 +127,32 @@
                         </section>
                     </div>
 
-                    <div id="controlesAdmin" class="online-admin">
-                        <label>Cancha <select id="cfgMapa"></select></label>
-                        <label>Tiempo <select id="cfgTiempo"></select></label>
-                        <label>Goles <select id="cfgGoles"></select></label>
-                        <label class="online-check"><input id="cfgPowerUps" type="checkbox"> Power-ups</label>
-                        <label class="online-check"><input id="cfgBloqueo" type="checkbox"> Solo el admin arma equipos</label>
-                        <div class="online-admin__botones">
-                            <button id="mezclar" class="ssf-button" type="button">Mezclar equipos</button>
-                            <button id="pausa" class="ssf-button" type="button">Pausa (P)</button>
-                            <button id="iniciarDetener" class="ssf-button ssf-button-primary" type="button">Iniciar partido</button>
-                        </div>
+                    <div class="online-config">
+                        <section class="online-config__cancha">
+                            <h3>Cancha</h3>
+                            <div class="online-carrusel">
+                                <button id="mapaAnterior" class="online-flecha ssf-button" type="button" aria-label="Cancha anterior">◀</button>
+                                <figure class="online-carrusel__vista">
+                                    <canvas id="previewMapa"></canvas>
+                                    <figcaption id="nombreMapa">—</figcaption>
+                                </figure>
+                                <button id="mapaSiguiente" class="online-flecha ssf-button" type="button" aria-label="Cancha siguiente">▶</button>
+                            </div>
+                            <div id="miniaturas" class="online-miniaturas" role="listbox" aria-label="Canchas"></div>
+                        </section>
+
+                        <section id="controlesAdmin" class="online-config__reglas">
+                            <h3>Partido</h3>
+                            <label class="online-campo">Tiempo <select id="cfgTiempo"></select></label>
+                            <label class="online-campo">Límite de goles <select id="cfgGoles"></select></label>
+                            <label class="online-check"><input id="cfgPowerUps" type="checkbox"> Power-ups (rayo, escudo y súper tiro)</label>
+                            <label class="online-check"><input id="cfgBloqueo" type="checkbox"> Solo el admin arma equipos</label>
+                            <div class="online-admin__botones">
+                                <button id="mezclar" class="ssf-button" type="button">Mezclar equipos</button>
+                                <button id="pausa" class="ssf-button" type="button">Pausa (P)</button>
+                                <button id="iniciarDetener" class="ssf-button ssf-button-primary" type="button">Iniciar partido</button>
+                            </div>
+                        </section>
                     </div>
                     <p id="infoNoAdmin" class="online-nota" hidden>El admin elige los equipos y arranca el partido.</p>
                     <p id="ultimoResultado" class="online-nota" hidden></p>

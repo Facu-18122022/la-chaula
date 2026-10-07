@@ -5,7 +5,7 @@
  * navegadores solo mandan qué teclas tocan y dibujan lo que reciben).
  *
  * Usa el mismo motor de física que el modo arcade (fisica-haxball.js, traído
- * de la rama develop) y las mismas reglas que match-manager.js:
+ * de la rama develop) y las mismas reglas que match-manager.js del arcade:
  *   SAQUE → JUGANDO → GOL → SAQUE ... → FIN
  * - El reloj solo corre con la pelota en juego.
  * - Después del gol la física sigue unos segundos y saca el que lo recibió.
@@ -206,7 +206,7 @@ function crearPartido({ mapa, jugadores = [], tiempoMin = 3, goles = 3, powerUps
     /* ESTADO PARA LOS CLIENTES */
     /* ========================= */
 
-    /** Foto compacta que se manda ~30 veces por segundo. */
+    /** Foto compacta que se manda 60 veces por segundo. */
     function snapshot() {
         return {
             f: partido.fase,
@@ -216,6 +216,11 @@ function crearPartido({ mapa, jugadores = [], tiempoMin = 3, goles = 3, powerUps
             x: partido.tiempoExtra ? 1 : 0,
             s: estado.kickoffTeam,
             b: [redondear(estado.ball.x), redondear(estado.ball.y), redondear(estado.ball.r)],
+            // Festejo de gol: cuánto pasó y quién lo hizo (para la animación de develop).
+            g: partido.fase === 'GOL' ? Math.round(partido.golTranscurridoMs) : null,
+            ug: partido.goles.length ? (({ equipo, autor, enContra }) => [equipo, autor, enContra ? 1 : 0])(partido.goles[partido.goles.length - 1]) : null,
+            // Último súper tiro (para la explosión).
+            i: estado.lastPowerImpact ? [estado.lastPowerImpact.id, redondear(estado.lastPowerImpact.x), redondear(estado.lastPowerImpact.y)] : null,
             j: estado.players.map(jugador => [
                 jugador.id,
                 redondear(jugador.x),

@@ -16,7 +16,8 @@
     const $ = id => document.getElementById(id);
 
     const CLAVE_NOMBRE = 'lachaula_nombre';
-    const RETARDO_INTERPOLACION_MS = 60;
+    // El servidor manda 60 fotos por segundo: con un atraso chico ya hay dos para interpolar.
+    const RETARDO_INTERPOLACION_MS = 25;
     const BITS_TECLA = {
         ArrowUp: 1, KeyW: 1,
         ArrowDown: 2, KeyS: 2,
@@ -35,11 +36,15 @@
         teclas: new Set(),
         bits: 0,
         panelVisible: true,
-        cartelTimeout: null
+        cartelTimeout: null,
+        mapas: [],
+        ultimoDibujo: null
     };
 
     const canvas = $('cancha');
-    const ctx = canvas.getContext('2d');
+    const dibujante = DibujoOnline.crearDibujante(canvas);
+    const preview = $('previewMapa');
+    const dibujantePreview = DibujoOnline.crearDibujante(preview);
 
     /* ========================= */
     /* UTILIDADES                */
@@ -259,6 +264,10 @@
         estado.tuId = respuesta.tuId;
         estado.token = respuesta.token;
         estado.fotos = [];
+        if (respuesta.mapas) {
+            estado.mapas = respuesta.mapas;
+            dibujarMiniaturas();
+        }
         sessionStorage.setItem(claveToken(respuesta.salaId), respuesta.token);
         history.replaceState(null, '', `?sala=${respuesta.salaId}`);
         $('vistaSalas').hidden = true;
@@ -311,7 +320,10 @@
     function actualizarSala(sala) {
         const mapaAnterior = estado.sala && estado.sala.mapa.id;
         estado.sala = sala;
-        if (mapaAnterior !== sala.mapa.id || canvas.width !== sala.mapa.width) ajustarCanvas(sala.mapa);
+        if (mapaAnterior !== sala.mapa.id || canvas.width !== sala.mapa.width) {
+            ajustarCanvas(sala.mapa);
+            dibujante.reiniciarEfectos();
+        }
         $('tituloSala').textContent = sala.nombre;
         $('codigoActual').textContent = sala.id;
         $('candado').hidden = !sala.conClave;
@@ -418,22 +430,82 @@
 
     function dibujarControlesAdmin(sala) {
         const admin = soyAdmin();
-        $('controlesAdmin').hidden = !admin;
+        const enPartido = !!sala.partido;
         $('infoNoAdmin').hidden = admin;
-        llenarSelect($('cfgMapa'), sala.mapas.map(mapa => [mapa.id, `${mapa.name} (${mapa.recomendado})`]));
         llenarSelect($('cfgTiempo'), sala.tiempos.map(minutos => [minutos, `${minutos} min`]));
         llenarSelect($('cfgGoles'), sala.golesValidos.map(goles => [goles, goles ? `${goles}` : 'Sin límite']));
-        $('cfgMapa').value = sala.config.mapaId;
         $('cfgTiempo').value = String(sala.config.tiempoMin);
         $('cfgGoles').value = String(sala.config.goles);
         $('cfgPowerUps').checked = sala.config.powerUps;
         $('cfgBloqueo').checked = sala.config.equiposBloqueados;
-        const enPartido = !!sala.partido;
-        ['cfgMapa', 'cfgTiempo', 'cfgGoles', 'cfgPowerUps', 'mezclar'].forEach(id => { $(id).disabled = enPartido; });
+        // Los que no son admin ven la configuración pero no la pueden tocar.
+        ['cfgTiempo', 'cfgGoles', 'cfgPowerUps'].forEach(id => { $(id).disabled = !admin || enPartido; });
+        $('cfgBloqueo').disabled = !admin;
+        ['mapaAnterior', 'mapaSiguiente'].forEach(id => { $(id).hidden = !admin; $(id).disabled = enPartido; });
+        document.querySelectorAll('.online-miniatura').forEach(boton => {
+            const elegida = boton.dataset.mapa === sala.config.mapaId;
+            boton.classList.toggle('online-miniatura--elegida', elegida);
+            boton.setAttribute('aria-selected', String(elegida));
+            boton.disabled = !admin || enPartido;
+        });
+        const mapa = mapaPorId(sala.config.mapaId);
+        $('nombreMapa').textContent = mapa ? mapa.name : sala.mapa.name;
+        document.querySelector('.online-admin__botones').hidden = !admin;
+        $('mezclar').disabled = enPartido;
         $('pausa').disabled = !enPartido;
         $('pausa').textContent = enPartido && sala.partido.pausado ? 'Seguir (P)' : 'Pausa (P)';
         $('iniciarDetener').textContent = enPartido ? 'Detener partido' : 'Iniciar partido';
         $('iniciarDetener').classList.toggle('ssf-button-danger', enPartido);
+    }
+
+    function mapaPorId(id) {
+        return estado.mapas.find(mapa => mapa.id === id) || null;
+    }
+
+    // Miniaturas de todas las canchas: se dibujan una vez con el mismo dibujo del partido.
+    function dibujarMiniaturas() {
+        const contenedor = $('miniaturas');
+        contenedor.textContent = '';
+        estado.mapas.forEach(mapa => {
+            const boton = crearElemento('button', 'online-miniatura');
+            boton.type = 'button';
+            boton.dataset.mapa = mapa.id;
+            boton.setAttribute('role', 'option');
+            boton.title = mapa.name;
+            const lienzo = crearElemento('canvas');
+            lienzo.width = mapa.width;
+            lienzo.height = mapa.height;
+            DibujoOnline.crearDibujante(lienzo).dibujar(DibujoOnline.estadoVacio(mapa), 0, null);
+            boton.append(lienzo, crearElemento('span', '', mapa.name));
+            boton.addEventListener('click', () => elegirMapa(mapa.id));
+            contenedor.appendChild(boton);
+        });
+    }
+
+    function elegirMapa(mapaId) {
+        if (!soyAdmin() || !estado.sala || estado.sala.config.mapaId === mapaId) return;
+        accion('sala:config', { mapaId });
+    }
+
+    function moverCarrusel(paso) {
+        if (!estado.sala || !estado.mapas.length) return;
+        const indice = estado.mapas.findIndex(mapa => mapa.id === estado.sala.config.mapaId);
+        const siguiente = estado.mapas[(indice + paso + estado.mapas.length) % estado.mapas.length];
+        elegirMapa(siguiente.id);
+    }
+
+    $('mapaAnterior').addEventListener('click', () => moverCarrusel(-1));
+    $('mapaSiguiente').addEventListener('click', () => moverCarrusel(1));
+
+    // Vista previa grande de la cancha elegida (animada como en el partido).
+    function dibujarPreview() {
+        if (!estado.panelVisible || !estado.sala) return;
+        const mapa = mapaPorId(estado.sala.config.mapaId) || estado.sala.mapa;
+        if (preview.width !== mapa.width || preview.height !== mapa.height) {
+            preview.width = mapa.width;
+            preview.height = mapa.height;
+        }
+        dibujantePreview.dibujar(DibujoOnline.estadoVacio(mapa), 0, null);
     }
 
     function dibujarUltimoResultado(sala) {
@@ -450,10 +522,10 @@
         elemento.textContent = `Último partido: ${ganador} · Rojo ${resultado.marcador.red} - ${resultado.marcador.blue} Azul${lista ? ` · Goles: ${lista}` : ''}`;
     }
 
-    ['cfgMapa', 'cfgTiempo', 'cfgGoles'].forEach(id => {
+    ['cfgTiempo', 'cfgGoles'].forEach(id => {
         $(id).addEventListener('change', evento => {
-            const clave = { cfgMapa: 'mapaId', cfgTiempo: 'tiempoMin', cfgGoles: 'goles' }[id];
-            accion('sala:config', { [clave]: id === 'cfgMapa' ? evento.target.value : Number(evento.target.value) });
+            const clave = { cfgTiempo: 'tiempoMin', cfgGoles: 'goles' }[id];
+            accion('sala:config', { [clave]: Number(evento.target.value) });
             evento.target.blur();
         });
     });
@@ -504,6 +576,7 @@
     socket.on('partido:inicio', ({ mapa }) => {
         if (estado.sala) estado.sala.mapa = mapa;
         ajustarCanvas(mapa);
+        dibujante.reiniciarEfectos();
         estado.fotos = [];
         mostrarPanel(false);
         if (document.activeElement) document.activeElement.blur();
@@ -529,10 +602,8 @@
     }
 
     socket.on('partido:evento', evento => {
-        if (evento.tipo === 'gol') {
-            const autor = evento.autor ? `${evento.autor}${evento.enContra ? ' (en contra)' : ''}` : NOMBRE_EQUIPO[evento.equipo];
-            mostrarCartel(`¡GOL! ${autor}`, evento.equipo, 2300);
-        } else if (evento.tipo === 'tiempoExtra') {
+        // El gol se festeja dentro de la cancha (mismo dibujo que el arcade).
+        if (evento.tipo === 'tiempoExtra') {
             mostrarCartel('¡TIEMPO EXTRA!', null, 2000);
         }
     });
@@ -586,39 +657,53 @@
         $('faseTexto').textContent = foto ? textoFase(foto) : (estado.sala && estado.sala.partido ? '' : 'ESPERANDO');
     }
 
-    function escena(foto) {
+    // Arma el "estado" que esperan las funciones de dibujo de develop a partir de la foto del servidor.
+    function estadoParaDibujar(foto) {
         const sala = estado.sala;
+        const base = DibujoOnline.estadoVacio(sala.mapa);
+        if (!foto) return base;
         const datos = new Map(sala.jugadores.map(jugador => [jugador.id, jugador]));
         const numeros = new Map();
         ['red', 'blue'].forEach(equipo => sala.jugadores
             .filter(jugador => jugador.equipo === equipo)
             .forEach((jugador, indice) => numeros.set(jugador.id, indice + 1)));
-        if (!foto) return { mapa: sala.mapa, jugadores: [], pelota: null, powerUps: [], cartel: null };
+        base.ball = { x: foto.b[0], y: foto.b[1], r: foto.b[2] };
+        base.activePowerUps = (foto.u || []).map(([x, y, type, r]) => ({ x, y, type, r }));
+        base.lastPowerImpact = foto.i ? { id: foto.i[0], x: foto.i[1], y: foto.i[2] } : null;
+        base.players = foto.j.map(([id, x, y, r, pateando, power]) => {
+            const jugador = datos.get(id) || {};
+            return {
+                id, x, y, r,
+                equipo: jugador.equipo,
+                pateando: !!pateando,
+                activePower: power || null,
+                nombre: jugador.nombre || '',
+                numero: numeros.get(id) || '',
+                esVos: id === estado.tuId
+            };
+        });
+        return base;
+    }
+
+    function celebracionDe(foto) {
+        if (!foto || foto.f !== 'GOL' || !foto.ug) return null;
+        const [equipo, autor, enContra] = foto.ug;
         return {
-            mapa: sala.mapa,
-            pelota: { x: foto.b[0], y: foto.b[1], r: foto.b[2] },
-            powerUps: foto.u || [],
-            cartel: foto.p ? 'PAUSA' : null,
-            jugadores: foto.j.map(([id, x, y, r, pateando, power]) => {
-                const jugador = datos.get(id) || {};
-                return {
-                    x, y, r,
-                    equipo: jugador.equipo,
-                    pateando: !!pateando,
-                    power: power || null,
-                    nombre: jugador.nombre || '',
-                    numero: numeros.get(id) || '',
-                    esVos: id === estado.tuId
-                };
-            })
+            fase: 'GOL',
+            golTranscurridoMs: foto.g || 0,
+            duracionGolMs: 2500,
+            ultimoGol: { equipo, jugadorId: autor || null, enContra: !!enContra }
         };
     }
 
-    function bucle() {
+    function bucle(ahora) {
+        const delta = estado.ultimoDibujo === null ? 0 : ahora - estado.ultimoDibujo;
+        estado.ultimoDibujo = ahora;
         if (estado.sala) {
             const foto = fotoParaDibujar();
-            DibujoOnline.dibujarEscena(ctx, escena(foto));
+            dibujante.dibujar(estadoParaDibujar(foto), foto && !foto.p ? delta : 0, celebracionDe(foto));
             actualizarHud(foto);
+            dibujarPreview();
         }
         requestAnimationFrame(bucle);
     }

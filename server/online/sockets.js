@@ -3,8 +3,8 @@
  *
  * Conecta Socket.IO con el gestor de salas y corre el bucle de los partidos:
  * - La física avanza a 60 ticks por segundo (igual que HaxBall).
- * - A cada sala se le manda el estado del partido 30 veces por segundo;
- *   el navegador interpola entre fotos para que se vea fluido.
+ * - A cada sala se le manda el estado del partido en cada tick (60 por
+ *   segundo) para que el control se sienta igual que jugando en el arcade.
  *
  * Eventos que manda el navegador (todos con callback de respuesta):
  *   salas:pedir · sala:crear · sala:unirse · sala:salir · sala:chat
@@ -15,7 +15,7 @@ const { GestorSalas } = require('./salas.js');
 
 const VESTIBULO = 'vestibulo';
 const MS_TICK = 1000 / 60;
-const TICKS_POR_ENVIO = 2;
+const TICKS_POR_ENVIO = 1;
 
 function iniciarOnline(io) {
     const gestor = new GestorSalas({

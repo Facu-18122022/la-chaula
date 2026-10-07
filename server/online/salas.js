@@ -108,7 +108,6 @@ class GestorSalas {
             maxPorEquipo: MAX_POR_EQUIPO,
             config: { ...sala.config },
             mapa: this.mapaPublico(sala.config.mapaId),
-            mapas: MAPAS_ONLINE.map(({ id, name, recomendado }) => ({ id, name, recomendado })),
             tiempos: TIEMPOS_VALIDOS,
             golesValidos: GOLES_VALIDOS,
             jugadores: sala.jugadores.map(jugador => ({
@@ -184,7 +183,16 @@ class GestorSalas {
     }
 
     respuestaIngreso(sala, jugador, reconectado = false) {
-        return { ok: true, salaId: sala.id, tuId: jugador.id, token: jugador.token, reconectado, sala: this.estadoPublico(sala) };
+        return {
+            ok: true,
+            salaId: sala.id,
+            tuId: jugador.id,
+            token: jugador.token,
+            reconectado,
+            sala: this.estadoPublico(sala),
+            // Todas las canchas completas, para las vistas previas del panel (se manda una sola vez).
+            mapas: MAPAS_ONLINE.map(mapa => this.mapaPublico(mapa.id))
+        };
     }
 
     /* ========================= */
@@ -208,7 +216,7 @@ class GestorSalas {
                 mapaId: MAPA_POR_DEFECTO,
                 tiempoMin: 3,
                 goles: 3,
-                powerUps: false,
+                powerUps: true,
                 equiposBloqueados: true
             },
             jugadores: [],

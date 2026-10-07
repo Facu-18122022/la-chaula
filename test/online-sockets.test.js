@@ -65,7 +65,8 @@ test('online: crear sala, unirse, armar equipos, jugar y chatear', async () => {
 
         const inicio = esperar(invitado, 'partido:inicio');
         assert.equal((await emitir(admin, 'partido:iniciar')).ok, true);
-        assert.equal((await inicio).mapa.id, 'hb-big');
+        assert.equal((await inicio).mapa.id, 'haxball');
+        assert.equal(creada.mapas.length, 11);
 
         // El invitado (azul) se mueve hacia arriba y el servidor lo refleja.
         const primera = await esperar(invitado, 'partido:estado');
