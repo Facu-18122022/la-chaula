@@ -37,15 +37,52 @@ btnSettings.addEventListener("click", () => {
 /* SALIR */
 /* ========================= */
 
-/* En la cabina no hay ventana que cerrar ni mouse para  */
-/* responder un confirm(): SALIR vuelve a la pantalla de  */
-/* "Insertá ficha".                                       */
+/* SALIR cierra el juego. En la cabina el navegador lo abre */
+/* Batocera: al cerrarse vuelve al menú de Batocera. Sin    */
+/* confirm(): no hay mouse para responderlo.                */
 
 btnExit.addEventListener("click", () => {
 
-    irA("../index.html");
+    salir();
 
 });
+
+const pie = document.querySelector(".arcade-pie");
+const textoPie = pie.textContent;
+let temporizadorAviso = null;
+
+function salir(){
+
+    if(window.NavegacionArcade){
+
+        window.NavegacionArcade.salir(avisarQueNoSeCerro);
+
+    }else{
+
+        window.close();
+        setTimeout(avisarQueNoSeCerro, 700);
+
+    }
+
+}
+
+/* El navegador no dejó cerrar la ventana (por ejemplo, la abrieron con otra  */
+/* página antes en el historial): se avisa cómo salir. Mayúsculas sin tilde   */
+/* porque la fuente pixel dibuja mal las acentuadas.                           */
+function avisarQueNoSeCerro(){
+
+    pie.textContent = "NO SE PUDO CERRAR SOLO · SALI CON HOTKEY+START (BATOCERA)";
+    pie.classList.add("arcade-pie--aviso");
+
+    clearTimeout(temporizadorAviso);
+    temporizadorAviso = setTimeout(() => {
+
+        pie.textContent = textoPie;
+        pie.classList.remove("arcade-pie--aviso");
+
+    }, 8000);
+
+}
 
 function irA(url){
 

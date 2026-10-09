@@ -325,6 +325,12 @@ html::after {
     margin: 0;
 }
 
+/* Aviso en el pie (por ejemplo, SALIR cuando el navegador no deja cerrar): fijo, sin parpadear. */
+.arcade-pie--aviso {
+    color: var(--fichin-amarillo);
+    animation: none;
+}
+
 .arcade-aviso {
     min-height: 1.8em;
     margin-top: 14px;

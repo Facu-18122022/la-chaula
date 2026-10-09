@@ -103,6 +103,7 @@ El modo local también anda abriendo directamente `server/public/index.html` (un
 - **Música**: sin servidor no existe `/api/musica`, así que se usa `server/public/musica/lista.js`. `npm start` la actualiza solo; si agregás canciones y copiás el juego a la cabina sin arrancar el servidor, corré antes `npm run musica`.
 - **Que suene sin tocar el teclado**: en Chrome, el parámetro `--autoplay-policy=no-user-gesture-required` de arriba. En Firefox, en `about:config` poné `media.autoplay.default` en `0` (o en Ajustes → Privacidad → Permisos → Reproducción automática: *Permitir audio y video*).
 - **Joysticks**: con Firefox, ver arriba (el Jugador 1 aprieta PATEAR al empezar). Con Chromium no hace falta.
+- **SALIR vuelve al menú de Batocera**: el botón *SALIR* del menú cierra la ventana del navegador y, al terminar el navegador, Batocera vuelve a su menú. El navegador solo deja que una página cierre su ventana si no hay otra antes en el historial; por eso el juego cambia de pantalla con `location.replace` y no con `location.href`. Si el navegador no deja cerrar (por ejemplo, lo lanzaron abriendo otra página antes), SALIR muestra un aviso en el pie y hay que salir con la combinación de Batocera (normalmente HOTKEY + START).
 - El modo online necesita el servidor.
 
 ### Jugabilidad estilo HaxBall
