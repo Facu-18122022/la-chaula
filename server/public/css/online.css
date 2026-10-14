@@ -10,40 +10,28 @@
 }
 
 body.online {
+    /* crear-sala.css fija la pantalla al alto de la ventana (como en develop); la sala necesita poder scrollear en pantallas chicas. */
+    height: auto;
     min-height: 100vh;
     overflow-x: hidden;
     overflow-y: auto;
-    font-family: "Segoe UI", Tahoma, sans-serif;
 }
 
-/* ---------- Barra superior ---------- */
-
-.online-barra {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    padding: 10px 20px;
-    border-bottom: 2px solid rgba(255, 255, 255, .15);
-    background: rgba(8, 10, 20, .7);
-}
-
-.online-barra .online-logo {
-    width: 150px !important;
-    height: 48px !important;
-}
-
-.online-barra__titulo {
-    color: #ffe600;
-    font: 900 1.2rem "Arial Black", Arial, sans-serif;
-    letter-spacing: .12em;
-    text-shadow: 2px 2px 0 #000;
-}
+/* ---------- Conexión (arriba a la derecha, en las dos vistas) ---------- */
 
 .online-conexion {
-    margin-left: auto;
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    z-index: 40;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 999px;
+    background: rgba(2, 6, 23, .8);
     color: #cbd5e1;
-    font-size: .85rem;
-    font-weight: 700;
+    font-family: var(--fichin-fuente);
+    font-size: .55rem;
+    letter-spacing: .06em;
 }
 
 .online-conexion--ok { color: #4ade80; }
@@ -52,7 +40,6 @@ body.online {
 /* ---------- Avisos ---------- */
 
 .online-aviso {
-    grid-column: 1 / -1;
     min-height: 1.4em;
     color: #fde047;
     font-weight: 700;
@@ -80,50 +67,29 @@ body.online {
     font-size: .78rem;
 }
 
-/* ---------- Lista de salas ---------- */
+/* ---------- Lista de salas (estructura de "Partida local" de develop) ---------- */
 
 .online-salas {
-    display: grid;
-    grid-template-columns: minmax(260px, 340px) 1fr;
-    gap: 20px;
-    width: min(1200px, 100%);
-    margin: 24px auto;
-    padding: 0 16px;
+    height: 100vh;
 }
 
-.online-columna {
-    display: grid;
-    gap: 20px;
-    align-content: start;
+.online-salas .admin-content {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
 }
 
-.online .panel-card {
-    padding: 18px;
+.online-salas .panel-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
 }
 
-.online .panel-card h2 {
-    margin-bottom: 14px;
-    font-size: 1.1rem;
+.online-salas__subtitulo {
+    margin-top: 6px;
 }
 
-.online-form {
-    display: grid;
-    gap: 12px;
-}
-
-.online-campo {
-    display: grid;
-    gap: 6px;
-    font-size: .85rem;
-    font-weight: 700;
-}
-
-.online-campo input,
-.online-campo select,
-.online-codigo input,
-.online-chat__form input,
-.online-dialogo input {
-    padding: 10px 12px;
+.online-salas .form-group input {
+    padding: 12px 14px;
 }
 
 .online-lista table {
@@ -134,15 +100,23 @@ body.online {
 .online-lista th,
 .online-lista td {
     padding: 10px 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, .12);
+    border-bottom: 1px solid rgba(255, 255, 255, .15);
     text-align: left;
 }
 
 .online-lista th {
-    color: #93c5fd;
-    font-size: .75rem;
-    letter-spacing: .08em;
+    color: var(--fichin-amarillo);
+    font-family: var(--fichin-fuente);
+    font-size: .55rem;
+    font-weight: 400;
+    letter-spacing: .06em;
     text-transform: uppercase;
+}
+
+.online-lista td {
+    color: #fff;
+    font-weight: 700;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, .6);
 }
 
 .online-lista__cabecera {
@@ -151,30 +125,41 @@ body.online {
     justify-content: space-between;
 }
 
+.online-lista__cabecera h2 {
+    margin-bottom: 0 !important;
+}
+
 .online-fila-sala:hover {
-    background: rgba(255, 255, 255, .06);
+    background: rgba(255, 255, 255, .08);
 }
 
 .online-estado--juego {
     color: #4ade80;
-    font-weight: 700;
 }
 
 .online-vacio {
     padding: 28px 8px !important;
-    color: #94a3b8;
+    color: #e2e8f0;
+    font-weight: 600 !important;
     text-align: center !important;
 }
 
 .online-codigo {
     display: flex;
     gap: 10px;
-    margin-top: 16px;
+    margin-top: auto;
+    padding-top: 16px;
 }
 
 .online-codigo input {
     flex: 1;
+    padding: 12px 14px;
     text-transform: uppercase;
+}
+
+.online-chat__form input,
+.online-dialogo input {
+    padding: 10px 12px;
 }
 
 .online-mini {
@@ -203,8 +188,8 @@ body.online {
     display: grid;
     grid-template-columns: 1fr minmax(240px, 300px);
     gap: 14px;
-    height: calc(100vh - 72px);
-    padding: 12px 16px 16px;
+    height: 100vh;
+    padding: 18px 14px 16px;
 }
 
 .online-sala[hidden],
@@ -217,49 +202,91 @@ body.online {
 .online-juego {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     min-width: 0;
     min-height: 0;
 }
 
-.online-hud {
+/* Marcador: el mismo de juego-local.html de develop. */
+.online-hud.local-hud {
     display: grid;
     grid-template-columns: 1fr auto 1fr auto;
     gap: 14px;
     align-items: center;
+    margin: 0 110px 0 0;
 }
 
-.online-hud__equipo {
-    padding: 8px 14px;
-    border-radius: 8px;
-    background: rgba(8, 10, 20, .75);
-    font: 900 1.1rem "Arial Black", Arial, sans-serif;
+.online .local-team,
+.online .local-clock-panel {
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, .92);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .3);
 }
 
-.online-hud__equipo strong {
-    font-size: 1.5rem;
+.online .local-team {
+    padding: 12px 16px;
+    font-family: var(--fichin-fuente);
+    font-size: .6rem;
+    letter-spacing: .06em;
 }
 
-.online-hud__equipo--red { border-left: 6px solid #e56e56; }
-.online-hud__equipo--blue { border-right: 6px solid #5689e5; text-align: right; }
+.online .local-team--red { border-left: 4px solid #ef4444; color: #fecaca; }
+.online .local-team--blue { border-left: 4px solid #38bdf8; color: #bae6fd; text-align: right; }
 
-.online-hud__reloj {
+.online .local-team strong {
+    display: block;
+    margin-top: 6px;
+    color: #fff;
+    font-family: var(--fichin-fuente);
+    font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+    font-weight: 400;
+}
+
+.online .local-clock-panel {
     display: grid;
-    min-width: 130px;
-    padding: 4px 14px;
-    border-radius: 8px;
-    background: rgba(8, 10, 20, .75);
-    color: #ffe600;
-    font: 900 1.6rem "Arial Black", Arial, sans-serif;
-    font-variant-numeric: tabular-nums;
+    gap: 4px;
+    min-width: 150px;
+    padding: 8px 16px;
     text-align: center;
 }
 
-.online-hud__reloj small {
+.online #reloj {
+    color: var(--fichin-amarillo);
+    font-family: var(--fichin-fuente);
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    text-shadow: 3px 3px 0 var(--fichin-tinta);
+}
+
+.online-fase {
     min-height: 1em;
+    color: #cbd5e1;
+    font-family: var(--fichin-fuente);
+    font-size: .5rem;
+    letter-spacing: .08em;
+}
+
+.online .local-button {
+    padding: 10px 16px;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 9px;
+    background: #1e293b;
     color: #fff;
-    font: 700 .7rem "Segoe UI", Arial, sans-serif;
-    letter-spacing: .1em;
+    cursor: pointer;
+    font-family: var(--fichin-fuente);
+    font-size: .6rem;
+}
+
+.online .local-button:hover {
+    background: #334155;
+}
+
+.online .local-board {
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 16px;
+    background: rgba(2, 6, 23, .68);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, .4);
 }
 
 .online-cancha {
@@ -300,7 +327,10 @@ body.online {
 }
 
 .online-panel__cabecera h2 {
-    font: 900 1.3rem "Arial Black", Arial, sans-serif;
+    color: var(--fichin-amarillo);
+    font-family: var(--fichin-fuente);
+    font-size: 1rem;
+    line-height: 1.4;
 }
 
 .online-panel__cabecera p {
@@ -340,10 +370,11 @@ body.online {
 .online-equipo h3 {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 8px;
-    font: 900 .95rem "Arial Black", Arial, sans-serif;
-    letter-spacing: .05em;
-    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-family: var(--fichin-fuente);
+    font-size: .65rem;
+    font-weight: 400;
+    letter-spacing: .04em;
 }
 
 .online-equipo ul {
@@ -410,10 +441,12 @@ body.online {
 }
 
 .online-config h3 {
-    margin-bottom: 10px;
-    font: 900 .95rem "Arial Black", Arial, sans-serif;
-    letter-spacing: .05em;
-    text-transform: uppercase;
+    margin-bottom: 12px;
+    color: var(--fichin-amarillo);
+    font-family: var(--fichin-fuente);
+    font-size: .7rem;
+    font-weight: 400;
+    letter-spacing: .04em;
 }
 
 .online-carrusel {
@@ -604,9 +637,13 @@ body.online {
 /* ---------- Pantallas chicas ---------- */
 
 @media (max-width: 900px) {
-    .online-salas,
+    .online-salas .admin-content,
     .online-sala {
         grid-template-columns: 1fr;
+    }
+
+    .online-salas {
+        height: auto;
     }
 
     .online-sala {

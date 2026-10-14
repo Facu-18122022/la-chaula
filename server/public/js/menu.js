@@ -37,15 +37,52 @@ btnSettings.addEventListener("click", () => {
 /* SALIR */
 /* ========================= */
 
-/* En la cabina no hay ventana que cerrar ni mouse para  */
-/* responder un confirm(): SALIR vuelve a la pantalla de  */
-/* "Insertá ficha".                                       */
+/* SALIR cierra el juego (igual que en develop). En la web  */
+/* el navegador casi nunca deja cerrar una pestaña que no   */
+/* abrió un script: en ese caso se avisa en el pie.         */
 
 btnExit.addEventListener("click", () => {
 
-    irA("../index.html");
+    salir();
 
 });
+
+const pie = document.querySelector(".arcade-pie");
+const textoPie = pie.textContent;
+let temporizadorAviso = null;
+
+function salir(){
+
+    if(window.NavegacionArcade){
+
+        window.NavegacionArcade.salir(avisarQueNoSeCerro);
+
+    }else{
+
+        window.close();
+        setTimeout(avisarQueNoSeCerro, 700);
+
+    }
+
+}
+
+/* El navegador no dejó cerrar la ventana (por ejemplo, la abrieron con otra  */
+/* página antes en el historial): se avisa cómo salir. Mayúsculas sin tilde   */
+/* porque la fuente pixel dibuja mal las acentuadas.                           */
+function avisarQueNoSeCerro(){
+
+    pie.textContent = "EL NAVEGADOR NO DEJA CERRAR SOLO · CERRA LA PESTANA";
+    pie.classList.add("arcade-pie--aviso");
+
+    clearTimeout(temporizadorAviso);
+    temporizadorAviso = setTimeout(() => {
+
+        pie.textContent = textoPie;
+        pie.classList.remove("arcade-pie--aviso");
+
+    }, 8000);
+
+}
 
 function irA(url){
 

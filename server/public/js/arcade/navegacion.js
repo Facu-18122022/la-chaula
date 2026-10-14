@@ -274,11 +274,32 @@
     /**
      * Navega a otra página dejando que termine de sonar el efecto. Con el juego
      * abierto como archivo, Almacen suma a la URL la configuración (ver almacen.js).
+     * Usa replace y no href: así el historial del navegador queda con una sola
+     * página, que es lo que le permite a salir() cerrar la ventana.
      */
     function irA(url, demoraMs = 180) {
         pausada = true;
         global.setTimeout(() => {
-            global.location.href = global.Almacen ? global.Almacen.url(url) : url;
+            global.location.replace(global.Almacen ? global.Almacen.url(url) : url);
+        }, demoraMs);
+    }
+
+    /**
+     * Sale del juego cerrando la ventana del navegador. En la cabina el navegador
+     * lo abre Batocera: al cerrarse vuelve al menú de Batocera.
+     * El navegador solo deja que una página cierre su ventana si no hay otra
+     * antes en el historial (por eso irA usa replace). Si no la pudo cerrar la
+     * página sigue viva: se devuelve el control y se avisa con alNoPoder.
+     */
+    function salir(alNoPoder, demoraMs = 350) {
+        const estabaPausada = pausada;
+        pausada = true;
+        global.setTimeout(() => {
+            global.close();
+            global.setTimeout(() => {
+                pausada = estabaPausada;
+                if (typeof alNoPoder === 'function') alNoPoder();
+            }, 700);
         }, demoraMs);
     }
 
@@ -290,6 +311,7 @@
         refrescar: asegurarSeleccion,
         setPausada,
         irA,
+        salir,
         actual: () => actual
     };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
