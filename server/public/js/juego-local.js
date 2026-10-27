@@ -18,7 +18,6 @@
     const pauseOverlay = document.getElementById('pauseOverlay');
     const finishOverlay = document.getElementById('finishOverlay');
     const finishResult = document.getElementById('finishResult');
-    const joystickAviso = document.getElementById('joystickAviso');
     const pauseAviso = document.getElementById('pauseAviso');
 
     const mapas = Array.isArray(global.MAPAS) ? global.MAPAS : [];
@@ -851,7 +850,6 @@
         const deltaMs = ultimoTimestamp === null ? 0 : Math.max(0, timestamp - ultimoTimestamp);
         ultimoTimestamp = timestamp;
         const inputs = global.InputLocal.obtenerInputs();
-        joystickAviso.hidden = !(global.Controles && global.Controles.faltaReclamoJoystick());
         const faseActual = partido.obtenerSnapshot().fase;
         if (revisarStart(inputs) && faseActual !== 'FIN') alternarPausa();
         else if (faseActual !== 'PAUSA' && faseActual !== 'FIN') partido.actualizar(deltaMs, inputs);
@@ -876,10 +874,6 @@
     document.getElementById('pauseExitButton').addEventListener('click', volverAlMenu);
     document.getElementById('finishRestartButton').addEventListener('click', reiniciarPartido);
     document.getElementById('finishExitButton').addEventListener('click', volverAlMenu);
-
-    // En Firefox los joysticks no se pueden distinguir entre pantallas: en el
-    // partido ninguno mueve a nadie hasta que J1 apriete PATEAR en el suyo.
-    if (global.Controles && global.Controles.exigirReclamoJoystick) global.Controles.exigirReclamoJoystick();
 
     if (global.NavegacionArcade) {
         // Durante el partido la palanca mueve al jugador; los menús solo se usan en la pausa y el final.

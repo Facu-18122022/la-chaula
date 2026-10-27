@@ -80,30 +80,6 @@
             box-shadow: 0 18px 45px rgba(0, 0, 0, .4);
         }
 
-        /* Firefox: hasta que J1 elige su joystick (ver js/arcade/controles.js). */
-        .local-aviso-joystick {
-            position: absolute;
-            top: 18px;
-            left: 50%;
-            z-index: 3;
-            width: max-content;
-            max-width: calc(100% - 40px);
-            margin: 0;
-            padding: 12px 16px;
-            border: 3px solid #ffe600;
-            background: rgba(2, 6, 23, .94);
-            color: #ffe600;
-            font-family: "Press Start 2P", "Courier New", monospace;
-            font-size: clamp(.6rem, 1.5vw, .9rem);
-            line-height: 1.7;
-            text-align: center;
-            text-shadow: 2px 2px 0 #000;
-            transform: translateX(-50%);
-            pointer-events: none;
-        }
-
-        .local-aviso-joystick[hidden] { display: none; }
-
         #localCanvas {
             display: block;
             width: 100%;
@@ -191,8 +167,6 @@
 
         <section class="local-board" aria-label="Cancha local">
             <canvas id="localCanvas"></canvas>
-            <!-- Mayúsculas sin tilde: la fuente pixel dibuja mal Á (el texto correcto va en aria-label). -->
-            <p id="joystickAviso" class="local-aviso-joystick arcade-parpadeo" role="status" aria-label="Jugador 1, rojo: apretá patear en tu joystick" hidden>JUGADOR 1 (ROJO): APRETA PATEAR EN TU JOYSTICK</p>
         </section>
 
         <div class="local-actions">

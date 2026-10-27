@@ -143,10 +143,8 @@
             tarjeta.querySelector(`[data-accion="${accion}"]`).classList.toggle('activo', estado[accion]);
         });
         const pad = Controles.infoPad(jugador);
-        // En Firefox el número cambia en cada pantalla (ver js/arcade/controles.js): no se muestra.
-        const porPantalla = Controles.MODO_JOYSTICKS === 'por-pantalla';
         let textoPad = '· Teclado';
-        if (pad) textoPad = porPantalla ? `· Joystick${pad.provisorio ? ' (provisorio)' : ''}` : `· Joystick ${pad.index + 1}`;
+        if (pad) textoPad = `· Joystick ${pad.index + 1}`;
         tarjeta.querySelector('[data-pad]').textContent = textoPad;
         tarjeta.querySelector('[data-pad]').title = pad ? pad.id : 'Sin joystick conectado';
 
@@ -225,7 +223,7 @@
             return;
         }
         if (Controles.MODO_JOYSTICKS === 'por-pantalla') {
-            mostrarAviso('Joysticks intercambiados en esta pantalla. En el partido, el joystick del Jugador 1 es el primero que aprieta PATEAR.', 8000);
+            mostrarAviso('Joysticks intercambiados para esta pantalla. Firefox puede volver a numerarlos al cambiar de pantalla; si quedan al revés, intercambialos desde la pausa.', 8000);
             return;
         }
         const invertido = Controles.obtenerConfig().invertirPads;

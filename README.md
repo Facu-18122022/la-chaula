@@ -79,9 +79,9 @@ Con las placas USB de los joysticks el problema desaparece, porque cada jugador 
 ### Joysticks y placas USB
 
 - **Placas que se presentan como joystick** (Zero Delay, DragonRise, etc.): se detectan solas con la Gamepad API. El navegador las detecta recién después de apretar un botón.
-  - **Chrome / Chromium**: la placa 1 es del Jugador 1 y la 2 del Jugador 2 (se pueden intercambiar desde Controles y queda guardado).
-  - **Firefox**: numera las placas de nuevo en cada pantalla, en el orden en que se tocan, y dos placas iguales no se pueden distinguir (antes, si el Jugador 2 se movía primero, manejaba al Jugador 1 todo el partido). Por eso en Firefox el joystick del Jugador 1 es **el primero que aprieta PATEAR**: al empezar el partido aparece el cartel *"JUGADOR 1: APRETÁ PATEAR"* y, hasta que lo hace, ningún joystick mueve a nadie (el teclado sí anda). El otro joystick queda para el Jugador 2.
-  - Si alguna vez quedan al revés, en la **pausa** está **Cambiar joysticks**.
+  - **Chrome / Chromium**: por defecto, la placa 1 es del Jugador 1 y la 2 del Jugador 2 (se pueden intercambiar desde Controles y queda guardado).
+  - **Firefox**: puede numerar las placas de nuevo al abrir cada pantalla y no distingue dos placas iguales. El índice 0 controla al Jugador 1 y el índice 1 al Jugador 2; ambos responden sin tener que reclamar el joystick. Si quedan al revés, en la **pausa** está **Cambiar joysticks**.
+  - No hace falta instalar nada: la palanca mueve, el botón 1 patea, el botón 2 vuelve y el botón 10 es Start. Enter acepta en los menús, pero no cambia la acción de patear durante el partido. Si tu placa tiene otro orden, en **Configuración → Probar y asignar controles** elegí la acción y apretá el botón que quieras usar.
 - **Placas que se presentan como teclado** (I-PAC y similares): en Controles se elige cada acción y se aprieta el botón de la cabina para asignarlo.
 
 ### Lanzar en la cabina (pantalla completa)
@@ -102,7 +102,7 @@ El modo local también anda abriendo directamente `server/public/index.html` (un
 - **La configuración viaja entre pantallas por la URL.** Con `file://`, Firefox le da a cada archivo su propio `localStorage`, así que antes lo elegido en *Partida local* (tiempo, goles, cancha) no llegaba al partido y siempre se jugaba con lo de fábrica; lo mismo pasaba con los controles y el volumen. Ahora `js/arcade/almacen.js` pasa esos datos a la pantalla siguiente (`#estado=...`) y los guarda con la hora, así una pantalla con datos viejos nunca pisa los nuevos. Con servidor no hace nada.
 - **Música**: sin servidor no existe `/api/musica`, así que se usa `server/public/musica/lista.js`. `npm start` la actualiza solo; si agregás canciones y copiás el juego a la cabina sin arrancar el servidor, corré antes `npm run musica`.
 - **Que suene sin tocar el teclado**: en Chrome, el parámetro `--autoplay-policy=no-user-gesture-required` de arriba. En Firefox, en `about:config` poné `media.autoplay.default` en `0` (o en Ajustes → Privacidad → Permisos → Reproducción automática: *Permitir audio y video*).
-- **Joysticks**: con Firefox, ver arriba (el Jugador 1 aprieta PATEAR al empezar). Con Chromium no hace falta.
+- **Joysticks**: con Firefox, ver arriba; si se invierten al cambiar de pantalla, intercambialos desde la pausa. Con Chromium no hace falta.
 - **SALIR vuelve al menú de Batocera**: el botón *SALIR* del menú cierra la ventana del navegador y, al terminar el navegador, Batocera vuelve a su menú. El navegador solo deja que una página cierre su ventana si no hay otra antes en el historial; por eso el juego cambia de pantalla con `location.replace` y no con `location.href`. Si el navegador no deja cerrar (por ejemplo, lo lanzaron abriendo otra página antes), SALIR muestra un aviso en el pie y hay que salir con la combinación de Batocera (normalmente HOTKEY + START).
 - El modo online necesita el servidor.
 
