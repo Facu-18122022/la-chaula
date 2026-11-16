@@ -18,7 +18,7 @@ const ListaMusica = require("./lista-musica.js");
 const publicPath = path.join(__dirname, 'public');
 
 // Los hostings (Render, Railway, etc.) indican el puerto con la variable PORT.
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 6767;
 
 function crearServidor() {
     const app = express();
@@ -72,7 +72,7 @@ if (require.main === module) {
 ║          🟡  La Chaula  🟡            ║
 ╠══════════════════════════════════════╣
 ║  Servidor corriendo en               ║
-║  http://localhost:${PORT}             ║
+║  http://10.120.3.131:${6767}             ║
 ║                                      ║
 ║  Salas online hasta 5v5 habilitadas  ║
 ╚══════════════════════════════════════╝

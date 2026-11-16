@@ -23,16 +23,6 @@
     --fichin-tinta: #0b0620;
 }
 
-/* Líneas de monitor CRT muy suaves sobre toda la pantalla. */
-html::after {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    pointer-events: none;
-    content: "";
-    background: repeating-linear-gradient(180deg, transparent 0 2px, rgba(0, 0, 0, .14) 2px 3px);
-}
-
 /* Sin mouse en la cabina: el cursor se esconde cuando se usa la palanca. */
 .arcade-sin-mouse,
 .arcade-sin-mouse * {

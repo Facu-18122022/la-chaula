@@ -16,6 +16,8 @@ const { GestorSalas } = require('./salas.js');
 const VESTIBULO = 'vestibulo';
 const MS_TICK = 1000 / 60;
 const TICKS_POR_ENVIO = 1;
+// Igual que el máximo de ticks por llamada de fisica-haxball.js.
+const MAX_TICKS_ATRASO = 8;
 
 function iniciarOnline(io) {
     const gestor = new GestorSalas({
@@ -67,6 +69,7 @@ function iniciarOnline(io) {
         accion('sala:admin', datos => gestor.alternarAdmin(socket.id, datos));
         accion('sala:echar', datos => gestor.echar(socket.id, datos));
         accion('sala:config', datos => gestor.configurar(socket.id, datos));
+        accion('sala:avatar', datos => gestor.cambiarAvatar(socket.id, datos));
         accion('partido:iniciar', () => gestor.iniciarPartido(socket.id));
         accion('partido:detener', () => gestor.detenerPartido(socket.id));
         accion('partido:pausa', () => gestor.pausar(socket.id));
@@ -76,23 +79,39 @@ function iniciarOnline(io) {
         socket.on('disconnect', () => gestor.desconectar(socket.id));
     });
 
-    // Bucle de partidos: un solo intervalo para todas las salas.
-    let anterior = performance.now();
+    // Bucle de partidos: un solo reloj para todas las salas.
+    // setInterval(16,7 ms) en Windows tarda en realidad 17-18 ms por vuelta (y a
+    // veces 30-45 ms), así que las fotos salían desparejas. Ahora cada vuelta se
+    // agenda contra la hora exacta en que le toca y corre los ticks que se deben
+    // (casi siempre 1): sale una foto pareja por tick, 60 por segundo.
+    const inicio = performance.now();
+    let ticksHechos = 0;
     let contador = 0;
-    const bucle = setInterval(() => {
-        const ahora = performance.now();
-        const delta = ahora - anterior;
-        anterior = ahora;
-        contador += 1;
-        gestor.tick(delta, { enviarEstado: contador % TICKS_POR_ENVIO === 0 });
-    }, MS_TICK);
+    let temporizador = null;
+    let cerrado = false;
+    function vuelta() {
+        if (cerrado) return;
+        const debidos = Math.floor((performance.now() - inicio) / MS_TICK);
+        // Si el servidor se trabó mucho no intenta recuperar todo de golpe.
+        if (debidos - ticksHechos > MAX_TICKS_ATRASO) ticksHechos = debidos - MAX_TICKS_ATRASO;
+        const pasos = debidos - ticksHechos;
+        if (pasos > 0) {
+            ticksHechos = debidos;
+            contador += 1;
+            gestor.tick(pasos * MS_TICK, { enviarEstado: contador % TICKS_POR_ENVIO === 0 });
+        }
+        const espera = inicio + (ticksHechos + 1) * MS_TICK - performance.now();
+        temporizador = setTimeout(vuelta, Math.max(0, espera));
+    }
+    temporizador = setTimeout(vuelta, MS_TICK);
 
     const limpieza = setInterval(() => gestor.limpiarDesconectados(), 1000);
 
     return {
         gestor,
         cerrar() {
-            clearInterval(bucle);
+            cerrado = true;
+            clearTimeout(temporizador);
             clearInterval(limpieza);
         }
     };

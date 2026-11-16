@@ -223,7 +223,7 @@ function crearPartido({ mapa, jugadores = [], tiempoMin = 3, goles = 3, powerUps
      * desde que el servidor la aplicó]: con eso cada navegador corrige la predicción
      * de su propio jugador (ver cliente.js).
      */
-    function snapshot(teclaDe = () => [-1, 0]) {
+    function snapshot(teclaDe = () => [-1, 0, 0]) {
         return {
             n: partido.tick,
             f: partido.fase,
@@ -232,7 +232,8 @@ function crearPartido({ mapa, jugadores = [], tiempoMin = 3, goles = 3, powerUps
             t: Math.ceil(partido.restanteMs / 100) * 100,
             x: partido.tiempoExtra ? 1 : 0,
             s: estado.kickoffTeam,
-            b: [redondear(estado.ball.x), redondear(estado.ball.y), redondear(estado.ball.r)],
+            // Pelota: x, y, radio y velocidad (px por tick, para seguirla si una foto llega tarde).
+            b: [redondear(estado.ball.x), redondear(estado.ball.y), redondear(estado.ball.r), redondearFino(estado.ball.vx), redondearFino(estado.ball.vy)],
             // Festejo de gol: cuánto pasó y quién lo hizo (para la animación de develop).
             g: partido.fase === 'GOL' ? Math.round(partido.golTranscurridoMs) : null,
             ug: partido.goles.length ? (({ equipo, autor, enContra }) => [equipo, autor, enContra ? 1 : 0])(partido.goles[partido.goles.length - 1]) : null,

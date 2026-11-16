@@ -17,14 +17,18 @@
 const crypto = require('crypto');
 const Fisica = require('../public/js/local/fisica-haxball.js');
 const { crearPartido } = require('./partido.js');
-const { MAPAS_ONLINE, buscarMapa, MAPA_POR_DEFECTO } = require('./mapas.js');
+const {
+    MAPAS_ONLINE, TAMANOS, MODOS, buscarMapa, buscarTamano, buscarModo, prepararMapa,
+    MAPA_POR_DEFECTO, TAMANO_POR_DEFECTO, MODO_POR_DEFECTO
+} = require('./mapas.js');
 
 const MAX_POR_EQUIPO = 5;
 const MAX_JUGADORES_SALA = 10;
 const MIN_JUGADORES_SALA = 2;
 const MAX_SALAS = 100;
-const GRACIA_RECONEXION_MS = 15000;
+const GRACIA_RECONEXION_MS = 10000;
 const LARGO_NOMBRE = 16;
+const LARGO_AVATAR = 2;
 const LARGO_NOMBRE_SALA = 30;
 const LARGO_CLAVE = 20;
 const LARGO_MENSAJE = 140;
@@ -42,6 +46,18 @@ function limpiarTexto(valor, largoMaximo) {
         .replace(/\s+/g, ' ')
         .trim()
         .slice(0, largoMaximo);
+}
+
+/**
+ * Avatar como en HaxBall: hasta 2 caracteres (letras, números, símbolos o
+ * emojis; un emoji compuesto cuenta como uno). Vacío = se muestra el número.
+ */
+function limpiarAvatar(valor) {
+    const texto = String(valor == null ? '' : valor).replace(/[\u0000-\u001f\u007f\s]/g, '');
+    const partes = typeof Intl !== 'undefined' && Intl.Segmenter
+        ? Array.from(new Intl.Segmenter('es', { granularity: 'grapheme' }).segment(texto), parte => parte.segment)
+        : Array.from(texto);
+    return partes.slice(0, LARGO_AVATAR).join('').slice(0, 16);
 }
 
 function mezclar(lista, aleatorio) {
@@ -94,8 +110,8 @@ class GestorSalas {
         }));
     }
 
-    mapaPublico(mapaId) {
-        const mapa = Fisica.normalizarMapa(buscarMapa(mapaId) || buscarMapa(MAPA_POR_DEFECTO));
+    mapaPublico(mapaId, { tamano = TAMANO_POR_DEFECTO, modo = MODO_POR_DEFECTO } = {}) {
+        const mapa = Fisica.normalizarMapa(prepararMapa(buscarMapa(mapaId) || buscarMapa(MAPA_POR_DEFECTO), { tamano, modo }));
         return { ...mapa, radioPoste: Fisica.constantes.POSTE.radio * mapa.escala };
     }
 
@@ -107,7 +123,9 @@ class GestorSalas {
             maxJugadores: sala.maxJugadores,
             maxPorEquipo: MAX_POR_EQUIPO,
             config: { ...sala.config },
-            mapa: this.mapaPublico(sala.config.mapaId),
+            mapa: this.mapaPublico(sala.config.mapaId, sala.config),
+            tamanos: TAMANOS.map(({ id, nombre }) => ({ id, nombre })),
+            modos: MODOS,
             tiempos: TIEMPOS_VALIDOS,
             golesValidos: GOLES_VALIDOS,
             jugadores: sala.jugadores.map(jugador => ({
@@ -115,6 +133,7 @@ class GestorSalas {
                 nombre: jugador.nombre,
                 equipo: jugador.equipo,
                 admin: jugador.admin,
+                avatar: jugador.avatar,
                 desconectado: !!jugador.desconectadoDesde
             })),
             partido: sala.partido ? sala.partido.resumen() : null,
@@ -165,12 +184,13 @@ class GestorSalas {
         return id;
     }
 
-    crearJugador(socketId, nombre, sala) {
+    crearJugador(socketId, nombre, sala, avatar = '') {
         this.contadorJugadores += 1;
         return {
             id: `j${this.contadorJugadores}`,
             socketId,
             nombre: this.nombreUnico(sala, nombre),
+            avatar: limpiarAvatar(avatar),
             equipo: null,
             admin: false,
             token: crypto.randomBytes(16).toString('hex'),
@@ -178,6 +198,9 @@ class GestorSalas {
             desconectadoDesde: null,
             entrada: { up: false, down: false, left: false, right: false, kick: false },
             patadaPendiente: false,
+            // Teclas actuales en bits: van en cada foto para que los navegadores
+            // puedan adelantar a los demás jugadores (ver red.js).
+            bits: 0,
             // Para la predicción del navegador: tick (del navegador) de la última tecla
             // y cuántos ticks la aplicó el servidor desde que llegó.
             teclaTick: -1,
@@ -218,6 +241,8 @@ class GestorSalas {
                 : MAX_JUGADORES_SALA,
             config: {
                 mapaId: MAPA_POR_DEFECTO,
+                tamano: TAMANO_POR_DEFECTO,
+                modo: MODO_POR_DEFECTO,
                 tiempoMin: 3,
                 goles: 3,
                 powerUps: true,
@@ -228,7 +253,7 @@ class GestorSalas {
             ultimoResultado: null,
             creadaEn: this.ahora()
         };
-        const jugador = this.crearJugador(socketId, nombreJugador, sala);
+        const jugador = this.crearJugador(socketId, nombreJugador, sala, datos.avatar);
         jugador.admin = true;
         jugador.equipo = 'red';
         sala.jugadores.push(jugador);
@@ -257,6 +282,9 @@ class GestorSalas {
             }
             previo.socketId = socketId;
             previo.desconectadoDesde = null;
+            if (sala.partido && previo.equipo) {
+                sala.partido.agregarJugador({ id: previo.id, nombre: previo.nombre, equipo: previo.equipo });
+            }
             this.porSocket.set(socketId, { salaId: sala.id, jugadorId: previo.id });
             this.emisor.unirSocket(socketId, sala.id);
             this.mensajeSistema(sala, `${previo.nombre} volvió.`);
@@ -272,7 +300,7 @@ class GestorSalas {
         if (sala.jugadores.length >= sala.maxJugadores) return { error: `La sala está llena (${sala.maxJugadores} jugadores).` };
 
         if (this.porSocket.has(socketId)) this.salir(socketId);
-        const jugador = this.crearJugador(socketId, nombreJugador, sala);
+        const jugador = this.crearJugador(socketId, nombreJugador, sala, datos.avatar);
         sala.jugadores.push(jugador);
         this.porSocket.set(socketId, { salaId: sala.id, jugadorId: jugador.id });
         this.emisor.unirSocket(socketId, sala.id);
@@ -304,16 +332,33 @@ class GestorSalas {
             return;
         }
         this.mensajeSistema(sala, motivo ? `${jugador.nombre} ${motivo}` : `${jugador.nombre} salió de la sala.`);
-        if (!sala.jugadores.some(item => item.admin)) {
-            const nuevo = sala.jugadores.find(item => !item.desconectadoDesde) || sala.jugadores[0];
-            nuevo.admin = true;
-            this.mensajeSistema(sala, `${nuevo.nombre} ahora es admin.`);
-        }
+        this.asegurarAdmin(sala);
         this.avisarSala(sala);
         this.avisarLista();
     }
 
-    /** Se cortó la conexión: queda unos segundos esperando que vuelva. */
+    /**
+     * Si no queda ningún admin conectado, el admin pasa al jugador conectado más
+     * antiguo (así la sala nunca queda trabada con un admin que ya se fue).
+     */
+    asegurarAdmin(sala) {
+        if (sala.jugadores.some(item => item.admin && !item.desconectadoDesde)) return;
+        const nuevo = sala.jugadores.find(item => !item.desconectadoDesde);
+        if (!nuevo) {
+            // Todos desconectados: se marca uno para cuando vuelva alguien.
+            if (!sala.jugadores.some(item => item.admin) && sala.jugadores[0]) sala.jugadores[0].admin = true;
+            return;
+        }
+        sala.jugadores.forEach(item => { if (item.desconectadoDesde) item.admin = false; });
+        nuevo.admin = true;
+        this.mensajeSistema(sala, `${nuevo.nombre} ahora es admin.`);
+    }
+
+    /**
+     * Se cortó la conexión: queda unos segundos esperando que vuelva para no
+     * perder su lugar en la sala, pero sale de la cancha en el acto (no queda un
+     * jugador "fantasma" parado) y si era admin el admin pasa a otro.
+     */
     desconectar(socketId) {
         const { sala, jugador } = this.buscar(socketId);
         this.porSocket.delete(socketId);
@@ -321,8 +366,13 @@ class GestorSalas {
         jugador.desconectadoDesde = this.ahora();
         jugador.socketId = null;
         jugador.entrada = { up: false, down: false, left: false, right: false, kick: false };
+        jugador.bits = 0;
         jugador.patadaPendiente = false;
+        if (sala.partido) sala.partido.quitarJugador(jugador.id);
+        this.mensajeSistema(sala, `${jugador.nombre} se desconectó (tiene unos segundos para volver).`);
+        this.asegurarAdmin(sala);
         this.avisarSala(sala);
+        this.avisarLista();
     }
 
     /** Saca a los que no volvieron a tiempo. Se llama cada segundo. */
@@ -363,7 +413,7 @@ class GestorSalas {
         }
         objetivo.equipo = destino;
         if (sala.partido) {
-            if (destino) sala.partido.agregarJugador({ id: objetivo.id, nombre: objetivo.nombre, equipo: destino });
+            if (destino && !objetivo.desconectadoDesde) sala.partido.agregarJugador({ id: objetivo.id, nombre: objetivo.nombre, equipo: destino });
             else sala.partido.quitarJugador(objetivo.id);
         }
         this.avisarSala(sala);
@@ -420,11 +470,19 @@ class GestorSalas {
         const { sala } = resultado;
         const config = { ...sala.config };
         if (cambios.equiposBloqueados !== undefined) config.equiposBloqueados = !!cambios.equiposBloqueados;
-        const cambiaPartido = ['mapaId', 'tiempoMin', 'goles', 'powerUps'].some(clave => cambios[clave] !== undefined);
+        const cambiaPartido = ['mapaId', 'tamano', 'modo', 'tiempoMin', 'goles', 'powerUps'].some(clave => cambios[clave] !== undefined);
         if (cambiaPartido && sala.partido) return { error: 'Detené el partido para cambiar la cancha o las reglas.' };
         if (cambios.mapaId !== undefined) {
             if (!buscarMapa(cambios.mapaId)) return { error: 'Esa cancha no existe.' };
             config.mapaId = cambios.mapaId;
+        }
+        if (cambios.tamano !== undefined) {
+            if (!buscarTamano(cambios.tamano)) return { error: 'Ese tamaño de cancha no existe.' };
+            config.tamano = cambios.tamano;
+        }
+        if (cambios.modo !== undefined) {
+            if (!buscarModo(cambios.modo)) return { error: 'Ese modo de juego no existe.' };
+            config.modo = cambios.modo;
         }
         if (cambios.tiempoMin !== undefined) {
             const tiempo = Number(cambios.tiempoMin);
@@ -441,6 +499,15 @@ class GestorSalas {
         this.avisarSala(sala);
         this.avisarLista();
         return { ok: true };
+    }
+
+    /** Cambia tu avatar (botón de la sala o "/avatar XX" en el chat). */
+    cambiarAvatar(socketId, { avatar } = {}) {
+        const { sala, jugador } = this.buscar(socketId);
+        if (!sala) return { error: 'No estás en una sala.' };
+        jugador.avatar = limpiarAvatar(avatar);
+        this.avisarSala(sala);
+        return { ok: true, avatar: jugador.avatar };
     }
 
     /* ========================= */
@@ -476,9 +543,9 @@ class GestorSalas {
         if (resultado.error) return resultado;
         const { sala } = resultado;
         if (sala.partido) return { error: 'El partido ya está en curso.' };
-        const enCancha = sala.jugadores.filter(jugador => jugador.equipo);
+        const enCancha = sala.jugadores.filter(jugador => jugador.equipo && !jugador.desconectadoDesde);
         if (!enCancha.length) return { error: 'Poné al menos un jugador en Rojo o Azul.' };
-        const mapa = buscarMapa(sala.config.mapaId) || buscarMapa(MAPA_POR_DEFECTO);
+        const mapa = prepararMapa(buscarMapa(sala.config.mapaId) || buscarMapa(MAPA_POR_DEFECTO), sala.config);
         sala.partido = crearPartido({
             mapa,
             jugadores: enCancha.map(jugador => ({ id: jugador.id, nombre: jugador.nombre, equipo: jugador.equipo })),
@@ -487,7 +554,7 @@ class GestorSalas {
             powerUps: sala.config.powerUps
         });
         sala.ultimoResultado = null;
-        this.emisor.aSala(sala.id, 'partido:inicio', { mapa: this.mapaPublico(sala.config.mapaId) });
+        this.emisor.aSala(sala.id, 'partido:inicio', { mapa: this.mapaPublico(sala.config.mapaId, sala.config) });
         this.mensajeSistema(sala, '¡Arrancó el partido!');
         this.avisarSala(sala);
         this.avisarLista();
@@ -531,7 +598,8 @@ class GestorSalas {
             jugador.teclaTick = Math.floor(tickNavegador);
             jugador.ticksDesdeTecla = 0;
         }
-        const valor = Number(bits) | 0;
+        const valor = (Number(bits) | 0) & 31;
+        jugador.bits = valor;
         jugador.entrada = {
             up: !!(valor & BITS.arriba),
             down: !!(valor & BITS.abajo),
@@ -562,7 +630,7 @@ class GestorSalas {
             const porId = new Map(sala.jugadores.map(jugador => [jugador.id, jugador]));
             this.emisor.aSala(sala.id, 'partido:estado', sala.partido.snapshot(id => {
                 const jugador = porId.get(id);
-                return jugador ? [jugador.teclaTick, jugador.ticksDesdeTecla] : [-1, 0];
+                return jugador ? [jugador.teclaTick, jugador.ticksDesdeTecla, jugador.bits] : [-1, 0, 0];
             }));
         });
     }
@@ -598,4 +666,4 @@ class GestorSalas {
     }
 }
 
-module.exports = { GestorSalas, MAX_POR_EQUIPO, MAX_JUGADORES_SALA, BITS, GRACIA_RECONEXION_MS };
+module.exports = { GestorSalas, limpiarAvatar, MAX_POR_EQUIPO, MAX_JUGADORES_SALA, BITS, GRACIA_RECONEXION_MS };

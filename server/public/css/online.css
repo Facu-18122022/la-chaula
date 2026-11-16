@@ -17,6 +17,13 @@ body.online {
     overflow-y: auto;
 }
 
+/* En la sala el fondo de estrellas queda quieto: animarlo (con desenfoque) obligaba
+   a repintar toda la pantalla en cada cuadro y le sacaba fluidez a la cancha. */
+body.online--en-sala::before,
+body.online--en-sala::after {
+    animation: none;
+}
+
 /* ---------- Conexión (arriba a la derecha, en las dos vistas) ---------- */
 
 .online-conexion {
@@ -86,6 +93,19 @@ body.online {
 
 .online-salas__subtitulo {
     margin-top: 6px;
+}
+
+.online-avatar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.online-avatar__input {
+    width: 4.5em !important;
+    text-align: center;
+    font-weight: 700;
 }
 
 .online-salas .form-group input {

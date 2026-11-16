@@ -12,10 +12,14 @@
  *      servidor, interpolando entre fotos para que se vea fluido.
  */
 (function () {
-    const socket = io({ transports: ['websocket', 'polling'] });
+    // Primero WebSocket (lo más rápido). Si un proxy en el medio no lo deja pasar
+    // (pasa entrando por chaula.et20.edu.ar), tryAllTransports pasa a polling
+    // en vez de reintentar WebSocket para siempre sin conectar nunca.
+    const socket = io({ transports: ['websocket', 'polling'], tryAllTransports: true });
     const $ = id => document.getElementById(id);
 
     const CLAVE_NOMBRE = 'lachaula_nombre';
+    const CLAVE_AVATAR = 'lachaula_avatar';
     const BITS_TECLA = {
         ArrowUp: 1, KeyW: 1,
         ArrowDown: 2, KeyS: 2,
@@ -69,6 +73,40 @@
         const respuesta = await pedir(evento, datos);
         if (respuesta.error) avisoActual(respuesta.error);
         return respuesta;
+    }
+
+    /* ========================= */
+    /* AVATAR (como en HaxBall)  */
+    /* ========================= */
+
+    // Hasta 2 caracteres; un emoji compuesto cuenta como uno. El servidor vuelve a validar.
+    function recortarAvatar(valor) {
+        const texto = String(valor || '').replace(/\s/g, '');
+        const partes = window.Intl && Intl.Segmenter
+            ? Array.from(new Intl.Segmenter('es', { granularity: 'grapheme' }).segment(texto), parte => parte.segment)
+            : Array.from(texto);
+        return partes.slice(0, 2).join('');
+    }
+
+    function avatarGuardado() {
+        return recortarAvatar(localStorage.getItem(CLAVE_AVATAR) || '');
+    }
+
+    function guardarAvatar(valor) {
+        const avatar = recortarAvatar(valor);
+        localStorage.setItem(CLAVE_AVATAR, avatar);
+        $('avatarJugador').value = avatar;
+        $('avatarSala').value = avatar;
+        return avatar;
+    }
+
+    async function cambiarAvatar(valor) {
+        const avatar = guardarAvatar(valor);
+        if (!estado.salaId) return;
+        const respuesta = await accion('sala:avatar', { avatar });
+        if (respuesta && respuesta.ok) {
+            mostrarAviso($('avisoSala'), avatar ? `Tu avatar ahora es "${avatar}".` : 'Sacaste tu avatar: se ve tu número.', 2500);
+        }
     }
 
     function nombreGuardado() {
@@ -201,11 +239,11 @@
             if (clave === null) return;
         }
         const token = sessionStorage.getItem(claveToken(salaId)) || undefined;
-        let respuesta = await pedir('sala:unirse', { salaId, nombreJugador, clave, token });
+        let respuesta = await pedir('sala:unirse', { salaId, nombreJugador, clave, token, avatar: avatarGuardado() });
         if (respuesta.pideClave && !conClave) {
             clave = await pedirClave();
             if (clave === null) return;
-            respuesta = await pedir('sala:unirse', { salaId, nombreJugador, clave });
+            respuesta = await pedir('sala:unirse', { salaId, nombreJugador, clave, avatar: avatarGuardado() });
         }
         if (respuesta.error) {
             mostrarAviso($('avisoSalas'), respuesta.error);
@@ -240,6 +278,7 @@
         if (!nombreJugador) return;
         const respuesta = await accion('sala:crear', {
             nombreJugador,
+            avatar: avatarGuardado(),
             nombre: $('nombreSala').value,
             clave: $('claveSala').value,
             maxJugadores: Number($('maxJugadores').value)
@@ -264,6 +303,7 @@
         estado.salaId = respuesta.salaId;
         estado.tuId = respuesta.tuId;
         estado.token = respuesta.token;
+        $('avatarSala').value = avatarGuardado();
         reiniciarRed();
         if (respuesta.mapas) {
             estado.mapas = respuesta.mapas;
@@ -273,6 +313,7 @@
         history.replaceState(null, '', `?sala=${respuesta.salaId}`);
         $('vistaSalas').hidden = true;
         $('vistaSala').hidden = false;
+        document.body.classList.add('online--en-sala');
         if (!respuesta.reconectado) $('chatMensajes').textContent = '';
         actualizarSala(respuesta.sala);
         mostrarPanel(!respuesta.sala.partido);
@@ -289,6 +330,7 @@
         history.replaceState(null, '', window.location.pathname);
         $('vistaSala').hidden = true;
         $('vistaSalas').hidden = false;
+        document.body.classList.remove('online--en-sala');
         if (motivo) mostrarAviso($('avisoSalas'), motivo, 6000);
         pedirSalas();
     }
@@ -296,6 +338,10 @@
     $('salirSala').addEventListener('click', async () => {
         await pedir('sala:salir');
         volverALista();
+    });
+
+    window.addEventListener('pagehide', () => {
+        if (estado.salaId) socket.emit('sala:salir', {});
     });
 
     socket.on('sala:expulsado', ({ motivo }) => volverALista(motivo || 'Saliste de la sala.'));
@@ -435,12 +481,16 @@
         $('infoNoAdmin').hidden = admin;
         llenarSelect($('cfgTiempo'), sala.tiempos.map(minutos => [minutos, `${minutos} min`]));
         llenarSelect($('cfgGoles'), sala.golesValidos.map(goles => [goles, goles ? `${goles}` : 'Sin límite']));
+        llenarSelect($('cfgModo'), (sala.modos || []).map(modo => [modo.id, modo.nombre]));
+        $('cfgModo').value = String(sala.config.modo || 'normal');
+        llenarSelect($('cfgTamano'), (sala.tamanos || []).map(tamano => [tamano.id, tamano.nombre]));
+        $('cfgTamano').value = String(sala.config.tamano || 'normal');
         $('cfgTiempo').value = String(sala.config.tiempoMin);
         $('cfgGoles').value = String(sala.config.goles);
         $('cfgPowerUps').checked = sala.config.powerUps;
         $('cfgBloqueo').checked = sala.config.equiposBloqueados;
         // Los que no son admin ven la configuración pero no la pueden tocar.
-        ['cfgTiempo', 'cfgGoles', 'cfgPowerUps'].forEach(id => { $(id).disabled = !admin || enPartido; });
+        ['cfgModo', 'cfgTamano', 'cfgTiempo', 'cfgGoles', 'cfgPowerUps'].forEach(id => { $(id).disabled = !admin || enPartido; });
         $('cfgBloqueo').disabled = !admin;
         ['mapaAnterior', 'mapaSiguiente'].forEach(id => { $(id).hidden = !admin; $(id).disabled = enPartido; });
         document.querySelectorAll('.online-miniatura').forEach(boton => {
@@ -501,7 +551,9 @@
     // Vista previa grande de la cancha elegida (animada como en el partido).
     function dibujarPreview() {
         if (!estado.panelVisible || !estado.sala) return;
-        const mapa = mapaPorId(estado.sala.config.mapaId) || estado.sala.mapa;
+        const mapa = estado.sala.mapa && estado.sala.mapa.id === estado.sala.config.mapaId
+            ? estado.sala.mapa
+            : (mapaPorId(estado.sala.config.mapaId) || estado.sala.mapa);
         if (preview.width !== mapa.width || preview.height !== mapa.height) {
             preview.width = mapa.width;
             preview.height = mapa.height;
@@ -529,6 +581,14 @@
             accion('sala:config', { [clave]: Number(evento.target.value) });
             evento.target.blur();
         });
+    });
+    $('cfgModo').addEventListener('change', evento => {
+        accion('sala:config', { modo: evento.target.value });
+        evento.target.blur();
+    });
+    $('cfgTamano').addEventListener('change', evento => {
+        accion('sala:config', { tamano: evento.target.value });
+        evento.target.blur();
     });
     $('cfgPowerUps').addEventListener('change', evento => accion('sala:config', { powerUps: evento.target.checked }));
     $('cfgBloqueo').addEventListener('change', evento => accion('sala:config', { equiposBloqueados: evento.target.checked }));
@@ -565,6 +625,12 @@
         const texto = $('chatTexto').value.trim();
         $('chatTexto').value = '';
         $('chatTexto').blur();
+        // Como en HaxBall: "/avatar XX" cambia lo que se ve en tu círculo ("/avatar" solo lo saca).
+        const comando = texto.match(/^\/avatar(?:\s+(.*))?$/i);
+        if (comando) {
+            cambiarAvatar(comando[1] || '');
+            return;
+        }
         if (texto) accion('sala:chat', { texto });
     });
 
@@ -591,11 +657,16 @@
 
     socket.on('partido:estado', foto => {
         linea.agregar(foto);
-        // Corrige la predicción de tu jugador con lo que dice el servidor.
-        const yo = estado.sala && estado.sala.jugadores.find(jugador => jugador.id === estado.tuId);
-        const fila = yo && yo.equipo ? foto.j.find(jugador => jugador[0] === estado.tuId) : null;
-        if (fila) prediccion.reconciliar(fila, foto, estado.sala.mapa, yo.equipo, estado.bits);
-        else prediccion.reiniciar();
+        // Si jugás, la cancha entera se adelanta al presente desde lo que dice el
+        // servidor (ver red.js). Los espectadores miran la foto interpolada.
+        const sala = estado.sala;
+        const yo = sala && sala.jugadores.find(jugador => jugador.id === estado.tuId);
+        if (yo && yo.equipo) {
+            const equipos = new Map(sala.jugadores.map(jugador => [jugador.id, jugador.equipo]));
+            prediccion.reconciliar(foto, sala.mapa, equipos, estado.tuId, estado.bits);
+        } else {
+            prediccion.reiniciar();
+        }
     });
 
     socket.on('partido:detenido', () => {
@@ -643,15 +714,25 @@
         return '';
     }
 
+    // El marcador se toca solo cuando cambia: escribirlo en cada cuadro obligaba
+    // al navegador a recalcular la página 60 veces por segundo.
+    const textosHud = {};
+    function ponerTextoHud(id, valor) {
+        const texto = String(valor);
+        if (textosHud[id] === texto) return;
+        textosHud[id] = texto;
+        $(id).textContent = texto;
+    }
+
     function actualizarHud(foto) {
-        $('golesRojo').textContent = foto ? foto.m[0] : (estado.sala && estado.sala.partido ? estado.sala.partido.marcador.red : 0);
-        $('golesAzul').textContent = foto ? foto.m[1] : (estado.sala && estado.sala.partido ? estado.sala.partido.marcador.blue : 0);
-        $('reloj').textContent = foto ? formatearTiempo(foto.t) : '--:--';
-        $('faseTexto').textContent = foto ? textoFase(foto) : (estado.sala && estado.sala.partido ? '' : 'ESPERANDO');
+        ponerTextoHud('golesRojo', foto ? foto.m[0] : (estado.sala && estado.sala.partido ? estado.sala.partido.marcador.red : 0));
+        ponerTextoHud('golesAzul', foto ? foto.m[1] : (estado.sala && estado.sala.partido ? estado.sala.partido.marcador.blue : 0));
+        ponerTextoHud('reloj', foto ? formatearTiempo(foto.t) : '--:--');
+        ponerTextoHud('faseTexto', foto ? textoFase(foto) : (estado.sala && estado.sala.partido ? '' : 'ESPERANDO'));
     }
 
     // Arma el "estado" que esperan las funciones de dibujo de develop a partir de la foto del servidor.
-    function estadoParaDibujar(foto, posicionPropia) {
+    function estadoParaDibujar(foto, prediccionActual) {
         const sala = estado.sala;
         const base = DibujoOnline.estadoVacio(sala.mapa);
         if (!foto) return base;
@@ -660,15 +741,19 @@
         ['red', 'blue'].forEach(equipo => sala.jugadores
             .filter(jugador => jugador.equipo === equipo)
             .forEach((jugador, indice) => numeros.set(jugador.id, indice + 1)));
-        base.ball = { x: foto.b[0], y: foto.b[1], r: foto.b[2] };
+        const pelotaPredicha = prediccionActual && prediccionActual.pelota;
+        base.ball = pelotaPredicha
+            ? { x: pelotaPredicha.x, y: pelotaPredicha.y, r: foto.b[2] }
+            : { x: foto.b[0], y: foto.b[1], r: foto.b[2] };
         base.activePowerUps = (foto.u || []).map(([x, y, type, r]) => ({ x, y, type, r }));
         base.lastPowerImpact = foto.i ? { id: foto.i[0], x: foto.i[1], y: foto.i[2] } : null;
         base.players = foto.j.map(([id, x, y, r, pateando, power]) => {
             const jugador = datos.get(id) || {};
-            if (id === estado.tuId && posicionPropia) {
-                x = posicionPropia.x;
-                y = posicionPropia.y;
-                pateando = posicionPropia.pateando;
+            const predicho = prediccionActual && prediccionActual.jugadores.get(id);
+            if (predicho) {
+                x = predicho.x;
+                y = predicho.y;
+                if (id === estado.tuId) pateando = predicho.pateando;
             }
             return {
                 id, x, y, r,
@@ -676,7 +761,7 @@
                 pateando: !!pateando,
                 activePower: power || null,
                 nombre: jugador.nombre || '',
-                numero: numeros.get(id) || '',
+                numero: jugador.avatar || numeros.get(id) || '',
                 esVos: id === estado.tuId
             };
         });
@@ -702,9 +787,11 @@
             linea.avanzar(delta);
             // Tu jugador avanza acá mismo, al instante; cada medio segundo se manda un "ancla".
             if (prediccion.avanzar(delta, estado.bits, !ultima || !!ultima.p) && ultima) mandarTeclas();
-            const foto = linea.fotoParaDibujar();
-            const posicionPropia = foto ? prediccion.posicion(delta) : null;
-            dibujante.dibujar(estadoParaDibujar(foto, posicionPropia), foto && !foto.p ? delta : 0, celebracionDe(ultima));
+            // Jugando se dibuja la cancha predicha (todo en el presente) con los datos de la
+            // última foto; mirando, la foto interpolada.
+            const prediccionActual = ultima ? prediccion.estadoActual(delta) : null;
+            const foto = prediccionActual ? linea.ultima() : linea.fotoParaDibujar();
+            dibujante.dibujar(estadoParaDibujar(foto, prediccionActual), foto && !foto.p ? delta : 0, celebracionDe(ultima));
             actualizarHud(ultima);
             dibujarPreview();
         }
@@ -780,6 +867,13 @@
     /* ========================= */
 
     $('nombreJugador').value = nombreGuardado();
+    guardarAvatar(avatarGuardado());
+    $('avatarJugador').addEventListener('change', evento => guardarAvatar(evento.target.value));
+    $('avatarSala').addEventListener('change', evento => {
+        cambiarAvatar(evento.target.value);
+        evento.target.blur();
+    });
+    $('avatarSala').addEventListener('focus', soltarTeclas);
     $('nombreJugador').addEventListener('change', () => {
         const nombre = $('nombreJugador').value.trim();
         if (nombre) localStorage.setItem(CLAVE_NOMBRE, nombre);

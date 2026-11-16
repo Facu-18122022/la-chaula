@@ -132,7 +132,7 @@ test('configuración: solo valores válidos y no durante el partido', () => {
     const { gestor, sala } = salaConGente(2);
     assert.ok(gestor.configurar('s0', { tiempoMin: 4 }).error);
     assert.equal(gestor.configurar('s0', { tiempoMin: 5, goles: 0, mapaId: 'champions', powerUps: false }).ok, true);
-    assert.deepEqual(sala.config, { mapaId: 'champions', tiempoMin: 5, goles: 0, powerUps: false, equiposBloqueados: true });
+    assert.deepEqual(sala.config, { mapaId: 'champions', tamano: 'normal', modo: 'normal', tiempoMin: 5, goles: 0, powerUps: false, equiposBloqueados: true });
     assert.ok(gestor.configurar('s1', { tiempoMin: 3 }).error, 'no admin');
     gestor.iniciarPartido('s0');
     assert.match(gestor.configurar('s0', { mapaId: 'haxball' }).error, /Detené/);
@@ -201,4 +201,29 @@ test('el partido termina por límite de goles y la sala vuelve a la espera', () 
     assert.equal(sala.partido, null);
     assert.equal(sala.ultimoResultado.ganador, 'blue');
     assert.ok(enviados.some(envio => envio.evento === 'partido:fin'));
+});
+
+test('avatar: máximo 2 caracteres y se puede cambiar en la sala', () => {
+    const { limpiarAvatar } = require('../server/online/salas.js');
+    assert.equal(limpiarAvatar('  10 '), '10');
+    assert.equal(limpiarAvatar('ABC'), 'AB');
+    assert.equal(limpiarAvatar('👍🏽⚽x'), '👍🏽⚽');
+    const { gestor } = crearGestor();
+    const creada = gestor.crearSala('s0', { nombreJugador: 'Admin', avatar: '9' });
+    assert.equal(creada.sala.jugadores[0].avatar, '9');
+    assert.equal(gestor.cambiarAvatar('s0', { avatar: 'XYZ' }).avatar, 'XY');
+    assert.equal(gestor.cambiarAvatar('s0', { avatar: '' }).avatar, '');
+});
+
+test('modo futsal: pelota más chica y la patada sale más rápido', () => {
+    const { gestor, sala } = salaConGente(2);
+    assert.ok(gestor.configurar('s0', { modo: 'cualquiera' }).error);
+    const normal = gestor.mapaPublico(sala.config.mapaId, sala.config);
+    assert.equal(gestor.configurar('s0', { modo: 'futsal' }).ok, true);
+    const futsal = gestor.mapaPublico(sala.config.mapaId, sala.config);
+    assert.equal(futsal.modo, 'futsal');
+    gestor.iniciarPartido('s0');
+    const pelota = sala.partido.estado.ball;
+    assert.ok(pelota.r < 8 * normal.escala);
+    assert.equal(pelota.invMass, 1.5);
 });

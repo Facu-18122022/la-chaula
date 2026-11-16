@@ -42,6 +42,10 @@
                     <label for="nombreJugador">Nombre</label>
                     <input id="nombreJugador" type="text" maxlength="16" autocomplete="nickname" placeholder="Ej: Facu">
                 </div>
+                <div class="form-group">
+                    <label for="avatarJugador" title="Lo que se ve dentro de tu círculo (vacío = tu número)">Avatar (máx. 2 caracteres)</label>
+                    <input id="avatarJugador" class="online-avatar__input" type="text" maxlength="16" autocomplete="off" placeholder="10">
+                </div>
 
                 <h2 class="ssf-subtitle online-salas__subtitulo">Crear sala</h2>
 
@@ -129,6 +133,10 @@
                                 <button id="copiarLink" class="online-mini" type="button">Copiar link</button>
                                 <span id="candado" hidden>🔒</span>
                             </p>
+                            <p class="online-avatar">
+                                <label for="avatarSala" title="Lo que se ve dentro de tu círculo (vacío = tu número). También: /avatar XX en el chat">Tu avatar</label>
+                                <input id="avatarSala" class="online-avatar__input" type="text" maxlength="16" autocomplete="off" placeholder="10">
+                            </p>
                         </div>
                         <button id="salirSala" class="ssf-button ssf-button-danger" type="button">Salir de la sala</button>
                     </div>
@@ -167,6 +175,8 @@
 
                         <section id="controlesAdmin" class="online-config__reglas">
                             <h3>PARTIDO</h3>
+                            <div class="form-group"><label for="cfgModo" title="Futsal: pelota más chica, rápida y rebotona">Modo</label><select id="cfgModo"></select></div>
+                            <div class="form-group"><label for="cfgTamano" title="Tamaño de la cancha">Tamaño de cancha</label><select id="cfgTamano"></select></div>
                             <div class="form-group"><label for="cfgTiempo">Tiempo</label><select id="cfgTiempo"></select></div>
                             <div class="form-group"><label for="cfgGoles" title="Límite de goles">Limite de goles</label><select id="cfgGoles"></select></div>
                             <label class="online-check"><input id="cfgPowerUps" type="checkbox"> Power-ups (rayo, escudo y súper tiro)</label>

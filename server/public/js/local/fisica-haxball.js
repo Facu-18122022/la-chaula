@@ -38,6 +38,19 @@
     // el jugador. invMass 1.2 (futsal 1.5, Classic 1): la patada de fuerza 5 sale a
     // 6 px/tick, más tranquila que los 7.5 del futsal y un poco más viva que el Classic (5).
     const PELOTA = { radio: 8, bCoef: 0.4, invMass: 1.2, damping: 0.99 };
+    // Modos de juego (el online lo elige el admin; viene en `mapa.modo`):
+    // - normal: la pelota de arriba.
+    // - futsal: la pelota de los estadios Futsal de HaxBall: más chica (6.25),
+    //   más liviana (invMass 1.5 → la patada sale a 7.5 px/tick en vez de 6) y
+    //   más rebotona contra bordes y postes (bCoef 0.5).
+    const PELOTAS_POR_MODO = {
+        normal: PELOTA,
+        futsal: { radio: 6.25, bCoef: 0.5, invMass: 1.5, damping: 0.99 }
+    };
+
+    function pelotaDelModo(modo) {
+        return PELOTAS_POR_MODO[modo] || PELOTA;
+    }
     // Postes de futsal: más finitos que los del Classic (radio 8).
     const POSTE = { radio: 5, bCoef: 0.5 };
     // Borde con bCoef 1 como en el ballArea del futsal: el rebote final es
@@ -80,6 +93,24 @@
     const INTENTOS_POSICION_POWERUP = 25;
     const DISTANCIA_LIBRE_POWERUP = 30; // aire mínimo entre el power-up y jugadores/pelota/otros
     const MARGEN_LINEAS_POWERUP = 25; // aire mínimo con las líneas de la cancha
+    // Con más jugadores salen más power-ups y más seguido (con 1v1 queda igual):
+    // cada jugador de más que 2 suma un 30% de frecuencia y cada 2 jugadores de
+    // más uno más en cancha. 5v5: cada 1,1-2,5 s y hasta 6 a la vez.
+    const FRECUENCIA_EXTRA_POR_JUGADOR = 0.3;
+    const MAX_POWERUPS_TOPE = 6;
+
+    function ritmoPowerUps(estado) {
+        const extra = Math.max(0, estado.players.length - 2);
+        return {
+            divisor: 1 + extra * FRECUENCIA_EXTRA_POR_JUGADOR,
+            maximo: Math.min(MAX_POWERUPS_TOPE, MAX_POWERUPS_EN_CANCHA + Math.floor(extra / 2))
+        };
+    }
+
+    function sortearEspera(estado, min, max) {
+        const { divisor } = ritmoPowerUps(estado);
+        return Math.max(30, Math.round(sortearTicks(estado, min, max) / divisor));
+    }
 
     function normalizarMapa(mapa) {
         const width = Number(mapa && mapa.width) || 800;
@@ -157,7 +188,8 @@
             goalBottom: map.goalBottom,
             postes: crearPostes(map),
             players,
-            ball: { x: centroX, y: map.height / 2, vx: 0, vy: 0, r: PELOTA.radio * map.escala, invMass: PELOTA.invMass },
+            fisicaPelota: pelotaDelModo(map.modo),
+            ball: { x: centroX, y: map.height / 2, vx: 0, vy: 0, r: pelotaDelModo(map.modo).radio * map.escala, invMass: pelotaDelModo(map.modo).invMass },
             powerUpsHabilitados: !!powerUps,
             activePowerUps: [],
             aleatorio: typeof aleatorio === 'function' ? aleatorio : Math.random,
@@ -181,7 +213,7 @@
             powerImpactId: 0,
             lastPowerImpact: null
         };
-        estado.proximoPowerUpTicks = sortearTicks(estado, TICKS_PRIMER_POWERUP_MIN, TICKS_PRIMER_POWERUP_MAX);
+        estado.proximoPowerUpTicks = sortearEspera(estado, TICKS_PRIMER_POWERUP_MIN, TICKS_PRIMER_POWERUP_MAX);
         return estado;
     }
 
@@ -288,8 +320,8 @@
         const pelota = estado.ball;
         pelota.x += pelota.vx;
         pelota.y += pelota.vy;
-        pelota.vx *= PELOTA.damping;
-        pelota.vy *= PELOTA.damping;
+        pelota.vx *= estado.fisicaPelota.damping;
+        pelota.vy *= estado.fisicaPelota.damping;
     }
 
     /* ========================= */
@@ -527,11 +559,11 @@
             }
         }
         players.forEach(jugador => {
-            if (chocarDiscos(jugador, ball, JUGADOR.bCoef, PELOTA.bCoef)) registrarToque(jugador, estado);
+            if (chocarDiscos(jugador, ball, JUGADOR.bCoef, estado.fisicaPelota.bCoef)) registrarToque(jugador, estado);
         });
         players.forEach(jugador => postes.forEach(poste => chocarDiscoFijo(jugador, poste, JUGADOR.bCoef, POSTE.bCoef)));
-        postes.forEach(poste => chocarPosteBarrido(ball, poste, PELOTA.bCoef, POSTE.bCoef, pelotaAnterior));
-        segmentosPelota(estado).forEach(segmento => chocarSegmento(ball, segmento, PELOTA.bCoef, pelotaAnterior));
+        postes.forEach(poste => chocarPosteBarrido(ball, poste, estado.fisicaPelota.bCoef, POSTE.bCoef, pelotaAnterior));
+        segmentosPelota(estado).forEach(segmento => chocarSegmento(ball, segmento, estado.fisicaPelota.bCoef, pelotaAnterior));
         players.forEach(jugador => {
             limitarAlEstadio(jugador, estado.mapa);
             if (estado.waitingForKickOff && !estado.golEnCurso) aplicarBarrerasSaque(jugador, estado);
@@ -631,8 +663,8 @@
         estado.proximoPowerUpTicks -= 1;
         if (estado.proximoPowerUpTicks <= 0) {
             // Con la cancha llena no se acumula: se sortea otra espera.
-            if (estado.activePowerUps.length < MAX_POWERUPS_EN_CANCHA) aparecerPowerUp(estado);
-            estado.proximoPowerUpTicks = sortearTicks(estado, TICKS_ENTRE_POWERUPS_MIN, TICKS_ENTRE_POWERUPS_MAX);
+            if (estado.activePowerUps.length < ritmoPowerUps(estado).maximo) aparecerPowerUp(estado);
+            estado.proximoPowerUpTicks = sortearEspera(estado, TICKS_ENTRE_POWERUPS_MIN, TICKS_ENTRE_POWERUPS_MAX);
         }
         for (let i = estado.activePowerUps.length - 1; i >= 0; i -= 1) {
             const powerUp = estado.activePowerUps[i];
@@ -657,7 +689,7 @@
     // el último) y el próximo sale enseguida, no después de un intervalo entero.
     function quitarPowerUps(estado) {
         estado.activePowerUps.length = 0;
-        estado.proximoPowerUpTicks = sortearTicks(estado, TICKS_PRIMER_POWERUP_MIN, TICKS_PRIMER_POWERUP_MAX);
+        estado.proximoPowerUpTicks = sortearEspera(estado, TICKS_PRIMER_POWERUP_MIN, TICKS_PRIMER_POWERUP_MAX);
         estado.players.forEach(jugador => {
             jugador.r = jugador.rBase;
             jugador.activePower = null;
@@ -736,7 +768,7 @@
         reiniciarSaque,
         normalizarMapa,
         constantes: {
-            JUGADOR, PELOTA, POSTE, DISTANCIA_PATADA, MS_POR_TICK, ANCHO_REFERENCIA, ALTO_REFERENCIA, ESCALA_MAX,
+            JUGADOR, PELOTA, PELOTAS_POR_MODO, POSTE, DISTANCIA_PATADA, MS_POR_TICK, ANCHO_REFERENCIA, ALTO_REFERENCIA, ESCALA_MAX,
             TIPOS_POWERUP, RADIO_POWERUP, MAX_POWERUPS_EN_CANCHA, DISTANCIA_LIBRE_POWERUP,
             TICKS_ENTRE_POWERUPS_MIN, TICKS_ENTRE_POWERUPS_MAX, TICKS_PRIMER_POWERUP_MIN, TICKS_PRIMER_POWERUP_MAX
         }
